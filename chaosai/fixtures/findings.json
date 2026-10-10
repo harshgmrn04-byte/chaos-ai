@@ -1,0 +1,40 @@
+[
+  {
+    "experiment_id": "postgres-pause",
+    "summary": "Shared SQL dependency broadens simulated impact",
+    "root_cause": "Fixture illustration of shared dependency risk; runtime behavior is unmeasured.",
+    "severity": "high",
+    "evidence": [
+      "Synthetic checkout error rate 55%; simulated abort.",
+      "ecommerce-microservices/docker-compose.yml:80,98,122 declare shared PostgreSQL."
+    ],
+    "fixes": [
+      "Use bounded database timeouts and test recovery after interrupted queries."
+    ]
+  },
+  {
+    "experiment_id": "redis-stop",
+    "summary": "Cache interruption violates the simulated browse hypothesis",
+    "root_cause": "Source awaits cache commands without a fallback; these fixture metrics are illustrative.",
+    "severity": "high",
+    "evidence": [
+      "Synthetic browse error rate 30%; p95 450ms.",
+      "ecommerce-microservices/product-service/src/utils/cache.ts:12-25"
+    ],
+    "fixes": [
+      "Add bounded cache deadlines and a safe database fallback."
+    ]
+  },
+  {
+    "experiment_id": "product-cpu",
+    "summary": "Reduced CPU stays within the simulated latency budget",
+    "root_cause": "Synthetic control example; actual CPU sensitivity is unmeasured.",
+    "severity": "low",
+    "evidence": [
+      "Synthetic browse p95 162ms versus baseline 90ms."
+    ],
+    "fixes": [
+      "Measure catalog CPU saturation before setting resource budgets."
+    ]
+  }
+]

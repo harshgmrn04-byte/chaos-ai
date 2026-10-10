@@ -1,0 +1,29 @@
+[
+  {
+    "experiment_id": "redis-stop",
+    "score": 53,
+    "error_pen": 24.0,
+    "latency_pen": 20,
+    "recovery_pen": 0,
+    "blast_pen": 3.3333333333333335,
+    "abort_pen": 0
+  },
+  {
+    "experiment_id": "postgres-pause",
+    "score": 17,
+    "error_pen": 40,
+    "latency_pen": 20,
+    "recovery_pen": 8.333333333333332,
+    "blast_pen": 10.0,
+    "abort_pen": 5
+  },
+  {
+    "experiment_id": "product-cpu",
+    "score": 95,
+    "error_pen": 0.8,
+    "latency_pen": 4.0,
+    "recovery_pen": 0,
+    "blast_pen": 0.0,
+    "abort_pen": 0
+  }
+]

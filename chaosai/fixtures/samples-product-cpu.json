@@ -1,0 +1,2402 @@
+[
+  {
+    "t": 1791705960.0,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 81.0,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705960.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705960.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705960.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705961.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705961.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705961.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705962.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705962.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705962.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705963.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705963.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705963.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705963.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705964.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705964.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705964.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705965.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705965.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705965.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705966.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705966.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705966.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705966.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705967.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705967.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705967.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705968.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705968.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705968.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705969.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705969.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705969.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705969.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705970.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705970.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705970.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705971.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705971.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705971.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705972.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705972.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705972.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705972.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705973.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705973.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705973.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705974.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705974.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705974.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705975.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705975.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705975.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705975.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705976.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705976.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705976.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705977.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705977.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705977.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705978.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705978.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705978.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705978.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705979.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705979.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705979.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705980.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705980.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705980.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705981.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705981.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705981.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705981.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705982.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705982.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705982.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705983.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705983.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705983.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705984.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705984.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705984.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705984.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705985.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705985.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705985.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705986.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705986.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705986.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 81.0,
+    "error": null
+  },
+  {
+    "t": 1791705987.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 162.0,
+    "error": null
+  },
+  {
+    "t": 1791705987.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 162.0,
+    "error": null
+  },
+  {
+    "t": 1791705987.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 162.0,
+    "error": null
+  },
+  {
+    "t": 1791705987.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 162.0,
+    "error": null
+  },
+  {
+    "t": 1791705988.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 162.0,
+    "error": null
+  },
+  {
+    "t": 1791705988.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 162.0,
+    "error": null
+  },
+  {
+    "t": 1791705988.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 162.0,
+    "error": null
+  },
+  {
+    "t": 1791705989.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 162.0,
+    "error": null
+  },
+  {
+    "t": 1791705989.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 252.0,
+    "error": null
+  },
+  {
+    "t": 1791705989.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 252.0,
+    "error": null
+  },
+  {
+    "t": 1791705960.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705960.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705960.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705960.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705961.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705961.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705961.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705962.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705962.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705962.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705963.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705963.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705963.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705963.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705964.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705964.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705964.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705965.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705965.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705965.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705966.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705966.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705966.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705966.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705967.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705967.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705967.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705968.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705968.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705968.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705969.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705969.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705969.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705969.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705970.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705970.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705970.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705971.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705971.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705971.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705972.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705972.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705972.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705972.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705973.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705973.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705973.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705974.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705974.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705974.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705975.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705975.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705975.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705975.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705976.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705976.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705976.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705977.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705977.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705977.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705978.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705978.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705978.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705978.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705979.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705979.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705979.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705980.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705980.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705980.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705981.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705981.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705981.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705981.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705982.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705982.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705982.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705983.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705983.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705983.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705984.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705984.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705984.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705984.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705985.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705985.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705985.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705986.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705986.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705986.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 70,
+    "error": null
+  },
+  {
+    "t": 1791705987.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 140,
+    "error": null
+  },
+  {
+    "t": 1791705987.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 140,
+    "error": null
+  },
+  {
+    "t": 1791705987.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 140,
+    "error": null
+  },
+  {
+    "t": 1791705987.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 140,
+    "error": null
+  },
+  {
+    "t": 1791705988.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 140,
+    "error": null
+  },
+  {
+    "t": 1791705988.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 140,
+    "error": null
+  },
+  {
+    "t": 1791705988.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 140,
+    "error": null
+  },
+  {
+    "t": 1791705989.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 140,
+    "error": null
+  },
+  {
+    "t": 1791705989.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 200,
+    "error": null
+  },
+  {
+    "t": 1791705989.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 200,
+    "error": null
+  },
+  {
+    "t": 1791705960.0,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705960.3,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705960.6,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705960.9,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705961.2,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705961.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705961.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705962.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705962.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705962.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705963.0,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705963.3,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705963.6,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705963.9,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705964.2,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705964.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705964.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705965.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705965.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705965.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705966.0,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705966.3,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705966.6,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705966.9,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705967.2,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705967.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705967.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705968.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705968.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705968.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705969.0,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705969.3,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705969.6,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705969.9,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705970.2,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705970.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705970.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705971.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705971.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705971.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705972.0,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705972.3,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705972.6,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705972.9,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705973.2,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705973.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705973.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705974.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705974.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705974.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705975.0,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705975.3,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705975.6,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705975.9,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705976.2,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705976.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705976.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705977.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705977.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705977.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705978.0,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705978.3,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705978.6,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705978.9,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705979.2,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705979.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705979.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705980.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705980.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705980.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705981.0,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705981.3,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705981.6,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705981.9,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705982.2,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705982.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705982.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705983.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705983.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705983.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705984.0,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705984.3,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705984.6,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705984.9,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705985.2,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705985.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705985.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705986.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705986.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705986.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 100,
+    "error": null
+  },
+  {
+    "t": 1791705987.0,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 180,
+    "error": null
+  },
+  {
+    "t": 1791705987.3,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 180,
+    "error": null
+  },
+  {
+    "t": 1791705987.6,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 180,
+    "error": null
+  },
+  {
+    "t": 1791705987.9,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 180,
+    "error": null
+  },
+  {
+    "t": 1791705988.2,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 180,
+    "error": null
+  },
+  {
+    "t": 1791705988.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 180,
+    "error": null
+  },
+  {
+    "t": 1791705988.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 180,
+    "error": null
+  },
+  {
+    "t": 1791705989.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 180,
+    "error": null
+  },
+  {
+    "t": 1791705989.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 300,
+    "error": null
+  },
+  {
+    "t": 1791705989.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 300,
+    "error": null
+  }
+]

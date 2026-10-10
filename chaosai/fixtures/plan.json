@@ -1,0 +1,59 @@
+[
+  {
+    "id": "redis-stop",
+    "fault": "stop",
+    "target": "redis",
+    "duration_s": 30,
+    "intensity": null,
+    "hypothesis": {
+      "journey": "browse",
+      "max_error_rate": 0.05,
+      "max_p95_multiple": 2,
+      "statement": "Journeys stay below 5% errors and 2x baseline p95."
+    },
+    "abort": {
+      "max_error_rate": 0.6,
+      "max_p95_multiple": 8
+    },
+    "reason": "Source cache calls lack an unavailable-cache fallback; simulate a browse interruption.",
+    "rank": 1
+  },
+  {
+    "id": "postgres-pause",
+    "fault": "pause",
+    "target": "postgres",
+    "duration_s": 30,
+    "intensity": null,
+    "hypothesis": {
+      "journey": "all",
+      "max_error_rate": 0.05,
+      "max_p95_multiple": 2,
+      "statement": "Journeys stay below 5% errors and 2x baseline p95."
+    },
+    "abort": {
+      "max_error_rate": 0.45,
+      "max_p95_multiple": 8
+    },
+    "reason": "Shared SQL dependency motivates a simulated blast-radius and abort example.",
+    "rank": 2
+  },
+  {
+    "id": "product-cpu",
+    "fault": "cpu_limit",
+    "target": "product-service",
+    "duration_s": 30,
+    "intensity": 0.25,
+    "hypothesis": {
+      "journey": "browse",
+      "max_error_rate": 0.05,
+      "max_p95_multiple": 2,
+      "statement": "Journeys stay below 5% errors and 2x baseline p95."
+    },
+    "abort": {
+      "max_error_rate": 0.6,
+      "max_p95_multiple": 8
+    },
+    "reason": "Simulate catalog latency under a reduced CPU budget.",
+    "rank": 3
+  }
+]

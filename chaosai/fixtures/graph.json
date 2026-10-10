@@ -1,0 +1,296 @@
+{
+  "app": "ecommerce-microservices",
+  "nodes": [
+    {
+      "id": "postgres",
+      "container": "ecommerce-postgres",
+      "kind": "database",
+      "image": "postgres:16-alpine",
+      "host_ports": [
+        5433
+      ],
+      "container_ports": [
+        5432
+      ],
+      "injectable": true
+    },
+    {
+      "id": "mongodb",
+      "container": "ecommerce-mongodb",
+      "kind": "database",
+      "image": "mongo:7",
+      "host_ports": [
+        27017
+      ],
+      "container_ports": [
+        27017
+      ],
+      "injectable": true
+    },
+    {
+      "id": "redis",
+      "container": "ecommerce-redis",
+      "kind": "cache",
+      "image": "redis:7-alpine",
+      "host_ports": [
+        6380
+      ],
+      "container_ports": [
+        6379
+      ],
+      "injectable": true
+    },
+    {
+      "id": "rabbitmq",
+      "container": "ecommerce-rabbitmq",
+      "kind": "broker",
+      "image": "rabbitmq:3-management-alpine",
+      "host_ports": [
+        5672,
+        15672
+      ],
+      "container_ports": [
+        5672,
+        15672
+      ],
+      "injectable": true
+    },
+    {
+      "id": "mailhog",
+      "container": "ecommerce-mailhog",
+      "kind": "tool",
+      "image": "mailhog/mailhog",
+      "host_ports": [
+        1025,
+        8025
+      ],
+      "container_ports": [
+        1025,
+        8025
+      ],
+      "injectable": true
+    },
+    {
+      "id": "auth-service",
+      "container": "ecommerce-auth",
+      "kind": "app",
+      "image": null,
+      "host_ports": [
+        3004
+      ],
+      "container_ports": [
+        3001
+      ],
+      "injectable": true
+    },
+    {
+      "id": "product-service",
+      "container": "ecommerce-products",
+      "kind": "app",
+      "image": null,
+      "host_ports": [
+        3002
+      ],
+      "container_ports": [
+        3002
+      ],
+      "injectable": true
+    },
+    {
+      "id": "order-service",
+      "container": "ecommerce-orders",
+      "kind": "app",
+      "image": null,
+      "host_ports": [
+        3003
+      ],
+      "container_ports": [
+        3003
+      ],
+      "injectable": true
+    },
+    {
+      "id": "notification-service",
+      "container": "ecommerce-notifications",
+      "kind": "app",
+      "image": null,
+      "host_ports": [],
+      "container_ports": [],
+      "injectable": true
+    },
+    {
+      "id": "frontend",
+      "container": "ecommerce-frontend",
+      "kind": "app",
+      "image": null,
+      "host_ports": [
+        3000
+      ],
+      "container_ports": [
+        3000
+      ],
+      "injectable": true
+    },
+    {
+      "id": "stripe",
+      "container": null,
+      "kind": "external",
+      "image": null,
+      "host_ports": [],
+      "container_ports": [],
+      "injectable": false
+    },
+    {
+      "id": "cloudinary",
+      "container": null,
+      "kind": "external",
+      "image": null,
+      "host_ports": [],
+      "container_ports": [],
+      "injectable": false
+    },
+    {
+      "id": "resend",
+      "container": null,
+      "kind": "external",
+      "image": null,
+      "host_ports": [],
+      "container_ports": [],
+      "injectable": false
+    }
+  ],
+  "edges": [
+    {
+      "source": "auth-service",
+      "target": "postgres",
+      "kind": "sql",
+      "evidence": "ecommerce-microservices/auth-service/prisma/schema.prisma; docker-compose.yml:80",
+      "criticality": "unknown"
+    },
+    {
+      "source": "product-service",
+      "target": "postgres",
+      "kind": "sql",
+      "evidence": "ecommerce-microservices/product-service/prisma/schema.prisma",
+      "criticality": "unknown"
+    },
+    {
+      "source": "product-service",
+      "target": "mongodb",
+      "kind": "nosql",
+      "evidence": "ecommerce-microservices/product-service/src/models/Review.ts",
+      "criticality": "unknown"
+    },
+    {
+      "source": "product-service",
+      "target": "redis",
+      "kind": "cache",
+      "evidence": "ecommerce-microservices/product-service/src/utils/cache.ts",
+      "criticality": "unknown"
+    },
+    {
+      "source": "product-service",
+      "target": "cloudinary",
+      "kind": "http",
+      "evidence": "ecommerce-microservices/product-service/src/utils/cloudinary.ts",
+      "criticality": "unknown"
+    },
+    {
+      "source": "order-service",
+      "target": "postgres",
+      "kind": "sql",
+      "evidence": "ecommerce-microservices/order-service/prisma/schema.prisma",
+      "criticality": "unknown"
+    },
+    {
+      "source": "order-service",
+      "target": "rabbitmq",
+      "kind": "amqp",
+      "evidence": "ecommerce-microservices/order-service/src/utils/rabbitmq.ts",
+      "criticality": "unknown"
+    },
+    {
+      "source": "order-service",
+      "target": "stripe",
+      "kind": "http",
+      "evidence": "ecommerce-microservices/order-service/src/controllers/orderController.ts (conditional)",
+      "criticality": "unknown"
+    },
+    {
+      "source": "notification-service",
+      "target": "rabbitmq",
+      "kind": "amqp",
+      "evidence": "ecommerce-microservices/notification-service/src/consumers/orderConsumer.ts",
+      "criticality": "unknown"
+    },
+    {
+      "source": "notification-service",
+      "target": "mongodb",
+      "kind": "nosql",
+      "evidence": "ecommerce-microservices/notification-service/src/models/Notification.ts",
+      "criticality": "unknown"
+    },
+    {
+      "source": "notification-service",
+      "target": "resend",
+      "kind": "http",
+      "evidence": "ecommerce-microservices/notification-service/src/utils/email.ts",
+      "criticality": "unknown"
+    },
+    {
+      "source": "frontend",
+      "target": "auth-service",
+      "kind": "http",
+      "evidence": "ecommerce-microservices/frontend/src/lib/api.ts (browser calls)",
+      "criticality": "unknown"
+    },
+    {
+      "source": "frontend",
+      "target": "product-service",
+      "kind": "http",
+      "evidence": "ecommerce-microservices/frontend/src/lib/api.ts (browser calls)",
+      "criticality": "unknown"
+    },
+    {
+      "source": "frontend",
+      "target": "order-service",
+      "kind": "http",
+      "evidence": "ecommerce-microservices/frontend/src/lib/api.ts (browser calls)",
+      "criticality": "unknown"
+    }
+  ],
+  "flows": [
+    {
+      "name": "browse",
+      "path": [
+        "frontend",
+        "product-service",
+        "redis",
+        "postgres"
+      ]
+    },
+    {
+      "name": "login",
+      "path": [
+        "frontend",
+        "auth-service",
+        "postgres"
+      ]
+    },
+    {
+      "name": "checkout",
+      "path": [
+        "frontend",
+        "order-service",
+        "postgres",
+        "rabbitmq",
+        "notification-service",
+        "resend"
+      ]
+    }
+  ],
+  "sources": {
+    "parsed": false,
+    "overrides": false
+  }
+}

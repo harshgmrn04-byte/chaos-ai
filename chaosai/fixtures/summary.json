@@ -1,0 +1,36 @@
+{
+  "overall_score": 55.0,
+  "band": "weak",
+  "ranked_weaknesses": [
+    {
+      "title": "Shared SQL dependency broadens simulated impact",
+      "severity": "high",
+      "experiments": [
+        "postgres-pause"
+      ],
+      "fix": "Use bounded database timeouts and test recovery after interrupted queries."
+    },
+    {
+      "title": "Cache interruption violates the simulated browse hypothesis",
+      "severity": "high",
+      "experiments": [
+        "redis-stop"
+      ],
+      "fix": "Add bounded cache deadlines and a safe database fallback."
+    },
+    {
+      "title": "Reduced CPU stays within the simulated latency budget",
+      "severity": "low",
+      "experiments": [
+        "product-cpu"
+      ],
+      "fix": "Measure catalog CPU saturation before setting resource budgets."
+    }
+  ],
+  "top_fixes": [
+    "Use bounded database timeouts and test recovery after interrupted queries.",
+    "Add bounded cache deadlines and a safe database fallback.",
+    "Measure catalog CPU saturation before setting resource budgets."
+  ],
+  "narrative": "Synthetic examples show cache dependency risk, shared SQL impact and a CPU control. These are fixture findings, not a resilience assessment of the running target."
+}

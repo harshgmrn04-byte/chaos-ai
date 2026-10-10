@@ -1,0 +1,99 @@
+{
+  "created_at": "2026-10-11T08:00:00Z",
+  "window_s": 60,
+  "stable": true,
+  "journeys": {
+    "browse": {
+      "n": 200,
+      "error_rate": 0,
+      "p50_ms": 45,
+      "p95_ms": 90,
+      "p99_ms": 140,
+      "rps": 3.3333333333333335
+    },
+    "login": {
+      "n": 200,
+      "error_rate": 0,
+      "p50_ms": 70,
+      "p95_ms": 140,
+      "p99_ms": 200,
+      "rps": 3.3333333333333335
+    },
+    "checkout": {
+      "n": 200,
+      "error_rate": 0,
+      "p50_ms": 100,
+      "p95_ms": 180,
+      "p99_ms": 300,
+      "rps": 3.3333333333333335
+    }
+  },
+  "containers": {
+    "ecommerce-postgres": {
+      "cpu_pct": 3,
+      "mem_mb": 100,
+      "restarts": 0
+    },
+    "ecommerce-mongodb": {
+      "cpu_pct": 3,
+      "mem_mb": 100,
+      "restarts": 0
+    },
+    "ecommerce-redis": {
+      "cpu_pct": 3,
+      "mem_mb": 100,
+      "restarts": 0
+    },
+    "ecommerce-rabbitmq": {
+      "cpu_pct": 3,
+      "mem_mb": 100,
+      "restarts": 0
+    },
+    "ecommerce-mailhog": {
+      "cpu_pct": 3,
+      "mem_mb": 100,
+      "restarts": 0
+    },
+    "ecommerce-auth": {
+      "cpu_pct": 12,
+      "mem_mb": 100,
+      "restarts": 0
+    },
+    "ecommerce-products": {
+      "cpu_pct": 12,
+      "mem_mb": 100,
+      "restarts": 0
+    },
+    "ecommerce-orders": {
+      "cpu_pct": 12,
+      "mem_mb": 100,
+      "restarts": 0
+    },
+    "ecommerce-notifications": {
+      "cpu_pct": 12,
+      "mem_mb": 100,
+      "restarts": 0
+    },
+    "ecommerce-frontend": {
+      "cpu_pct": 12,
+      "mem_mb": 100,
+      "restarts": 0
+    }
+  },
+  "queues": {
+    "notifications": 0.0
+  },
+  "thresholds": {
+    "hypothesis": {
+      "max_error_rate": 0.05,
+      "p95_multiple": 2
+    },
+    "abort": {
+      "max_error_rate": 0.6,
+      "p95_multiple": 8,
+      "max_unhealthy_containers": 3,
+      "min_samples": 10,
+      "consecutive_breaches": 2
+    }
+  }
+}

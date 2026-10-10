@@ -1,0 +1,2402 @@
+[
+  {
+    "t": 1791705840.0,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705840.3,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705840.6,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705840.9,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705841.2,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705841.5,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705841.8,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705842.1,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705842.4,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705842.7,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705843.0,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705843.3,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705843.6,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705843.9,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705844.2,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705844.5,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705844.8,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705845.1,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705845.4,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705845.7,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705846.0,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705846.3,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705846.6,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705846.9,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705847.2,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705847.5,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705847.8,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705848.1,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705848.4,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705848.7,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705849.0,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705849.3,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705849.6,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705849.9,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705850.2,
+    "journey": "browse",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 270,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705850.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705850.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705851.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705851.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705851.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705852.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705852.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705852.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705852.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705853.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705853.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705853.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705854.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705854.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705854.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705855.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705855.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705855.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705855.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705856.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705856.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705856.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705857.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705857.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705857.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705858.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705858.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705858.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705858.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705859.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705859.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705859.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705860.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705860.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705860.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705861.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705861.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705861.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705861.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705862.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705862.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705862.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705863.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705863.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705863.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705864.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705864.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705864.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705864.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705865.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705865.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705865.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705866.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705866.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705866.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 270,
+    "error": null
+  },
+  {
+    "t": 1791705867.0,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 540,
+    "error": null
+  },
+  {
+    "t": 1791705867.3,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 540,
+    "error": null
+  },
+  {
+    "t": 1791705867.6,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 540,
+    "error": null
+  },
+  {
+    "t": 1791705867.9,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 540,
+    "error": null
+  },
+  {
+    "t": 1791705868.2,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 540,
+    "error": null
+  },
+  {
+    "t": 1791705868.5,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 540,
+    "error": null
+  },
+  {
+    "t": 1791705868.8,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 540,
+    "error": null
+  },
+  {
+    "t": 1791705869.1,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 540,
+    "error": null
+  },
+  {
+    "t": 1791705869.4,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 840,
+    "error": null
+  },
+  {
+    "t": 1791705869.7,
+    "journey": "browse",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 840,
+    "error": null
+  },
+  {
+    "t": 1791705840.0,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705840.3,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705840.6,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705840.9,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705841.2,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705841.5,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705841.8,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705842.1,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705842.4,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705842.7,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705843.0,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705843.3,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705843.6,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705843.9,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705844.2,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705844.5,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705844.8,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705845.1,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705845.4,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705845.7,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705846.0,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705846.3,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705846.6,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705846.9,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705847.2,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705847.5,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705847.8,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705848.1,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705848.4,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705848.7,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705849.0,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705849.3,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705849.6,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705849.9,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705850.2,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705850.5,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705850.8,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705851.1,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705851.4,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705851.7,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705852.0,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705852.3,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705852.6,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705852.9,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705853.2,
+    "journey": "login",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 420,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705853.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705853.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705854.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705854.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705854.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705855.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705855.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705855.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705855.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705856.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705856.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705856.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705857.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705857.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705857.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705858.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705858.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705858.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705858.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705859.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705859.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705859.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705860.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705860.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705860.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705861.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705861.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705861.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705861.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705862.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705862.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705862.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705863.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705863.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705863.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705864.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705864.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705864.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705864.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705865.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705865.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705865.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705866.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705866.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705866.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 420,
+    "error": null
+  },
+  {
+    "t": 1791705867.0,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 840,
+    "error": null
+  },
+  {
+    "t": 1791705867.3,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 840,
+    "error": null
+  },
+  {
+    "t": 1791705867.6,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 840,
+    "error": null
+  },
+  {
+    "t": 1791705867.9,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 840,
+    "error": null
+  },
+  {
+    "t": 1791705868.2,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 840,
+    "error": null
+  },
+  {
+    "t": 1791705868.5,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 840,
+    "error": null
+  },
+  {
+    "t": 1791705868.8,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 840,
+    "error": null
+  },
+  {
+    "t": 1791705869.1,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 840,
+    "error": null
+  },
+  {
+    "t": 1791705869.4,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 1200,
+    "error": null
+  },
+  {
+    "t": 1791705869.7,
+    "journey": "login",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 1200,
+    "error": null
+  },
+  {
+    "t": 1791705840.0,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705840.3,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705840.6,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705840.9,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705841.2,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705841.5,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705841.8,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705842.1,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705842.4,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705842.7,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705843.0,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705843.3,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705843.6,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705843.9,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705844.2,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705844.5,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705844.8,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705845.1,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705845.4,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705845.7,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705846.0,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705846.3,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705846.6,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705846.9,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705847.2,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705847.5,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705847.8,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705848.1,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705848.4,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705848.7,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705849.0,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705849.3,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705849.6,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705849.9,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705850.2,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705850.5,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705850.8,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705851.1,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705851.4,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705851.7,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705852.0,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705852.3,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705852.6,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705852.9,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705853.2,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705853.5,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705853.8,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705854.1,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705854.4,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705854.7,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705855.0,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705855.3,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705855.6,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705855.9,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705856.2,
+    "journey": "checkout",
+    "ok": false,
+    "status": 503,
+    "latency_ms": 600,
+    "error": "synthetic dependency failure"
+  },
+  {
+    "t": 1791705856.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705856.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705857.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705857.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705857.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705858.0,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705858.3,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705858.6,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705858.9,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705859.2,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705859.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705859.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705860.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705860.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705860.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705861.0,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705861.3,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705861.6,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705861.9,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705862.2,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705862.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705862.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705863.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705863.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705863.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705864.0,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705864.3,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705864.6,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705864.9,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705865.2,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705865.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705865.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705866.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705866.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705866.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 600,
+    "error": null
+  },
+  {
+    "t": 1791705867.0,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 1080,
+    "error": null
+  },
+  {
+    "t": 1791705867.3,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 1080,
+    "error": null
+  },
+  {
+    "t": 1791705867.6,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 1080,
+    "error": null
+  },
+  {
+    "t": 1791705867.9,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 1080,
+    "error": null
+  },
+  {
+    "t": 1791705868.2,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 1080,
+    "error": null
+  },
+  {
+    "t": 1791705868.5,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 1080,
+    "error": null
+  },
+  {
+    "t": 1791705868.8,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 1080,
+    "error": null
+  },
+  {
+    "t": 1791705869.1,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 1080,
+    "error": null
+  },
+  {
+    "t": 1791705869.4,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 1800,
+    "error": null
+  },
+  {
+    "t": 1791705869.7,
+    "journey": "checkout",
+    "ok": true,
+    "status": 200,
+    "latency_ms": 1800,
+    "error": null
+  }
+]
