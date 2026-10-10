@@ -61,7 +61,11 @@ def settings(tmp_path: Path) -> Settings:
 @pytest.fixture
 def cli_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     def test_config(*, offline: bool = False) -> Settings:
-        return Settings(project_root=tmp_path, llm_provider="none" if offline else "mock")
+        return Settings(
+            project_root=tmp_path,
+            llm_provider="none" if offline else "mock",
+            target_dir=Path(__file__).parent / "fixtures",
+        )
 
     monkeypatch.setattr(cli, "load_config", test_config)
     monkeypatch.setattr(cli, "PROJECT_ROOT", tmp_path)

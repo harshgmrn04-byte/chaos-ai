@@ -8,7 +8,7 @@ from chaosai.approval import Approver
 from chaosai.baseline import measure_baseline
 from chaosai.config import Settings
 from chaosai.fixture_data import fixture
-from chaosai.mapper import map_target
+from chaosai.mapper import map_target, save_graph
 from chaosai.models import (
     Approval,
     ExperimentResult,
@@ -47,7 +47,9 @@ def execute_experiment(decision: PolicyDecision, run_dir: Path) -> ExperimentRes
     return result
 
 
-def run_pipeline(settings: Settings, approver: Approver, *, dry_run: bool = False) -> Path:
+def run_pipeline(
+    settings: Settings, approver: Approver, *, dry_run: bool = False, offline: bool = False
+) -> Path:
     if not dry_run:
         approver.ensure_interactive()
     run_dir = create_run(settings.runs_dir)
@@ -62,8 +64,8 @@ def run_pipeline(settings: Settings, approver: Approver, *, dry_run: bool = Fals
     write_json(run_dir / "run.json", meta)
     # Empty by design: no real faults or undo actions exist in Phase 1.
     write_json(run_dir / "journal.json", [])
-    graph = map_target()
-    write_json(run_dir / "graph.json", graph)
+    graph = map_target(settings, offline=offline)
+    save_graph(graph, settings, run_dir)
     baseline = measure_baseline(graph)
     write_json(run_dir / "baseline.json", baseline)
     plan, meta.planner_source = plan_experiments(

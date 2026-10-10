@@ -1,0 +1,171 @@
+services:
+  # ─── Infraestrutura ───────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-postgres
+    environment:
+      POSTGRES_USER: ecommerce
+      POSTGRES_PASSWORD: ecommerce123
+      POSTGRES_DB: ecommerce
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecommerce"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7
+    container_name: ecommerce-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ecommerce
+      MONGO_INITDB_ROOT_PASSWORD: ecommerce123
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: ecommerce-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ecommerce
+      RABBITMQ_DEFAULT_PASS: ecommerce123
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: ecommerce-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  # ─── Aplica��es ─────────────────────────────────────────────────
+  auth-service:
+    build: ./auth-service
+    container_name: ecommerce-auth
+    ports:
+      - "3004:3001"
+    environment:
+      DATABASE_URL: postgresql://ecommerce:ecommerce123@postgres:5432/ecommerce_auth
+      JWT_SECRET: super-secret-jwt-key-change-in-production
+      JWT_REFRESH_SECRET: super-secret-refresh-key-change-in-production
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      PORT: 3001
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  product-service:
+    build: ./product-service
+    container_name: ecommerce-products
+    ports:
+      - "3002:3002"
+    environment:
+      DATABASE_URL: postgresql://ecommerce:ecommerce123@postgres:5432/ecommerce_products
+      MONGODB_URI: mongodb://ecommerce:ecommerce123@mongodb:27017/ecommerce?authSource=admin
+      REDIS_URL: redis://redis:6379
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-your-cloud}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-your-key}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-your-secret}
+      JWT_SECRET: super-secret-jwt-key-change-in-production
+      PORT: 3002
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  order-service:
+    build: ./order-service
+    container_name: ecommerce-orders
+    ports:
+      - "3003:3003"
+    environment:
+      DATABASE_URL: postgresql://ecommerce:ecommerce123@postgres:5432/ecommerce_orders
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_placeholder}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_placeholder}
+      RABBITMQ_URL: amqp://ecommerce:ecommerce123@rabbitmq:5672
+      JWT_SECRET: super-secret-jwt-key-change-in-production
+      PORT: 3003
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  notification-service:
+    build: ./notification-service
+    container_name: ecommerce-notifications
+    environment:
+      RABBITMQ_URL: amqp://ecommerce:ecommerce123@rabbitmq:5672
+      RESEND_API_KEY: ${RESEND_API_KEY:-re_placeholder}
+      MONGODB_URI: mongodb://ecommerce:ecommerce123@mongodb:27017/ecommerce?authSource=admin
+      FROM_EMAIL: noreply@ecommerce.com
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3004
+        NEXT_PUBLIC_PRODUCT_API_URL: http://localhost:3002
+        NEXT_PUBLIC_ORDER_API_URL: http://localhost:3003
+    container_name: ecommerce-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - auth-service
+      - product-service
+      - order-service
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  redis_data:
+  rabbitmq_data:

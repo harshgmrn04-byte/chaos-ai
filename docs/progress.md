@@ -3,7 +3,7 @@
 - [x] Phase 0 — Target reconnaissance
 - [x] Phase 1 — Scaffold and walking skeleton
 - [x] Phase 2 — Bring-up, seed, smoke test, payment gate, doctor
-- [ ] Phase 3 — Application mapper
+- [x] Phase 3 — Application mapper
 - [ ] Phase 4 — Load generator, metrics, baseline
 - [ ] Phase 5 — Faults, safety layer, watchdog, kill switch
 - [ ] Phase 6 — Experiment runner and Day-1 demo
@@ -215,3 +215,65 @@ pytest -q -m integration
 Second seed should create no additional accounts/catalog entries and report DB verification
 counts again. Both smoke and integration checkout create an order. No target rebuild is needed
 for this ChaosPilot-only fix.
+
+## Phase 3 — 2026-10-11
+
+Replaced the mapper stub with deterministic Compose parsing: all services/container names,
+image kinds, numeric short/long ports and ranges, list/dict depends_on/environment, build args,
+and env_file declarations. Literal URL authorities/plain hosts resolve service/container names
+or published localhost host ports; ambiguous/interpolated references are not guessed. Edges
+combine field-path evidence without credentials/raw values, refine startup unknown kinds via
+URL schemes, and leave criticality unknown. Stripe/Cloudinary/Resend names create non-injectable
+external nodes, protected against override reclassification. MailHog remains an isolated tool.
+
+Added pydantic override contracts in models.py, full-node/edge upserts, removal/incident cleanup,
+criticality selectors and named flow merges with endpoint/flow/external validation. Shipped
+overrides.yaml defines browse/login/checkout participants, including MongoDB reviews/notification
+storage. docs/overrides.md documents schema, merge order, evidence, branch/asynchronous flow
+semantics and the privacy limitation of env_file declarations. No dotenv/env_file contents are
+opened by the mapper; dependencies private to those files require manual overrides. The current
+target has no env_file. Interpolation is intentionally not expanded, and provider key values
+are never needed. No target notes, target files, Docker state or later-phase modules were changed.
+
+Implemented chaosai map summary tables, per-run and latest .chaosai/graph.json, optional existing
+--run-dir and --mermaid docs/graph.mmd. Default run now uses the real mapper and saves both graphs;
+--offline preserves the packaged graph fixture (parsed=false), applies overrides and completes
+the synthetic pipeline without target access. Map uses exported process config/defaults without
+loading .env. Other metrics, experiments, analysis and scores remain Phase 1 fixtures.
+
+Cross-check against target-notes sections 1, 3, 4 and 5 is recorded in docs/mapper-cross-check.md:
+all ten local nodes/names/ports and eleven Compose startup dependency pairs match; default output
+has 13 nodes, 17 edges, three flows. Three additional auth/product/order -> frontend CORS URL
+references are preserved, rather than claimed as actual backend HTTP calls. Cloudinary is named
+by Compose but not by the requested sections' dependency lists (confirmed in notes section 2).
+All three external edges have unknown protocol without literal URL schemes; Stripe is conditional
+and bypassed by placeholders, Cloudinary is upload-dependent, Resend delivery is unverified.
+Database/collection granularity, operation/cache-dependent usage and retry/payment/delivery
+semantics are graph-contract limits. Frontend HTTP evidence comes from build args and represents
+browser calls. No order->auth/product/notification or notification->MailHog edge was invented.
+
+Verification: ruff check . passed; pytest -q -m "not integration" passed (149 tests, two human
+integration tests deselected). Added docker-free mapper coverage using tests/fixtures/docker-compose.yml,
+confirmed byte-for-byte with cmp against target Compose. Tests cover exact nodes/ports/kinds/edges,
+evidence/privacy, service/container/localhost resolution, ambiguity, list/dict syntax, no file
+reads for env_file, explicit-only MailHog edges, override merges/removals/upserts/selectors,
+non-injectable externals, invalid data, deterministic ordering, shipped flows, fixture offline mode,
+CLI run/latest JSON equality, --run-dir, Mermaid escaping, safe errors and model round-trips.
+chaosai map --mermaid passed (13 nodes/17 edges); python -m chaosai run --offline --yes completed
+and generated a report. git diff --check passed. Read-only target git status is clean. No Docker,
+network, integration or real LLM checks ran. The pre-existing tracked .DS_Store modification is
+excluded from this phase commit. Only Phase 3 is completed in this session.
+
+Open limits: env_file contents/interpolation are intentionally private/unresolved; use overrides
+for those dependencies. Edges indicate declarations/references, not measured runtime criticality
+or conditional activation. Offline graph protocols/evidence remain the manually authored Phase 1
+fixture and are explicitly identified as such. Live behavior is still a human/later-phase check.
+
+**Phase 3 "You verify" (copied from BUILD_PLAN.md):** `chaosai map` prints a graph you recognise
+from the README diagram; fix mistakes via `overrides.yaml`.
+
+```sh
+cd "/Users/harsh/Desktop/Bosch Hackathon Optimised/chaos-ai"
+source .venv/bin/activate
+chaosai map --mermaid
+```

@@ -37,6 +37,16 @@ def instances(value: object) -> list[BaseModel]:
 
 def test_every_contract_round_trips() -> None:
     values = [
+        models.GraphOverrides(
+            edges=models.EdgeOverrides(
+                remove=[models.EdgeSelector(source="frontend", target="auth-service")],
+                criticality=[
+                    models.CriticalityOverride(
+                        source="frontend", target="auth-service", criticality="hard"
+                    )
+                ],
+            ),
+        ),
         fixture("graph", Graph),
         fixture("baseline", Baseline),
         fixture("plan", Plan),

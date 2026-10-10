@@ -1,0 +1,31 @@
+flowchart LR
+  n0["auth-service #40;app#41;"]
+  n1["cloudinary #40;external#41;"]
+  n2["frontend #40;app#41;"]
+  n3["mailhog #40;tool#41;"]
+  n4["mongodb #40;database#41;"]
+  n5["notification-service #40;app#41;"]
+  n6["order-service #40;app#41;"]
+  n7["postgres #40;database#41;"]
+  n8["product-service #40;app#41;"]
+  n9["rabbitmq #40;broker#41;"]
+  n10["redis #40;cache#41;"]
+  n11["resend #40;external#41;"]
+  n12["stripe #40;external#41;"]
+  n0 -->|"http / unknown"| n2
+  n0 -->|"sql / unknown"| n7
+  n2 -->|"http / unknown"| n0
+  n2 -->|"http / unknown"| n6
+  n2 -->|"http / unknown"| n8
+  n5 -->|"nosql / unknown"| n4
+  n5 -->|"amqp / unknown"| n9
+  n5 -->|"unknown / unknown"| n11
+  n6 -->|"http / unknown"| n2
+  n6 -->|"sql / unknown"| n7
+  n6 -->|"amqp / unknown"| n9
+  n6 -->|"unknown / unknown"| n12
+  n8 -->|"unknown / unknown"| n1
+  n8 -->|"http / unknown"| n2
+  n8 -->|"nosql / unknown"| n4
+  n8 -->|"sql / unknown"| n7
+  n8 -->|"cache / unknown"| n10

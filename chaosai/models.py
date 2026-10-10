@@ -32,8 +32,8 @@ class Edge(Model):
     source: str
     target: str
     kind: EdgeKind
-    evidence: str
-    criticality: Criticality
+    evidence: str = Field(min_length=1)
+    criticality: Criticality = "unknown"
 
 
 class Flow(Model):
@@ -52,6 +52,33 @@ class Graph(Model):
     edges: list[Edge]
     flows: list[Flow]
     sources: GraphSources
+
+
+class NodeOverrides(Model):
+    add: list[Node] = Field(default_factory=list)
+    remove: list[str] = Field(default_factory=list)
+
+
+class EdgeSelector(Model):
+    source: str
+    target: str
+    kind: EdgeKind | None = None
+
+
+class CriticalityOverride(EdgeSelector):
+    criticality: Criticality
+
+
+class EdgeOverrides(Model):
+    add: list[Edge] = Field(default_factory=list)
+    remove: list[EdgeSelector] = Field(default_factory=list)
+    criticality: list[CriticalityOverride] = Field(default_factory=list)
+
+
+class GraphOverrides(Model):
+    nodes: NodeOverrides = Field(default_factory=NodeOverrides)
+    edges: EdgeOverrides = Field(default_factory=EdgeOverrides)
+    flows: list[Flow] = Field(default_factory=list)
 
 
 class JourneyStats(Model):

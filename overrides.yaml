@@ -1,0 +1,19 @@
+# Manual journey participation, grounded in docs/target-notes.md sections 2–5 and 7.
+# A path lists participants in a journey; consecutive entries need not be direct edges.
+# Browse lists/categories use PostgreSQL on cache miss; detail also reads MongoDB reviews.
+# Checkout persists to PostgreSQL then publishes through RabbitMQ; Stripe is conditional
+# and bypassed with the Compose placeholder. Resend is an asynchronous downstream attempt.
+nodes:
+  add: []
+  remove: []
+edges:
+  add: []
+  remove: []
+  criticality: []
+flows:
+  - name: browse
+    path: [frontend, product-service, redis, postgres, mongodb]
+  - name: login
+    path: [frontend, auth-service, postgres]
+  - name: checkout
+    path: [frontend, order-service, postgres, rabbitmq, notification-service, resend, mongodb]

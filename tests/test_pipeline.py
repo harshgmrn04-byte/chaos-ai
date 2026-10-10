@@ -7,17 +7,25 @@ from typer.testing import CliRunner
 from chaosai import cli, runner
 from chaosai.approval import ApprovalRequired, Approver
 from chaosai.config import Settings
-from chaosai.models import ExperimentResult, Finding, Plan, RunMeta, Sample, Score, Summary
+from chaosai.models import ExperimentResult, Finding, Graph, Plan, RunMeta, Sample, Score, Summary
 from chaosai.report import render_report
 from chaosai.runs import read_json, read_jsonl, write_json
 
 cli_runner = CliRunner()
 
 
+@pytest.fixture(autouse=True)
+def compose_fixture(settings: Settings) -> None:
+    settings.target_dir = Path(__file__).parent / "fixtures"
+
+
 def test_full_offline_cli(cli_workspace: Path) -> None:
     result = cli_runner.invoke(cli.app, ["run", "--offline", "--yes"])
     assert result.exit_code == 0, result.output
     run_dir = next((cli_workspace / "runs").iterdir())
+    graph = read_json(run_dir / "graph.json", Graph)
+    assert not graph.sources.parsed
+    assert read_json(cli_workspace / ".chaosai" / "graph.json", Graph) == graph
     meta = read_json(run_dir / "run.json", RunMeta)
     assert meta.planner_source == meta.analyzer_source == "heuristic"
     assert [a.decision for a in meta.approvals] == ["yes"] * 3
@@ -81,6 +89,9 @@ def test_ordering_and_mock_cache(settings: Settings, monkeypatch: pytest.MonkeyP
         return "y"
 
     run_dir = runner.run_pipeline(settings, Approver(yes=False, is_tty=True, ask=ask))
+    graph = read_json(run_dir / "graph.json", Graph)
+    assert graph.sources.parsed and len(graph.edges) == 17
+    assert read_json(settings.project_root / ".chaosai" / "graph.json", Graph) == graph
     assert order == [
         "map_target",
         "measure_baseline",
@@ -165,7 +176,6 @@ def test_dry_run_cli(cli_workspace: Path) -> None:
 @pytest.mark.parametrize(
     "command",
     [
-        "map",
         "load",
         "baseline",
         "fault",

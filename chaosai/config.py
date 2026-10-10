@@ -15,6 +15,8 @@ class Settings(BaseModel):
     project_root: Path = PROJECT_ROOT
     target_dir: Path = Path("../ecommerce-microservices")
     compose_project: str = "ecommerce-microservices"
+    compose_file: str = "docker-compose.yml"
+    overrides_file: Path = Path("overrides.yaml")
     llm_provider: Literal["gemini", "mock", "none"] = "none"
     gemini_model: str | None = None
 
@@ -76,6 +78,10 @@ class Settings(BaseModel):
     @property
     def resolved_target_dir(self) -> Path:
         return (self.project_root / self.target_dir).resolve()
+
+    @property
+    def resolved_overrides_file(self) -> Path:
+        return self.project_root / self.overrides_file
 
     @property
     def llm_key_present(self) -> bool:

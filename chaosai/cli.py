@@ -11,8 +11,10 @@ from pydantic import ValidationError
 from chaosai.approval import ApprovalRequired, Approver
 from chaosai.config import PROJECT_ROOT, Settings, load_config
 from chaosai.doctor import doctor_checks, status_checks, target_status
+from chaosai.mapper import MapperError, map_target, mermaid, save_graph
 from chaosai.report import render_report
 from chaosai.runner import run_pipeline
+from chaosai.runs import create_run
 from chaosai.seed import seed_target
 from chaosai.smoke import smoke_target
 from chaosai.target import TargetError, compose_up, get_docker_client
@@ -29,14 +31,73 @@ def run(
     dry_run: bool = typer.Option(False, help="Write a plan/report without executing experiments."),
 ) -> None:
     """Run map → baseline → plan → approvals → fixture results → analysis → score → report."""
-    typer.echo("Phase 1 simulation: fixture data only; no target or LLM calls.")
+    typer.echo(
+        "Simulated experiments/metrics; offline uses fixtures, otherwise map parses Compose."
+    )
     approver = Approver(yes=yes, is_tty=sys.stdin.isatty(), ask=input)
     try:
-        run_dir = run_pipeline(load_config(offline=offline), approver, dry_run=dry_run)
-    except (ApprovalRequired, ValidationError) as exc:
-        typer.echo(str(exc), err=True)
+        run_dir = run_pipeline(
+            load_config(offline=offline), approver, dry_run=dry_run, offline=offline
+        )
+    except (ApprovalRequired, MapperError, ValidationError) as exc:
+        message = (
+            "Invalid configuration or graph data." if isinstance(exc, ValidationError) else str(exc)
+        )
+        typer.echo(message, err=True)
         raise typer.Exit(2) from exc
     typer.echo(f"Report: {run_dir / 'report.html'}")
+
+
+@app.command(name="map")
+def map_command(
+    mermaid_output: bool = typer.Option(False, "--mermaid", help="Write docs/graph.mmd."),
+    offline: bool = typer.Option(
+        False, help="Use bundled graph fixture without reading the target."
+    ),
+    run_dir: Path | None = typer.Option(None, help="Existing run directory inside chaos-ai/runs/."),
+) -> None:
+    """Map Compose references, apply overrides, and save run/latest graph artifacts."""
+    try:
+        # Mapping requires no credentials: use process configuration, never open .env.
+        settings = load_config(offline=True)
+        graph = map_target(settings, offline=offline)
+        if run_dir is not None:
+            run_dir = (settings.project_root / run_dir).resolve()
+            if not run_dir.is_dir() or not run_dir.is_relative_to(settings.runs_dir.resolve()):
+                raise MapperError("--run-dir must be an existing directory inside chaos-ai/runs/.")
+        else:
+            run_dir = create_run(settings.runs_dir)
+        save_graph(graph, settings, run_dir)
+        if mermaid_output:
+            path = settings.project_root / "docs" / "graph.mmd"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(mermaid(graph), encoding="utf-8")
+    except (MapperError, ValidationError, OSError) as exc:
+        message = (
+            str(exc) if isinstance(exc, MapperError) else "Cannot map: check YAML/configuration."
+        )
+        typer.echo(message, err=True)
+        raise typer.Exit(2) from exc
+    typer.echo(f"Graph: {graph.app} ({len(graph.nodes)} nodes, {len(graph.edges)} edges)")
+    typer.echo("SERVICE | KIND | CONTAINER | HOST PORTS | CONTAINER PORTS | INJECTABLE")
+    for node in graph.nodes:
+        host = ",".join(str(port) for port in node.host_ports) or "-"
+        container = ",".join(str(port) for port in node.container_ports) or "-"
+        typer.echo(
+            f"{node.id} | {node.kind} | {node.container or '-'} | {host} | {container} | "
+            f"{'yes' if node.injectable else 'no'}"
+        )
+    typer.echo("SOURCE -> TARGET | KIND | CRITICALITY | EVIDENCE")
+    for edge in graph.edges:
+        typer.echo(
+            f"{edge.source} -> {edge.target} | {edge.kind} | {edge.criticality} | {edge.evidence}"
+        )
+    for flow in graph.flows:
+        typer.echo(f"Flow {flow.name}: {' -> '.join(flow.path)}")
+    typer.echo(f"Graph JSON: {run_dir / 'graph.json'}")
+    typer.echo(f"Latest graph: {settings.project_root / '.chaosai' / 'graph.json'}")
+    if mermaid_output:
+        typer.echo(f"Mermaid: {settings.project_root / 'docs' / 'graph.mmd'}")
 
 
 @app.command()
@@ -170,7 +231,6 @@ def not_implemented() -> None:
 
 
 for command_name in (
-    "map",
     "load",
     "baseline",
     "fault",

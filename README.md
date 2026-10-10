@@ -3,8 +3,10 @@
 AI-driven chaos engineering for cloud-native resilience. Python package: `chaosai`.
 
 Phase 2 provides live target bring-up, diagnostics, seeding and checkout verification.
-The Phase 1 `run` command still uses bundled, synthetic fixtures and never connects to
-Docker, the target, or a real LLM. The graph follows the Phase 0 source notes; metrics and findings
+Phase 3 maps Compose deterministically, with manual overrides and Mermaid output.
+The `run` command maps Compose by default; `--offline` uses the bundled graph fixture.
+Experiments remain synthetic and never connect to Docker, the target APIs, or a real LLM.
+Metrics and findings
 illustrate possible outcomes and are not observations of the running application. The policy
 decisions, rollback and recovery evidence are also fixtures. Real safety controls and scoring
 arrive in later phases.
@@ -37,8 +39,24 @@ Without a TTY, execution requires `--yes`. `n` skips, `a` approves the remaining
 and `q` writes a report for experiments already completed. EOF or Ctrl-C at the approval
 prompt also quits cleanly. Dry runs and entirely skipped plans have no assessed score.
 
-Commands deferred to later phases print `not implemented yet` and exit 2: `map`, `load`,
+Commands deferred to later phases print `not implemented yet` and exit 2: `load`,
 `baseline`, `fault`, `inject`, `rollback`, `kill`, `plan`, `replay`.
+
+## Application graph (Phase 3)
+
+```sh
+chaosai map --mermaid
+chaosai map --run-dir runs/<timestamp>  # update an existing run's graph
+chaosai map --offline                  # packaged graph; no target files
+```
+
+Mapping prints nodes, ports, dependency evidence and flows, writes runs/<timestamp>/graph.json
+and .chaosai/graph.json, and optionally writes docs/graph.mmd. No Docker, HTTP, LLM or dotenv
+read occurs. TARGET_DIR and COMPOSE_PROJECT may be exported in your shell; their defaults
+match this checkout. env_file declarations are parsed without opening their private contents.
+See [docs/overrides.md](docs/overrides.md) for override format/inference rules, and
+[docs/mapper-cross-check.md](docs/mapper-cross-check.md) for every dependency difference from
+the target notes. The shipped overrides define browse, login and checkout participants.
 
 ## Live target commands (Phase 2)
 
