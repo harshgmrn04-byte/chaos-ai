@@ -21,8 +21,8 @@ from chaosai.models import (
     QueueObservation,
     Sample,
 )
+from chaosai.rabbitmq import queue_snapshot
 from chaosai.runs import append_jsonl
-from chaosai.smoke import queue_snapshot
 from chaosai.target import (
     TargetError,
     container_status,
@@ -33,6 +33,14 @@ from chaosai.target import (
 )
 
 logger = logging.getLogger(__name__)
+MIN_BASELINE_SAMPLES = 20
+
+
+def latency_limit_ms(baseline_p95: float, multiple: float, floor_ms: float) -> float:
+    """A breach is strictly above this limit, satisfying both latency guards."""
+    if any(not math.isfinite(v) or v < 0 for v in (baseline_p95, multiple, floor_ms)):
+        raise ValueError("Latency inputs must be finite and nonnegative")
+    return max(multiple * baseline_p95, baseline_p95 + floor_ms)
 
 
 def percentile(values: Iterable[float], p: float) -> float:
@@ -58,6 +66,7 @@ def window_stats(samples: Iterable[Sample], t0: float, t1: float) -> JourneyStat
     n = len(window)
     return JourneyStats(
         n=n,
+        low_sample=n < MIN_BASELINE_SAMPLES,
         error_rate=sum(not s.ok for s in window) / n if n else 0,
         p50_ms=percentile(latencies, 50),
         p95_ms=percentile(latencies, 95),
@@ -161,6 +170,7 @@ class QueueDepthPoller(threading.Thread):
         self.stop_event = threading.Event()
         self._lock = threading.Lock()
         self._observations: list[QueueObservation] = []
+        self._warned_unavailable = False
 
     def poll_once(self, client: httpx.Client) -> None:
         snapshot = queue_snapshot(client, self.settings)
@@ -179,13 +189,20 @@ class QueueDepthPoller(threading.Thread):
             return list(self._observations)
 
     def run(self) -> None:
-        with httpx.Client(timeout=self.settings.load_timeout_s, trust_env=False) as client:
+        with httpx.Client(timeout=self.settings.request_timeout_s, trust_env=False) as client:
             while not self.stop_event.is_set():
                 started = time.monotonic()
                 try:
                     self.poll_once(client)
-                except (TargetError, OSError):
-                    logger.warning("RabbitMQ queue depth unavailable; no zero substituted.")
+                except (TargetError, OSError) as exc:
+                    if not self._warned_unavailable:
+                        reason = str(exc) if isinstance(exc, TargetError) else type(exc).__name__
+                        logger.warning(
+                            "RabbitMQ queue depth unavailable: %s. "
+                            "No zero substituted; continuing polls.",
+                            reason,
+                        )
+                        self._warned_unavailable = True
                 self.stop_event.wait(
                     max(0, self.settings.metrics_interval_s - (time.monotonic() - started))
                 )

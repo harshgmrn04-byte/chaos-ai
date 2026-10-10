@@ -59,6 +59,7 @@ def test_load_env_configuration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     for key, value in {
         "FRONTEND_URL": "http://localhost:9000",
         "CHECKOUT_RPS": "0.5",
+        "LOGIN_RATE_CAP": "0.75",
         "LOAD_USERS": "8",
         "BASELINE_DURATION_S": "60",
         "SEED_PASSWORD": "",
@@ -68,7 +69,9 @@ def test_load_env_configuration(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     assert settings.frontend_url == "http://localhost:9000" and settings.checkout_rps == 0.5
     assert settings.load_users == 8 and settings.baseline_duration_s == 60
     assert settings.seed_password.get_secret_value() == ""
+    assert settings.login_rate_cap == 0.75
+    assert Settings().login_rate_cap == 1
     with pytest.raises(ValidationError):
         Settings(think_min_s=1, think_max_s=0.2)
     with pytest.raises(ValidationError):
-        Settings(auth_rps=1)
+        Settings(login_rate_cap=0)

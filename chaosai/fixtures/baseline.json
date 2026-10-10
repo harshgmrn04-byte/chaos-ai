@@ -9,7 +9,8 @@
       "p50_ms": 45,
       "p95_ms": 90,
       "p99_ms": 140,
-      "rps": 3.3333333333333335
+      "rps": 3.3333333333333335,
+      "low_sample": false
     },
     "login": {
       "n": 200,
@@ -17,7 +18,8 @@
       "p50_ms": 70,
       "p95_ms": 140,
       "p99_ms": 200,
-      "rps": 3.3333333333333335
+      "rps": 3.3333333333333335,
+      "low_sample": false
     },
     "checkout": {
       "n": 200,
@@ -25,7 +27,8 @@
       "p50_ms": 100,
       "p95_ms": 180,
       "p99_ms": 300,
-      "rps": 3.3333333333333335
+      "rps": 3.3333333333333335,
+      "low_sample": false
     }
   },
   "containers": {
@@ -85,15 +88,17 @@
   },
   "thresholds": {
     "hypothesis": {
-      "max_error_rate": 0.05,
-      "p95_multiple": 2
+      "max_error_rate": 0.02,
+      "p95_multiple": 2,
+      "p95_floor_ms": 100
     },
     "abort": {
-      "max_error_rate": 0.6,
-      "p95_multiple": 8,
+      "max_error_rate": 0.5,
+      "p95_multiple": 10,
       "max_unhealthy_containers": 3,
       "min_samples": 10,
-      "consecutive_breaches": 2
+      "consecutive_breaches": 2,
+      "p95_floor_ms": 750
     }
   }
 }

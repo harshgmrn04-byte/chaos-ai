@@ -107,6 +107,7 @@ class JourneyClient:
         token: str | None = None,
         body: dict[str, object] | None = None,
         params: dict[str, int] | None = None,
+        timeout: float | None = None,
     ) -> tuple[int | None, T | None]:
         t0, started = time.time(), time.monotonic()
         status, error, value = None, None, None
@@ -117,7 +118,7 @@ class JourneyClient:
                 json=body,
                 params=params,
                 headers={"Authorization": f"Bearer {token}"} if token else {},
-                timeout=self.settings.load_timeout_s,
+                timeout=self.settings.load_timeout_s if timeout is None else timeout,
             )
             status = response.status_code
             if status != expected:
@@ -163,7 +164,7 @@ class LoadGenerator:
             lambda: httpx.Client(timeout=settings.load_timeout_s, trust_env=False)
         )
         self.checkout_cap = RateCap(settings.checkout_rps)
-        self.auth_cap = RateCap(settings.auth_rps)
+        self.auth_cap = RateCap(settings.login_rate_cap)
         self.sessions: list[Session] = []
         self.products: list[Product] = []
         self._workers: list[tuple[threading.Thread, threading.Event]] = []
@@ -228,6 +229,7 @@ class LoadGenerator:
                 "POST",
                 self.settings.auth_url + "/login",
                 AuthResponse,
+                timeout=self.settings.auth_timeout_s,
                 body={
                     "email": session.email,
                     "password": self.settings.seed_password.get_secret_value(),

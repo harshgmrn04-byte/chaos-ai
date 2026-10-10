@@ -25,7 +25,7 @@ class Settings(BaseModel):
     load_users: int = Field(default=10, ge=1, le=150)
     load_timeout_s: float = Field(default=5, gt=0, le=5)
     checkout_rps: float = Field(default=1, gt=0)
-    auth_rps: float = Field(default=0.1, gt=0, le=0.1)
+    login_rate_cap: float = Field(default=1, gt=0)
     token_refresh_s: float = Field(default=600, gt=0, le=600)
     think_min_s: float = Field(default=0.2, ge=0.2, le=1)
     think_max_s: float = Field(default=1, ge=0.2, le=1)
@@ -129,7 +129,7 @@ def load_config(*, offline: bool = False, project_root: Path = PROJECT_ROOT) -> 
         ("metrics_interval_s", "METRICS_INTERVAL_S"),
         ("load_timeout_s", "LOAD_TIMEOUT_S"),
         ("checkout_rps", "CHECKOUT_RPS"),
-        ("auth_rps", "AUTH_RPS"),
+        ("login_rate_cap", "LOGIN_RATE_CAP"),
         ("token_refresh_s", "TOKEN_REFRESH_S"),
         ("warmup_s", "WARMUP_S"),
         ("baseline_duration_s", "BASELINE_DURATION_S"),

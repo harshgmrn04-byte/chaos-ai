@@ -189,7 +189,9 @@ def test_exact_journeys_timeout_and_global_checkout_cap(
     ]
     assert seen[0].url == settings.frontend_url + "/"
     assert seen[2].url.raw_path == b"/products/p%2F1"
-    assert all(r.extensions["timeout"]["read"] == 5 for r in seen)
+    assert all(
+        r.extensions["timeout"]["read"] == (4 if r.url.path == "/login" else 5) for r in seen
+    )
     body = json.loads(seen[-1].content)
     assert body == load.order_body(Product.model_validate(PRODUCT))
     assert seen[-1].headers["Authorization"] == "Bearer mock-access"
@@ -208,7 +210,7 @@ def test_cache_proactive_renewal_and_login_cap_does_not_clear_cache(
     now = [100.0]
     monkeypatch.setattr(load.time, "monotonic", lambda: now[0])
     gen = generator(settings, tmp_path)
-    gen.auth_cap = RateCap(settings.auth_rps, lambda: now[0])
+    gen.auth_cap = RateCap(settings.login_rate_cap, lambda: now[0])
     gen.prepare(1)
     with gen.client_factory() as client:
         http, session = JourneyClient(client, gen.samples, settings), gen.sessions[0]
@@ -374,3 +376,33 @@ def test_worker_cancellation_skips_next_requests(settings: Settings, tmp_path: P
     with gen.client_factory() as client:
         gen.journey("homepage", JourneyClient(client, gen.samples, settings), cancel=cancel)
     assert gen.samples.snapshot() == []
+
+
+@pytest.mark.parametrize("rps", [0.5, 1.0])
+def test_verified_login_reaches_configured_cap_with_auth_timeout(
+    settings: Settings,
+    tmp_path: Path,
+    verified: Mock,
+    monkeypatch: pytest.MonkeyPatch,
+    rps: float,
+) -> None:
+    settings.login_rate_cap = rps
+    now = [0.0]
+    monkeypatch.setattr(load.time, "monotonic", lambda: now[0])
+    gen = generator(settings, tmp_path)
+    gen.auth_cap = RateCap(settings.login_rate_cap, lambda: now[0])
+    gen.prepare(1)
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(200, json=AUTH)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        http = JourneyClient(client, gen.samples, settings)
+        for tick in range(20):
+            now[0] = tick / 2
+            gen.journey("login", http)
+    assert len(seen) == (5 if rps == 0.5 else 10)
+    assert all(r.extensions["timeout"]["read"] == settings.auth_timeout_s == 4 for r in seen)
+    assert verified.call_count == len(seen) + 1  # preflight before each admitted login

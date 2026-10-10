@@ -45,6 +45,7 @@ def isolated(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest) ->
         "LOAD_TIMEOUT_S",
         "CHECKOUT_RPS",
         "AUTH_RPS",
+        "LOGIN_RATE_CAP",
         "TOKEN_REFRESH_S",
         "WARMUP_S",
         "BASELINE_DURATION_S",

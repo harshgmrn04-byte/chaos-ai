@@ -92,6 +92,7 @@ class JourneyStats(Model):
     p95_ms: float
     p99_ms: float
     rps: float
+    low_sample: bool = False
 
 
 class Hypothesis(Model):
@@ -109,11 +110,13 @@ class AbortRule(Model):
 class HypothesisThresholds(Model):
     max_error_rate: float
     p95_multiple: float
+    p95_floor_ms: float = Field(default=100, ge=0)
 
 
 class AbortThresholds(Model):
     max_error_rate: float
     p95_multiple: float
+    p95_floor_ms: float = Field(default=750, ge=0)
     max_unhealthy_containers: int
     min_samples: int
     consecutive_breaches: int

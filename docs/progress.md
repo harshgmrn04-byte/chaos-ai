@@ -421,3 +421,82 @@ Each baseline prints its run-specific baseline.json and latest .chaosai/baseline
 Compare the two full run files, including per-journey n/errors/p95/RPS, containers, queues,
 thresholds and stable. A targeted human integration check is:
 `pytest -q -m integration tests/test_target_integration.py::test_live_quick_baseline`.
+
+### Phase 4 review fixes — 2026-10-11
+
+The human reports the original live baselines are stable and repeatable. Re-read updated
+BUILD_PLAN.md sections 4 and 5 and target-notes sections 11/12. Applied only these Phase 4
+corrections; no watchdog, policy gate, scoring or target changes were introduced.
+
+Thresholds now contain hypothesis p95_floor_ms=100 and abort p95_floor_ms=750, with nonnegative
+pydantic fields and backward-compatible defaults for older stored thresholds. derive_thresholds
+sets both explicitly. Updated the baseline fixture with floors, the documented 0.02 hypothesis
+error rate / 0.5 abort error rate / 10 abort multiple defaults, and low_sample flags. The pure
+metrics.latency_limit_ms returns max(multiple * baseline_p95, baseline_p95 + floor_ms); breach
+is strictly greater, so both guards must be exceeded. This helper is ready for the future
+watchdog without implementing it in this phase.
+
+Extracted the existing queue reader into chaosai/rabbitmq.py; smoke and the queue-depth poller
+now share that same queue_snapshot function for Basic credentials, encoded vhost/name, response
+validation and URL normalization. Explicit REQUEST_TIMEOUT_S (default ten seconds) applies to
+every management request regardless of the caller's client timeout. Previously smoke used ten
+seconds while baseline used five; no live evidence proves that difference caused the reported
+failure. The poller warns once per run, including safe HTTP status or exception-class diagnostics,
+and continues polling/recovering. Raw exception text, response bodies, URLs and credentials are
+withheld. Missing metrics remain unavailable rather than zero; filesystem errors report their
+type as well. Smoke's queue_snapshot import remains available for existing callers/tests.
+
+LOGIN_RATE_CAP replaces AUTH_RPS, defaults to 1 request/s and accepts positive rates such as
+0.5–1. This cap remains shared across workers and token renewal/re-login. Every admitted login
+retains fresh scoped account/password verification and now explicitly uses AUTH_TIMEOUT_S=4,
+rather than the generic five-second load timeout. Missing/wrong/unavailable credentials still
+skip without HTTP login, and failed login still triggers verification before any future attempt.
+Other load requests and checkout admission remain unchanged. No auth limiter bypass/reset is
+performed. The checked-in target still sets max=100 per 15-minute IP window (auth-service
+src/index.ts:19–24); sustained requested rates or repeated runs may therefore receive 429s,
+which are recorded as errors. The client rate is a traffic target, not a guarantee of service
+admission. Existing AUTH_RPS values in a local .env are ignored; set LOGIN_RATE_CAP instead.
+
+JourneyStats includes low_sample, set true below 20 samples by the pure window stats function
+and saved for each journey in baseline.json. Sparse/missing journeys retain descriptive stats
+and are excluded from the p95 stability comparison. Eligible journeys require observations in
+both halves and <=30% relative p95 change. At exactly 20 they become eligible; with no eligible
+journey, stable=false because stability cannot be established. CLI baseline labels low_sample
+journeys. Updated README, config examples and docs/load-baseline.md with the current semantics.
+
+Verification: ruff check . passed; pytest -q -m "not integration" passed (228 tests, three
+integration tests deselected). New regressions cover floors/defaults and strict AND/equality
+latency limits, sparse-journey exclusion and the n=20 boundary, shared smoke/poller URL/auth/
+timeout behavior, repeated unavailable polls with one safe status/type warning and recovery,
+and 0.5/1 request/s verified login admission with the four-second timeout. Existing credential,
+401, concurrent buffer/worker, artifact, scope and offline checks pass. python -m chaosai run
+--offline --yes completed with a report; git diff --check passed and read-only target status
+is clean. No Docker command, live HTTP, integration test, real LLM, .env read or key inspection
+was performed. Pre-existing .DS_Store and untracked =, checkout, login, retrieve files remain
+untouched and excluded from the fix commit.
+
+Open issues: the corrected RabbitMQ behavior and increased live login sampling require human
+re-verification; if queue reading still fails, its single warning now exposes the reason.
+The target's IP limiter can prevent healthy sustained 1 request/s runs. A full 30s warm-up plus
+120s measurement at 0.5/s uses approximately 75 auth requests; allow a fresh 15-minute window
+between live checks and account for preceding smoke/seed traffic. Sparse journey statistics
+are descriptive only; latency stability does not establish low error rates or service health.
+
+**Phase 4 "You verify (Docker)" (copied from BUILD_PLAN.md):** `chaosai baseline --quick`,
+then a full `chaosai baseline`; `baseline.json` shows believable numbers and `stable: true`;
+run it twice and compare.
+
+Live commands (run each baseline with a fresh auth rate-limit window, rather than consecutively):
+
+```sh
+cd "/Users/harsh/Desktop/Bosch Hackathon Optimised/chaos-ai"
+source .venv/bin/activate
+chaosai smoke
+LOGIN_RATE_CAP=1 LOAD_USERS=10 chaosai baseline --quick
+LOGIN_RATE_CAP=0.5 LOAD_USERS=10 chaosai baseline
+LOGIN_RATE_CAP=0.5 LOAD_USERS=10 chaosai baseline
+```
+
+Check login n/RPS and low_sample, notifications queue depth (or its one actionable warning),
+and thresholds.hypothesis.p95_floor_ms=100 / thresholds.abort.p95_floor_ms=750 in the printed
+baseline artifact. Inspect errors/429s alongside stability; compare the two full windows.

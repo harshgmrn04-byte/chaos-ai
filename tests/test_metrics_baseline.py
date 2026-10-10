@@ -75,15 +75,18 @@ def test_window_half_open_and_errors() -> None:
     "second,stable", [(100, True), (130, True), (70, True), (131, False), (69, False)]
 )
 def test_stability(second: float, stable: bool) -> None:
-    values = [sample(1, 100, j) for j in JOURNEYS] + [sample(8, second, j) for j in JOURNEYS]
+    values = [sample(1, 100, j) for j in JOURNEYS for _ in range(10)]
+    values += [sample(8, second, j) for j in JOURNEYS for _ in range(10)]
     assert baseline.stability_check(values, 0, 10) is stable
 
 
 def test_stability_missing_and_zero() -> None:
     assert not baseline.stability_check([], 0, 10)
     assert not baseline.stability_check([sample(1), sample(8)], 0, 10)
-    assert baseline.stability_check([sample(1, 0), sample(8, 0)], 0, 10, ("browse",))
-    assert not baseline.stability_check([sample(1, 0), sample(8, 1)], 0, 10, ("browse",))
+    assert baseline.stability_check([sample(1, 0)] * 10 + [sample(8, 0)] * 10, 0, 10, ("browse",))
+    assert not baseline.stability_check(
+        [sample(1, 0)] * 10 + [sample(8, 1)] * 10, 0, 10, ("browse",)
+    )
 
 
 def test_thresholds_weighted_errors_without_double_count() -> None:
@@ -91,9 +94,11 @@ def test_thresholds_weighted_errors_without_double_count() -> None:
     thresholds = baseline.derive_thresholds(stats)
     assert thresholds.hypothesis.max_error_rate == 0.52
     assert thresholds.hypothesis.p95_multiple == 2
+    assert thresholds.hypothesis.p95_floor_ms == 100
     assert thresholds.abort.model_dump() == {
         "max_error_rate": 0.5,
         "p95_multiple": 10,
+        "p95_floor_ms": 750,
         "max_unhealthy_containers": 3,
         "min_samples": 10,
         "consecutive_breaches": 2,
@@ -233,8 +238,9 @@ def test_measured_artifacts_and_cleanup(
 ) -> None:
     buffer = SampleBuffer(tmp_path / "samples.jsonl")
     for j in JOURNEYS:
-        buffer.append(sample(11, journey=j))
-        buffer.append(sample(19, journey=j))
+        for _ in range(10):
+            buffer.append(sample(11, journey=j))
+            buffer.append(sample(19, journey=j))
     generator = Mock(samples=buffer, failed=SimpleNamespace(is_set=lambda: False))
     docker_client, containers, queues = Mock(), Mock(), Mock()
     containers.snapshot.return_value = [
@@ -358,3 +364,73 @@ def test_baseline_prepare_failure_cleans_up_and_does_not_save(
         obj.stop.assert_called_once()
     client.close.assert_called_once()
     assert not (tmp_path / "baseline.json").exists()
+
+
+@pytest.mark.parametrize(
+    "base,multiple,floor,limit",
+    [
+        (5, 2, 100, 105),
+        (5, 10, 750, 755),
+        (200, 2, 100, 400),
+        (100, 10, 750, 1000),
+        (0, 10, 750, 750),
+        (100, 2, 100, 200),
+    ],
+)
+def test_latency_limit_uses_both_guards(
+    base: float,
+    multiple: float,
+    floor: float,
+    limit: float,
+) -> None:
+    assert metrics.latency_limit_ms(base, multiple, floor) == limit
+    for measured in (0, base * multiple, base + floor, limit, limit + 0.01):
+        assert (measured > limit) == (measured > base * multiple and measured > base + floor)
+
+
+@pytest.mark.parametrize(
+    "args", [(-1, 2, 100), (1, -2, 100), (1, 2, -1), (float("nan"), 2, 100), (1, float("inf"), 100)]
+)
+def test_latency_limit_refuses_invalid_inputs(args: tuple[float, float, float]) -> None:
+    with pytest.raises(ValueError):
+        metrics.latency_limit_ms(*args)
+
+
+def test_sparse_journeys_do_not_destabilize_dense_journey() -> None:
+    samples = [sample(1)] * 10 + [sample(8)] * 10
+    samples += [sample(1, 10, "login")] * 9 + [sample(8, 5000, "login")] * 10
+    result = baseline.build_baseline(samples, 0, 10)
+    assert result.stable
+    assert result.journeys["browse"].n == 20 and not result.journeys["browse"].low_sample
+    assert result.journeys["login"].n == 19 and result.journeys["login"].low_sample
+    assert result.journeys["homepage"].low_sample and result.journeys["checkout"].low_sample
+    assert not result.journeys["all"].low_sample
+    assert '"low_sample":true' in result.model_dump_json()
+    # At exactly 20, login becomes eligible and its p95 change must affect stability.
+    samples.append(sample(1, 10, "login"))
+    assert not baseline.build_baseline(samples, 0, 10).stable
+
+
+def test_dense_journey_missing_a_half_is_unstable() -> None:
+    assert not baseline.stability_check([sample(1)] * 20, 0, 10)
+    assert not baseline.stability_check([sample(1)] * 19, 0, 10)
+    assert baseline.build_baseline([], 0, 10).journeys["all"].low_sample
+
+
+def test_fixture_floors_and_old_contract_defaults() -> None:
+    from chaosai.models import AbortThresholds, HypothesisThresholds
+
+    value = fixture("baseline", Baseline)
+    assert value.thresholds.hypothesis.p95_floor_ms == 100
+    assert value.thresholds.abort.p95_floor_ms == 750
+    assert HypothesisThresholds(max_error_rate=0.02, p95_multiple=2).p95_floor_ms == 100
+    assert (
+        AbortThresholds(
+            max_error_rate=0.5,
+            p95_multiple=10,
+            max_unhealthy_containers=3,
+            min_samples=10,
+            consecutive_breaches=2,
+        ).p95_floor_ms
+        == 750
+    )

@@ -285,6 +285,7 @@ def baseline_command(
         typer.echo(
             f"{name}: n={stats.n}, errors={stats.error_rate:.2%}, "
             f"p95={stats.p95_ms:.1f}ms, rps={stats.rps:.2f}"
+            f"{' [low_sample]' if stats.low_sample else ''}"
         )
     typer.echo(f"Stable: {value.stable}; window: {value.window_s:.1f}s")
     typer.echo(f"Baseline: {run_dir / 'baseline.json'}")

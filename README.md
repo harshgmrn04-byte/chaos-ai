@@ -76,22 +76,30 @@ chaosai baseline --duration 120
 
 These commands create real pending orders and trigger the target's notification consumer.
 CHECKOUT_RPS defaults to 1 globally across workers, including a possible retry after 401.
-HTTP 500 and timeouts never cause an order retry. AUTH_RPS is limited to 0.1 (90 requests
-per 15 minutes) to leave headroom under auth's IP limiter; run only one load process at a time.
-Recent seed/smoke calls also consume that IP limit, so allow its 15-minute window to clear
-if you see 429s. Tokens are cached per account and renewed by credential-verified login
+HTTP 500 and timeouts never cause an order retry. LOGIN_RATE_CAP defaults to 1 request/s
+and can be set to 0.5–1 to increase login sampling (it replaces AUTH_RPS). Logins retain
+credential preflight and AUTH_TIMEOUT_S=4; other load requests use five seconds. The target
+source still imposes 100 requests/15 minutes per IP, including seed/smoke calls; longer runs
+at these rates can produce HTTP 429 errors. Allow that window to clear between live checks;
+the client does not bypass or change the target limiter. Run one load process at a time.
+Tokens are cached per account and renewed by credential-verified login
 on use after ten minutes, and after 401. No unsafe refresh-token error probe is needed.
 
 The offered journey mix is 10% homepage, 60% browse, 10% login and 20% checkout; caps reduce
 actual admitted login/checkout traffic. Samples describe individual HTTP requests, so browse
-normally contributes three samples. Requests time out after five seconds. Workers pause
+normally contributes three samples. Login uses a four-second timeout; other requests use
+five seconds. Workers pause
 0.2–1.0s between journeys and can be added/removed through LoadGenerator without resetting
 caps or token caches; all worker threads, including retiring ones, are bounded to 150.
 
 Baseline saves runs/<timestamp>/baseline.json and .chaosai/baseline.json. The run also contains
-samples.jsonl, containers.jsonl, queues.jsonl and probes.json. Stability requires each journey
-to have samples in both halves and its p95 to differ by at most 30% of the first half. Quick
-mode has few login samples, so repeat a full window to assess stability. Inspect error rates
+samples.jsonl, containers.jsonl, queues.jsonl and probes.json. Journeys with fewer than 20 total
+samples are marked low_sample=true and excluded from stability. Eligible journeys need samples
+in both halves and a p95 change of at most 30%; with no eligible journeys stable=false.
+Thresholds include hypothesis +100ms and abort +750ms floors. A latency breach is strictly
+above max(multiple * baseline_p95, baseline_p95 + floor_ms). Smoke and baseline share the
+RabbitMQ reader and REQUEST_TIMEOUT_S; queue failures warn once per run with a status or
+exception type, while polling continues. Inspect error rates
 as well: stable latency alone does not establish health. See [docs/load-baseline.md](docs/load-baseline.md)
 for windowing, threshold derivation and telemetry semantics. Defaults and overrides are in
 .env.example; LOAD_USERS sets baseline workers and BASELINE_DURATION_S sets the full window.

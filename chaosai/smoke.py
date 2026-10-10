@@ -7,7 +7,6 @@ from urllib.parse import quote
 import docker
 import httpx
 from docker.models.containers import Container
-from pydantic import ValidationError
 
 from chaosai.config import Settings
 from chaosai.models import (
@@ -18,39 +17,10 @@ from chaosai.models import (
     SmokeResult,
     TargetOrder,
 )
+from chaosai.rabbitmq import queue_snapshot
 from chaosai.target import TargetError, get_docker_client, require_scope, service_container
 from chaosai.target_api import order_body, product_page, request_json
 from chaosai.target_auth import safe_admin_login
-
-
-def queue_snapshot(client: httpx.Client, settings: Settings) -> QueueSnapshot:
-    path = (
-        f"/api/queues/{quote(settings.rabbitmq_vhost, safe='')}/"
-        f"{quote(settings.notification_queue, safe='')}"
-    )
-    try:
-        response = client.get(
-            settings.rabbitmq_url + path,
-            headers={"Accept": "application/json"},
-            auth=(settings.rabbitmq_user, settings.rabbitmq_password.get_secret_value()),
-        )
-    except httpx.HTTPError as exc:
-        raise TargetError(
-            "RabbitMQ management API unreachable; queue evidence unavailable."
-        ) from exc
-    if response.status_code == 404:
-        raise TargetError("RabbitMQ notifications queue not found (HTTP 404).")
-    if response.status_code != 200:
-        raise TargetError(f"RabbitMQ management API returned HTTP {response.status_code}.")
-    try:
-        snapshot = QueueSnapshot.model_validate(response.json())
-    except (ValueError, ValidationError) as exc:
-        raise TargetError(
-            "RabbitMQ queue metrics missing/invalid; check statistics collection."
-        ) from exc
-    if snapshot.name != settings.notification_queue or snapshot.vhost != settings.rabbitmq_vhost:
-        raise TargetError("RabbitMQ returned a different queue or vhost.")
-    return snapshot
 
 
 def queue_warnings(before: QueueSnapshot, after: list[QueueSnapshot]) -> list[str]:

@@ -11,6 +11,7 @@ from chaosai.config import Settings
 from chaosai.fixture_data import fixture
 from chaosai.load import JOURNEYS, LoadGenerator, SampleBuffer
 from chaosai.metrics import (
+    MIN_BASELINE_SAMPLES,
     ContainerStatsPoller,
     QueueDepthPoller,
     container_baseline,
@@ -44,10 +45,13 @@ def derive_thresholds(baseline: Baseline | JourneyStats) -> Thresholds:
         n = sum(s.n for s in baseline.journeys.values())
         error_rate = sum(s.n * s.error_rate for s in baseline.journeys.values()) / n if n else 0
     return Thresholds(
-        hypothesis=HypothesisThresholds(max_error_rate=error_rate + 0.02, p95_multiple=2.0),
+        hypothesis=HypothesisThresholds(
+            max_error_rate=error_rate + 0.02, p95_multiple=2.0, p95_floor_ms=100
+        ),
         abort=AbortThresholds(
             max_error_rate=0.5,
             p95_multiple=10,
+            p95_floor_ms=750,
             max_unhealthy_containers=3,
             min_samples=10,
             consecutive_breaches=2,
@@ -61,11 +65,15 @@ def stability_check(
     t1: float,
     journeys: tuple[str, ...] = JOURNEYS,
 ) -> bool:
-    """Every journey needs both halves; |second-first|/first must be <=30%."""
+    """Judge journeys with >=20 samples; no eligible journey cannot prove stability."""
+    full = stats_by_journey(samples, t0, t1, journeys)
+    eligible = {name for name, stats in full.items() if stats.n >= MIN_BASELINE_SAMPLES}
+    if not eligible:
+        return False
     mid = (t0 + t1) / 2
     first = stats_by_journey(samples, t0, mid, journeys)
     second = stats_by_journey(samples, mid, t1, journeys)
-    for name in first.keys() | second.keys():
+    for name in eligible:
         a, b = first.get(name), second.get(name)
         if a is None or b is None or a.n == 0 or b.n == 0:
             return False
@@ -160,8 +168,13 @@ def measure_baseline(
     baseline = build_baseline(generator.samples.snapshot(), t0, t1)
     baseline.containers = container_baseline(containers.snapshot(), t0, t1)
     baseline.queues = queue_baseline(queues.snapshot(), t0, t1)
-    if any(stats.n == 0 for stats in baseline.journeys.values()):
-        logger.warning("A journey has no samples; stability cannot be established.")
+    low_sample = [name for name, stats in baseline.journeys.items() if stats.low_sample]
+    if low_sample:
+        logger.warning(
+            "Low-sample journeys excluded from stability: %s (<%s samples).",
+            ", ".join(low_sample),
+            MIN_BASELINE_SAMPLES,
+        )
     write_json(run_dir / "baseline.json", baseline)
     write_json(settings.project_root / ".chaosai" / "baseline.json", baseline)
     return baseline
