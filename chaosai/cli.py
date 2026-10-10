@@ -79,13 +79,13 @@ def map_command(
         typer.echo(message, err=True)
         raise typer.Exit(2) from exc
     typer.echo(f"Graph: {graph.app} ({len(graph.nodes)} nodes, {len(graph.edges)} edges)")
-    typer.echo("SERVICE | KIND | CONTAINER | HOST PORTS | CONTAINER PORTS | INJECTABLE")
+    typer.echo("SERVICE | KIND | CONTAINER | HOST PORTS | CONTAINER PORTS | INJECTABLE | REASON")
     for node in graph.nodes:
         host = ",".join(str(port) for port in node.host_ports) or "-"
         container = ",".join(str(port) for port in node.container_ports) or "-"
         typer.echo(
             f"{node.id} | {node.kind} | {node.container or '-'} | {host} | {container} | "
-            f"{'yes' if node.injectable else 'no'}"
+            f"{'yes' if node.injectable else 'no'} | {node.injectable_reason or '-'}"
         )
     typer.echo("SOURCE -> TARGET | KIND | CRITICALITY | EVIDENCE")
     for edge in graph.edges:
@@ -93,7 +93,9 @@ def map_command(
             f"{edge.source} -> {edge.target} | {edge.kind} | {edge.criticality} | {edge.evidence}"
         )
     for flow in graph.flows:
-        typer.echo(f"Flow {flow.name}: {' -> '.join(flow.path)}")
+        typer.echo(f"Flow {flow.name} touches: {', '.join(flow.path)}")
+    for variable in graph.sources.ignored_config:
+        typer.echo(f"Ignored config (CORS/allowed origins): {variable}")
     typer.echo(f"Graph JSON: {run_dir / 'graph.json'}")
     typer.echo(f"Latest graph: {settings.project_root / '.chaosai' / 'graph.json'}")
     if mermaid_output:

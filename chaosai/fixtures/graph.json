@@ -2,58 +2,42 @@
   "app": "ecommerce-microservices",
   "nodes": [
     {
-      "id": "postgres",
-      "container": "ecommerce-postgres",
-      "kind": "database",
-      "image": "postgres:16-alpine",
+      "id": "auth-service",
+      "container": "ecommerce-auth",
+      "kind": "app",
+      "image": null,
       "host_ports": [
-        5433
+        3004
       ],
       "container_ports": [
-        5432
+        3001
       ],
-      "injectable": true
+      "injectable": true,
+      "injectable_reason": null
     },
     {
-      "id": "mongodb",
-      "container": "ecommerce-mongodb",
-      "kind": "database",
-      "image": "mongo:7",
-      "host_ports": [
-        27017
-      ],
-      "container_ports": [
-        27017
-      ],
-      "injectable": true
+      "id": "cloudinary",
+      "container": null,
+      "kind": "external",
+      "image": null,
+      "host_ports": [],
+      "container_ports": [],
+      "injectable": false,
+      "injectable_reason": null
     },
     {
-      "id": "redis",
-      "container": "ecommerce-redis",
-      "kind": "cache",
-      "image": "redis:7-alpine",
+      "id": "frontend",
+      "container": "ecommerce-frontend",
+      "kind": "app",
+      "image": null,
       "host_ports": [
-        6380
+        3000
       ],
       "container_ports": [
-        6379
+        3000
       ],
-      "injectable": true
-    },
-    {
-      "id": "rabbitmq",
-      "container": "ecommerce-rabbitmq",
-      "kind": "broker",
-      "image": "rabbitmq:3-management-alpine",
-      "host_ports": [
-        5672,
-        15672
-      ],
-      "container_ports": [
-        5672,
-        15672
-      ],
-      "injectable": true
+      "injectable": true,
+      "injectable_reason": null
     },
     {
       "id": "mailhog",
@@ -68,33 +52,32 @@
         1025,
         8025
       ],
-      "injectable": true
+      "injectable": false,
+      "injectable_reason": "Tool has no inbound dependency edges."
     },
     {
-      "id": "auth-service",
-      "container": "ecommerce-auth",
-      "kind": "app",
-      "image": null,
+      "id": "mongodb",
+      "container": "ecommerce-mongodb",
+      "kind": "database",
+      "image": "mongo:7",
       "host_ports": [
-        3004
+        27017
       ],
       "container_ports": [
-        3001
+        27017
       ],
-      "injectable": true
+      "injectable": true,
+      "injectable_reason": null
     },
     {
-      "id": "product-service",
-      "container": "ecommerce-products",
+      "id": "notification-service",
+      "container": "ecommerce-notifications",
       "kind": "app",
       "image": null,
-      "host_ports": [
-        3002
-      ],
-      "container_ports": [
-        3002
-      ],
-      "injectable": true
+      "host_ports": [],
+      "container_ports": [],
+      "injectable": true,
+      "injectable_reason": null
     },
     {
       "id": "order-service",
@@ -107,47 +90,66 @@
       "container_ports": [
         3003
       ],
-      "injectable": true
+      "injectable": true,
+      "injectable_reason": null
     },
     {
-      "id": "notification-service",
-      "container": "ecommerce-notifications",
-      "kind": "app",
-      "image": null,
-      "host_ports": [],
-      "container_ports": [],
-      "injectable": true
+      "id": "postgres",
+      "container": "ecommerce-postgres",
+      "kind": "database",
+      "image": "postgres:16-alpine",
+      "host_ports": [
+        5433
+      ],
+      "container_ports": [
+        5432
+      ],
+      "injectable": true,
+      "injectable_reason": null
     },
     {
-      "id": "frontend",
-      "container": "ecommerce-frontend",
+      "id": "product-service",
+      "container": "ecommerce-products",
       "kind": "app",
       "image": null,
       "host_ports": [
-        3000
+        3002
       ],
       "container_ports": [
-        3000
+        3002
       ],
-      "injectable": true
+      "injectable": true,
+      "injectable_reason": null
     },
     {
-      "id": "stripe",
-      "container": null,
-      "kind": "external",
-      "image": null,
-      "host_ports": [],
-      "container_ports": [],
-      "injectable": false
+      "id": "rabbitmq",
+      "container": "ecommerce-rabbitmq",
+      "kind": "broker",
+      "image": "rabbitmq:3-management-alpine",
+      "host_ports": [
+        5672,
+        15672
+      ],
+      "container_ports": [
+        5672,
+        15672
+      ],
+      "injectable": true,
+      "injectable_reason": null
     },
     {
-      "id": "cloudinary",
-      "container": null,
-      "kind": "external",
-      "image": null,
-      "host_ports": [],
-      "container_ports": [],
-      "injectable": false
+      "id": "redis",
+      "container": "ecommerce-redis",
+      "kind": "cache",
+      "image": "redis:7-alpine",
+      "host_ports": [
+        6380
+      ],
+      "container_ports": [
+        6379
+      ],
+      "injectable": true,
+      "injectable_reason": null
     },
     {
       "id": "resend",
@@ -156,7 +158,18 @@
       "image": null,
       "host_ports": [],
       "container_ports": [],
-      "injectable": false
+      "injectable": false,
+      "injectable_reason": null
+    },
+    {
+      "id": "stripe",
+      "container": null,
+      "kind": "external",
+      "image": null,
+      "host_ports": [],
+      "container_ports": [],
+      "injectable": false,
+      "injectable_reason": null
     }
   ],
   "edges": [
@@ -164,98 +177,98 @@
       "source": "auth-service",
       "target": "postgres",
       "kind": "sql",
-      "evidence": "ecommerce-microservices/auth-service/prisma/schema.prisma; docker-compose.yml:80",
-      "criticality": "unknown"
-    },
-    {
-      "source": "product-service",
-      "target": "postgres",
-      "kind": "sql",
-      "evidence": "ecommerce-microservices/product-service/prisma/schema.prisma",
-      "criticality": "unknown"
-    },
-    {
-      "source": "product-service",
-      "target": "mongodb",
-      "kind": "nosql",
-      "evidence": "ecommerce-microservices/product-service/src/models/Review.ts",
-      "criticality": "unknown"
-    },
-    {
-      "source": "product-service",
-      "target": "redis",
-      "kind": "cache",
-      "evidence": "ecommerce-microservices/product-service/src/utils/cache.ts",
-      "criticality": "unknown"
-    },
-    {
-      "source": "product-service",
-      "target": "cloudinary",
-      "kind": "http",
-      "evidence": "ecommerce-microservices/product-service/src/utils/cloudinary.ts",
-      "criticality": "unknown"
-    },
-    {
-      "source": "order-service",
-      "target": "postgres",
-      "kind": "sql",
-      "evidence": "ecommerce-microservices/order-service/prisma/schema.prisma",
-      "criticality": "unknown"
-    },
-    {
-      "source": "order-service",
-      "target": "rabbitmq",
-      "kind": "amqp",
-      "evidence": "ecommerce-microservices/order-service/src/utils/rabbitmq.ts",
-      "criticality": "unknown"
-    },
-    {
-      "source": "order-service",
-      "target": "stripe",
-      "kind": "http",
-      "evidence": "ecommerce-microservices/order-service/src/controllers/orderController.ts (conditional)",
-      "criticality": "unknown"
-    },
-    {
-      "source": "notification-service",
-      "target": "rabbitmq",
-      "kind": "amqp",
-      "evidence": "ecommerce-microservices/notification-service/src/consumers/orderConsumer.ts",
-      "criticality": "unknown"
-    },
-    {
-      "source": "notification-service",
-      "target": "mongodb",
-      "kind": "nosql",
-      "evidence": "ecommerce-microservices/notification-service/src/models/Notification.ts",
-      "criticality": "unknown"
-    },
-    {
-      "source": "notification-service",
-      "target": "resend",
-      "kind": "http",
-      "evidence": "ecommerce-microservices/notification-service/src/utils/email.ts",
+      "evidence": "compose.services.auth-service.depends_on.postgres (service_healthy); compose.services.auth-service.environment.DATABASE_URL -> postgres (service/container reference)",
       "criticality": "unknown"
     },
     {
       "source": "frontend",
       "target": "auth-service",
       "kind": "http",
-      "evidence": "ecommerce-microservices/frontend/src/lib/api.ts (browser calls)",
-      "criticality": "unknown"
-    },
-    {
-      "source": "frontend",
-      "target": "product-service",
-      "kind": "http",
-      "evidence": "ecommerce-microservices/frontend/src/lib/api.ts (browser calls)",
+      "evidence": "compose.services.frontend.build.args.NEXT_PUBLIC_API_URL -> auth-service (localhost host port 3004); compose.services.frontend.depends_on.auth-service",
       "criticality": "unknown"
     },
     {
       "source": "frontend",
       "target": "order-service",
       "kind": "http",
-      "evidence": "ecommerce-microservices/frontend/src/lib/api.ts (browser calls)",
+      "evidence": "compose.services.frontend.build.args.NEXT_PUBLIC_ORDER_API_URL -> order-service (localhost host port 3003); compose.services.frontend.depends_on.order-service",
+      "criticality": "unknown"
+    },
+    {
+      "source": "frontend",
+      "target": "product-service",
+      "kind": "http",
+      "evidence": "compose.services.frontend.build.args.NEXT_PUBLIC_PRODUCT_API_URL -> product-service (localhost host port 3002); compose.services.frontend.depends_on.product-service",
+      "criticality": "unknown"
+    },
+    {
+      "source": "notification-service",
+      "target": "mongodb",
+      "kind": "nosql",
+      "evidence": "compose.services.notification-service.depends_on.mongodb (service_healthy); compose.services.notification-service.environment.MONGODB_URI -> mongodb (service/container reference)",
+      "criticality": "unknown"
+    },
+    {
+      "source": "notification-service",
+      "target": "rabbitmq",
+      "kind": "amqp",
+      "evidence": "compose.services.notification-service.depends_on.rabbitmq (service_healthy); compose.services.notification-service.environment.RABBITMQ_URL -> rabbitmq (service/container reference)",
+      "criticality": "unknown"
+    },
+    {
+      "source": "notification-service",
+      "target": "resend",
+      "kind": "unknown",
+      "evidence": "compose.services.notification-service.environment.RESEND_API_KEY (external provider name; activation unverified)",
+      "criticality": "unknown"
+    },
+    {
+      "source": "order-service",
+      "target": "postgres",
+      "kind": "sql",
+      "evidence": "compose.services.order-service.depends_on.postgres (service_healthy); compose.services.order-service.environment.DATABASE_URL -> postgres (service/container reference)",
+      "criticality": "unknown"
+    },
+    {
+      "source": "order-service",
+      "target": "rabbitmq",
+      "kind": "amqp",
+      "evidence": "compose.services.order-service.depends_on.rabbitmq (service_healthy); compose.services.order-service.environment.RABBITMQ_URL -> rabbitmq (service/container reference)",
+      "criticality": "unknown"
+    },
+    {
+      "source": "order-service",
+      "target": "stripe",
+      "kind": "unknown",
+      "evidence": "compose.services.order-service.environment.STRIPE_SECRET_KEY (external provider name; activation unverified); compose.services.order-service.environment.STRIPE_WEBHOOK_SECRET (external provider name; activation unverified)",
+      "criticality": "unknown"
+    },
+    {
+      "source": "product-service",
+      "target": "cloudinary",
+      "kind": "unknown",
+      "evidence": "compose.services.product-service.environment.CLOUDINARY_API_KEY (external provider name; activation unverified); compose.services.product-service.environment.CLOUDINARY_API_SECRET (external provider name; activation unverified); compose.services.product-service.environment.CLOUDINARY_CLOUD_NAME (external provider name; activation unverified)",
+      "criticality": "unknown"
+    },
+    {
+      "source": "product-service",
+      "target": "mongodb",
+      "kind": "nosql",
+      "evidence": "compose.services.product-service.depends_on.mongodb (service_healthy); compose.services.product-service.environment.MONGODB_URI -> mongodb (service/container reference)",
+      "criticality": "unknown"
+    },
+    {
+      "source": "product-service",
+      "target": "postgres",
+      "kind": "sql",
+      "evidence": "compose.services.product-service.depends_on.postgres (service_healthy); compose.services.product-service.environment.DATABASE_URL -> postgres (service/container reference)",
+      "criticality": "unknown"
+    },
+    {
+      "source": "product-service",
+      "target": "redis",
+      "kind": "cache",
+      "evidence": "compose.services.product-service.depends_on.redis (service_healthy); compose.services.product-service.environment.REDIS_URL -> redis (service/container reference)",
       "criticality": "unknown"
     }
   ],
@@ -266,15 +279,8 @@
         "frontend",
         "product-service",
         "redis",
-        "postgres"
-      ]
-    },
-    {
-      "name": "login",
-      "path": [
-        "frontend",
-        "auth-service",
-        "postgres"
+        "postgres",
+        "mongodb"
       ]
     },
     {
@@ -285,12 +291,26 @@
         "postgres",
         "rabbitmq",
         "notification-service",
-        "resend"
+        "resend",
+        "mongodb"
+      ]
+    },
+    {
+      "name": "login",
+      "path": [
+        "frontend",
+        "auth-service",
+        "postgres"
       ]
     }
   ],
   "sources": {
     "parsed": false,
-    "overrides": false
+    "overrides": false,
+    "ignored_config": [
+      "compose.services.auth-service.environment.FRONTEND_URL",
+      "compose.services.order-service.environment.FRONTEND_URL",
+      "compose.services.product-service.environment.FRONTEND_URL"
+    ]
   }
 }

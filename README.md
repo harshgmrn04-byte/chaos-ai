@@ -54,6 +54,9 @@ Mapping prints nodes, ports, dependency evidence and flows, writes runs/<timesta
 and .chaosai/graph.json, and optionally writes docs/graph.mmd. No Docker, HTTP, LLM or dotenv
 read occurs. TARGET_DIR and COMPOSE_PROJECT may be exported in your shell; their defaults
 match this checkout. env_file declarations are parsed without opening their private contents.
+CORS/allowed-origin settings are excluded and recorded in sources.ignored_config. Flows render
+as `touches: a, b, c`, ordered from user entry point to deepest dependencies. Isolated tool
+nodes are non-injectable by default with a reason; explicit node overrides can change that.
 See [docs/overrides.md](docs/overrides.md) for override format/inference rules, and
 [docs/mapper-cross-check.md](docs/mapper-cross-check.md) for every dependency difference from
 the target notes. The shipped overrides define browse, login and checkout participants.

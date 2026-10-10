@@ -24,6 +24,8 @@ from chaosai.models import (
 from chaosai.runs import write_json
 
 logger = logging.getLogger(__name__)
+TOOL_NO_INBOUND_REASON = "Tool has no inbound dependency edges."
+TOOL_INBOUND_REASON = "Tool has inbound dependency edges."
 SCHEME_KINDS: dict[str, EdgeKind] = {
     "postgresql": "sql",
     "postgres": "sql",
@@ -185,6 +187,32 @@ def merge_evidence(edges: list[Edge]) -> list[Edge]:
     return result
 
 
+def is_origin_config(variable: str) -> bool:
+    """Identify CORS/allowed-origin configuration by name without inspecting its value."""
+    name = variable.upper()
+    return (
+        name == "FRONTEND_URL" or name.startswith("CORS_") or name.endswith(("_ORIGIN", "_ORIGINS"))
+    )
+
+
+def apply_tool_defaults(graph: Graph, *, overridden_ids: set[str] | None = None) -> Graph:
+    """Base tool eligibility on incoming dependencies while preserving explicit node overrides."""
+    result = graph.model_copy(deep=True)
+    inbound = {edge.target for edge in result.edges}
+    for node in result.nodes:
+        if node.kind != "tool":
+            continue
+        if node.id in (overridden_ids or set()):
+            if node.injectable_reason in (None, TOOL_NO_INBOUND_REASON, TOOL_INBOUND_REASON):
+                node.injectable_reason = "Set by nodes.add override."
+        else:
+            node.injectable = node.id in inbound
+            node.injectable_reason = (
+                TOOL_INBOUND_REASON if node.injectable else TOOL_NO_INBOUND_REASON
+            )
+    return result
+
+
 def parse_compose(data: dict[str, Any], *, app: str) -> Graph:
     services = data.get("services")
     if not isinstance(services, dict) or not services:
@@ -212,6 +240,7 @@ def parse_compose(data: dict[str, Any], *, app: str) -> Graph:
         for port in host:
             host_ports[port].add(service)
     edges: list[Edge] = []
+    ignored_config: list[str] = []
     for service, spec in services.items():
         dependencies = spec.get("depends_on", [])
         if not isinstance(dependencies, (dict, list)):
@@ -245,6 +274,9 @@ def parse_compose(data: dict[str, Any], *, app: str) -> Graph:
         ):
             for key, value in sorted(entries.items()):
                 evidence = f"compose.services.{service}.{section}.{key}"
+                if is_origin_config(key):
+                    ignored_config.append(evidence)
+                    continue
                 sensitive = bool(re.search(r"(?:^|_)(?:KEY|SECRET|PASSWORD|TOKEN)(?:_|$)", key))
                 provider_kind: EdgeKind = "unknown"
                 if value and not sensitive and "$" not in value:
@@ -289,12 +321,16 @@ def parse_compose(data: dict[str, Any], *, app: str) -> Graph:
                                 evidence=f"{evidence} -> {target} ({resolution})",
                             )
                         )
-    return Graph(
-        app=app,
-        nodes=sorted(nodes.values(), key=lambda node: node.id),
-        edges=merge_evidence(edges),
-        flows=[],
-        sources=GraphSources(parsed=True, overrides=False),
+    return apply_tool_defaults(
+        Graph(
+            app=app,
+            nodes=sorted(nodes.values(), key=lambda node: node.id),
+            edges=merge_evidence(edges),
+            flows=[],
+            sources=GraphSources(
+                parsed=True, overrides=False, ignored_config=sorted(ignored_config)
+            ),
+        )
     )
 
 
@@ -358,7 +394,9 @@ def apply_overrides(graph: Graph, overrides: GraphOverrides) -> Graph:
     flows.update({flow.name: flow.model_copy(deep=True) for flow in overrides.flows})
     result.flows = sorted(flows.values(), key=lambda flow: flow.name)
     result.sources.overrides = True
-    return validate_graph(result)
+    return validate_graph(
+        apply_tool_defaults(result, overridden_ids={node.id for node in overrides.nodes.add})
+    )
 
 
 def map_target(settings: Settings, *, offline: bool = False) -> Graph:
@@ -386,7 +424,7 @@ def mermaid(graph: Graph) -> str:
 
     def escape(value: str) -> str:
         return "".join(
-            char if char.isalnum() or char in " -_" else f"#{ord(char)};" for char in value
+            char if char.isalnum() or char in " -_:," else f"#{ord(char)};" for char in value
         )
 
     lines = ["flowchart LR"]
@@ -397,4 +435,7 @@ def mermaid(graph: Graph) -> str:
         lines.append(
             f'  {labels[edge.source]} -->|"{edge.kind} / {edge.criticality}"| {labels[edge.target]}'
         )
+    for index, flow in enumerate(graph.flows):
+        label = escape(f"Flow {flow.name} touches: {', '.join(flow.path)}")
+        lines.append(f'  f{index}["{label}"]')
     return "\n".join(lines) + "\n"

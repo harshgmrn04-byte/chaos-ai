@@ -15,9 +15,11 @@ chaos-ai. `run` saves the same parsed graph in its run and latest locations.
 Mapping uses no Docker, network or LLM. The map command reads configuration from exported
 environment variables and config defaults, without opening chaos-ai/.env. Set TARGET_DIR and
 COMPOSE_PROJECT in your shell if needed. Relative TARGET_DIR resolves from chaos-ai.
-`map --offline` and `run --offline --yes` use the packaged Phase 1 graph fixture, apply any
-overrides, and never read target files. Its sources.parsed is false; its evidence and external
-HTTP kinds were manually authored in Phase 1. Offline metrics/experiments remain synthetic.
+`map --offline` and `run --offline --yes` use the packaged source graph snapshot, apply any
+overrides, and never read target files. Its sources.parsed is false because this invocation
+did not parse Compose. The snapshot matches the corrected mapper plus shipped flow membership,
+including ignored configuration and non-injectable isolated tools. Offline metrics/experiments
+remain synthetic.
 
 ## Inference rules
 
@@ -35,6 +37,26 @@ resolve only against published host ports. Ambiguous references are omitted with
 Unknown startup edges are refined by URL schemes when present; multiple protocols between the
 same endpoints remain separate. Duplicate evidence is combined and sorted. Evidence stores
 Compose field paths and resolution facts, never raw environment values or URL credentials.
+
+CORS/allowed-origin variables are excluded before any reference or provider inference:
+`FRONTEND_URL`, names ending in `_ORIGIN` or `_ORIGINS`, and names beginning with `CORS_`
+(case-insensitive). Every excluded variable is recorded by its complete Compose field path in
+`sources.ignored_config`, a sorted list of strings. Values are never recorded. For this target:
+
+```json
+"ignored_config": [
+  "compose.services.auth-service.environment.FRONTEND_URL",
+  "compose.services.order-service.environment.FRONTEND_URL",
+  "compose.services.product-service.environment.FRONTEND_URL"
+]
+```
+
+Tool nodes default to injectable=false when no dependency edge points to them, with
+`injectable_reason: "Tool has no inbound dependency edges."` in graph.json. A tool's outbound
+edges do not make it eligible. Tool defaults are evaluated after edge overrides, so removing
+the last inbound edge disables it and adding one enables it. An explicit node override can
+set injectable either way; its reason is marked as an override unless a custom reason is given.
+These eligibility defaults never bypass the later Docker scope/policy/approval controls.
 
 Stripe, Cloudinary and Resend variable-name tokens create external, non-injectable nodes and
 potential dependency edges even when their configured values are placeholders. URL scheme
@@ -65,8 +87,8 @@ nodes:
       injectable: false
 edges:
   remove:
-    - source: auth-service
-      target: frontend
+    - source: frontend
+      target: auth-service
       kind: http         # omit kind to match every protocol for this pair
   add:                   # same source/target/kind replaces evidence and criticality
     - source: frontend
@@ -91,10 +113,38 @@ participants must exist after merging; removing a node used by a flow requires r
 flow. External nodes must have no container and injectable=false. Stripe, Cloudinary and Resend
 IDs cannot be repurposed as injectable local nodes. Overrides never authorize Docker operations.
 
-Flow paths list journey participants; consecutive participants need not have a direct graph
-edge. They describe branches, cache misses and asynchronous work rather than a sequence of
-network calls. They do not add edges. The shipped example defines browse (including MongoDB
-reviews for detail), login, and checkout (DB persistence, broker, notification email/store).
+For example, explicitly enabling isolated MailHog requires this full-node override:
+
+```yaml
+nodes:
+  add:
+    - id: mailhog
+      container: ecommerce-mailhog
+      kind: tool
+      image: mailhog/mailhog
+      host_ports: [1025, 8025]
+      container_ports: [1025, 8025]
+      injectable: true
+      injectable_reason: "Manual choice to include MailHog in experiments."
+```
+
+Flow `path` means **components the journey touches, ordered from the user entry point to
+the deepest dependency**. It is an ordered touch-set, not a call chain or an ordering of
+runtime operations. Participants at equal depth may follow either order. Consecutive participants
+need not have a direct graph edge, and flows do not add edges. Both the CLI and Mermaid render
+`Flow <name> touches: a, b, c` as a participant list.
+
+Membership was re-checked against target-notes sections 1–5 and the cited source:
+
+| Flow | Components touched (entry point to deepest dependencies) | Evidence |
+|---|---|---|
+| browse | frontend, product-service, redis, postgres, mongodb | Section 2 product detail and section 4 cache behavior; productController.ts:87–110 reads MongoDB reviews after a cache miss and PostgreSQL lookup |
+| login | frontend, auth-service, postgres | Sections 1–2, authController.ts:61–91 |
+| checkout | frontend, order-service, postgres, rabbitmq, notification-service, resend, mongodb | Sections 3 and 5; orderCreated handler sends email then creates a MongoDB Notification record (orderConsumer.ts:33–61) |
+
+The shipped override's membership and order are unchanged: MongoDB belongs in browse for
+uncached product detail and in checkout through asynchronous notification storage. Both MongoDB
+memberships were added to the older offline fixture, which previously omitted them.
 Stripe is conditional and bypassed by Compose's placeholder, so it stays outside the default
 checkout flow. Browse PostgreSQL/MongoDB participation depends on operation/cache state;
 checkout notification/Resend work is asynchronous. Criticality overrides above are examples

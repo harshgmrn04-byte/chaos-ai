@@ -90,7 +90,7 @@ def test_ordering_and_mock_cache(settings: Settings, monkeypatch: pytest.MonkeyP
 
     run_dir = runner.run_pipeline(settings, Approver(yes=False, is_tty=True, ask=ask))
     graph = read_json(run_dir / "graph.json", Graph)
-    assert graph.sources.parsed and len(graph.edges) == 17
+    assert graph.sources.parsed and len(graph.edges) == 14
     assert read_json(settings.project_root / ".chaosai" / "graph.json", Graph) == graph
     assert order == [
         "map_target",

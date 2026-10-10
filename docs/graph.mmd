@@ -12,7 +12,6 @@ flowchart LR
   n10["redis #40;cache#41;"]
   n11["resend #40;external#41;"]
   n12["stripe #40;external#41;"]
-  n0 -->|"http / unknown"| n2
   n0 -->|"sql / unknown"| n7
   n2 -->|"http / unknown"| n0
   n2 -->|"http / unknown"| n6
@@ -20,12 +19,13 @@ flowchart LR
   n5 -->|"nosql / unknown"| n4
   n5 -->|"amqp / unknown"| n9
   n5 -->|"unknown / unknown"| n11
-  n6 -->|"http / unknown"| n2
   n6 -->|"sql / unknown"| n7
   n6 -->|"amqp / unknown"| n9
   n6 -->|"unknown / unknown"| n12
   n8 -->|"unknown / unknown"| n1
-  n8 -->|"http / unknown"| n2
   n8 -->|"nosql / unknown"| n4
   n8 -->|"sql / unknown"| n7
   n8 -->|"cache / unknown"| n10
+  f0["Flow browse touches: frontend, product-service, redis, postgres, mongodb"]
+  f1["Flow checkout touches: frontend, order-service, postgres, rabbitmq, notification-service, resend, mongodb"]
+  f2["Flow login touches: frontend, auth-service, postgres"]

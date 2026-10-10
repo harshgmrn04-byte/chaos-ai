@@ -26,6 +26,7 @@ class Node(Model):
     host_ports: list[int]
     container_ports: list[int]
     injectable: bool
+    injectable_reason: str | None = None
 
 
 class Edge(Model):
@@ -37,6 +38,8 @@ class Edge(Model):
 
 
 class Flow(Model):
+    """Components touched, ordered from user entry point to deepest dependencies."""
+
     name: str
     path: list[str]
 
@@ -44,6 +47,7 @@ class Flow(Model):
 class GraphSources(Model):
     parsed: bool
     overrides: bool
+    ignored_config: list[str] = Field(default_factory=list)
 
 
 class Graph(Model):

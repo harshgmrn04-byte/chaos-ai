@@ -1,4 +1,4 @@
-"""Bundled, synthetic Phase 1 data; never target measurements."""
+"""Bundled source graph snapshot and synthetic experiment data; never live measurements."""
 
 from importlib.resources import files
 from typing import TypeVar

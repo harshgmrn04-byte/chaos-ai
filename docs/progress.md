@@ -277,3 +277,56 @@ cd "/Users/harsh/Desktop/Bosch Hackathon Optimised/chaos-ai"
 source .venv/bin/activate
 chaosai map --mermaid
 ```
+
+### Phase 3 mapper review fixes — 2026-10-11
+
+Applied the three requested review corrections within Phase 3. CORS/allowed-origin variable
+names (FRONTEND_URL, *_ORIGIN, *_ORIGINS, CORS_*, case-insensitive) are ignored before host or
+external-provider inference. Complete Compose field paths are stored, without values, in the
+new backward-compatible GraphSources.ignored_config list and shown by the map CLI. The target's
+three FRONTEND_URL variables remove auth/product/order -> frontend edges: 13 nodes, 14 edges.
+
+Flow.path now explicitly means components touched, ordered from the user entry point to the
+deepest dependency. The CLI and Mermaid show "Flow <name> touches: a, b, c"; Mermaid flows are
+separate labels with no call-chain arrows. Re-read target-notes sections 1–5 and checked the
+cited source: uncached product detail reads MongoDB reviews (productController.ts:87–110), and
+order.created notification processing writes MongoDB after the email attempt
+(orderConsumer.ts:33–61). Existing override flow memberships/order are correct and unchanged:
+browse includes MongoDB, login includes PostgreSQL, checkout includes asynchronous MongoDB
+notification storage. The offline fixture adds MongoDB to browse/checkout to match. Stripe
+remains outside the default bypass checkout; cache misses and downstream effects are potential
+touches across the journey's paths, not claims every request touches every resource.
+
+Tool nodes with no inbound dependency edges now default to injectable=false and carry an
+injectable_reason string. Outbound edges do not enable them. Tool defaults are recomputed after
+edge overrides; explicit full-node overrides can set eligibility either way, with an override
+reason (or a supplied custom reason). MailHog defaults to false. External services still cannot
+be made injectable. Updated models, offline graph snapshot, docs/overrides.md, overrides.yaml
+comments, README and mapper-cross-check.md; regenerated docs/graph.mmd. The offline graph snapshot
+now matches all parsed nodes/edges/flows/ignored_config while parsed=false indicates that the
+offline invocation did not parse Compose. Old graph artifacts remain readable through defaults
+for the newly added fields.
+
+Verification: ruff check . passed; pytest -q -m "not integration" passed (156 tests, two human
+integration tests deselected). New regressions cover fixture-based ignored CORS records, all
+patterns in environment/build args (including no provider inference), isolation/inbound/outbound
+tool eligibility and explicit override flips, flow membership and touches display in CLI/Mermaid,
+and offline snapshot equality without target/override access. Required Compose fixture comparisons
+and exact node/edge/kind/evidence tests still pass. python -m chaosai run --offline --yes completed;
+chaosai map --mermaid printed 13 nodes/14 edges, the three ignored fields, all three touch-sets,
+and MailHog's false/reason. git diff --check and byte-for-byte Compose fixture cmp passed;
+target git status is clean. No Docker/network/integration/real LLM/.env reads were performed.
+
+Known limits remain: env_file contents/interpolation are not expanded; dependency activation,
+cache-dependent touches and asynchronous outcomes are source descriptions rather than live
+measurements. No new blockers. Pre-existing .DS_Store and untracked =, checkout, login, retrieve
+files are untouched and excluded from this commit. No later phase started.
+
+**Phase 3 "You verify" (copied from BUILD_PLAN.md):** `chaosai map` prints a graph you recognise
+from the README diagram; fix mistakes via `overrides.yaml`.
+
+```sh
+cd "/Users/harsh/Desktop/Bosch Hackathon Optimised/chaos-ai"
+source .venv/bin/activate
+chaosai map --mermaid
+```

@@ -37,7 +37,7 @@ def test_target_nodes_ports_kinds_and_externals(graph: Graph) -> None:
     for name, values in expected.items():
         node = nodes[name]
         assert (node.kind, node.container, node.host_ports, node.container_ports) == values
-        assert node.injectable
+        assert node.injectable == (name != "mailhog")
     for provider in ("stripe", "cloudinary", "resend"):
         node = nodes[provider]
         assert node.kind == "external" and not node.injectable
@@ -61,9 +61,6 @@ def test_target_exact_edges_evidence_and_no_mailhog(graph: Graph) -> None:
         ("frontend", "auth-service", "http"),
         ("frontend", "product-service", "http"),
         ("frontend", "order-service", "http"),
-        ("auth-service", "frontend", "http"),
-        ("product-service", "frontend", "http"),
-        ("order-service", "frontend", "http"),
     }
     assert {(e.source, e.target, e.kind) for e in graph.edges} == expected
     for edge in graph.edges:
@@ -197,6 +194,7 @@ def test_explicit_mailhog_reference_is_mapped() -> None:
         app="test",
     )
     assert graph.edges[0].target == "mailhog" and graph.edges[0].kind == "smtp"
+    assert next(node for node in graph.nodes if node.id == "mailhog").injectable
 
 
 def test_override_merge_add_remove_criticality_flow_and_no_mutation(graph: Graph) -> None:
@@ -218,7 +216,7 @@ def test_override_merge_add_remove_criticality_flow_and_no_mutation(graph: Graph
                 ],
             },
             "edges": {
-                "remove": [{"source": "auth-service", "target": "frontend"}],
+                "remove": [{"source": "frontend", "target": "auth-service"}],
                 "add": [
                     {
                         "source": "frontend",
@@ -243,7 +241,7 @@ def test_override_merge_add_remove_criticality_flow_and_no_mutation(graph: Graph
     assert graph.model_dump_json() == before
     assert "mailhog" not in {n.id for n in result.nodes}
     assert "extra" in {n.id for n in result.nodes}
-    assert not any(e.source == "auth-service" and e.target == "frontend" for e in result.edges)
+    assert not any(e.source == "frontend" and e.target == "auth-service" for e in result.edges)
     assert next(e for e in result.edges if e.target == "redis").criticality == "hard"
     assert result.flows[0].path == ["frontend", "extra"]
     assert result.sources.parsed and result.sources.overrides
@@ -331,7 +329,16 @@ def test_shipped_overrides_flows(settings: Settings) -> None:
     flows = {f.name: f.path for f in graph.flows}
     assert set(flows) == {"browse", "login", "checkout"}
     assert flows["login"] == ["frontend", "auth-service", "postgres"]
-    assert "mongodb" in flows["browse"] and "resend" in flows["checkout"]
+    assert flows["browse"] == ["frontend", "product-service", "redis", "postgres", "mongodb"]
+    assert flows["checkout"] == [
+        "frontend",
+        "order-service",
+        "postgres",
+        "rabbitmq",
+        "notification-service",
+        "resend",
+        "mongodb",
+    ]
     assert "mailhog" not in flows["checkout"]
     assert all(e.criticality == "unknown" for e in graph.edges)
 
@@ -354,7 +361,7 @@ def test_cli_outputs_both_graphs_mermaid_and_reuses_run(cli_workspace: Path) -> 
     runner = CliRunner()
     result = runner.invoke(cli.app, ["map", "--mermaid"])
     assert result.exit_code == 0, result.output
-    assert "13 nodes, 17 edges" in result.output and "EVIDENCE" in result.output
+    assert "13 nodes, 14 edges" in result.output and "EVIDENCE" in result.output
     assert "ecommerce-auth | 3004 | 3001" in result.output
     run_dir = next((cli_workspace / "runs").iterdir())
     assert read_json(run_dir / "graph.json", Graph) == read_json(
@@ -362,6 +369,13 @@ def test_cli_outputs_both_graphs_mermaid_and_reuses_run(cli_workspace: Path) -> 
     )
     diagram = (cli_workspace / "docs" / "graph.mmd").read_text()
     assert diagram.startswith("flowchart LR\n") and "mailhog" in diagram
+    assert "Ignored config (CORS/allowed origins)" in result.output
+    graph = read_json(run_dir / "graph.json", Graph)
+    assert graph.sources.ignored_config == [
+        f"compose.services.{service}.environment.FRONTEND_URL"
+        for service in ("auth-service", "order-service", "product-service")
+    ]
+    assert next(n for n in graph.nodes if n.id == "mailhog").injectable_reason
     result = runner.invoke(cli.app, ["map", "--run-dir", str(run_dir)])
     assert result.exit_code == 0 and len(list((cli_workspace / "runs").iterdir())) == 1
     result = runner.invoke(cli.app, ["map", "--run-dir", str(cli_workspace)])
@@ -374,6 +388,105 @@ def test_mermaid_arbitrary_ids_are_escaped(graph: Graph) -> None:
     diagram = mapper.mermaid(graph)
     assert 'strange"]; evil["' not in diagram
     assert "#34;" in diagram
+
+
+def test_compose_origin_config_is_ignored_and_recorded(graph: Graph) -> None:
+    assert graph.sources.ignored_config == [
+        f"compose.services.{service}.environment.FRONTEND_URL"
+        for service in ("auth-service", "order-service", "product-service")
+    ]
+    assert not any(edge.target == "frontend" for edge in graph.edges)
+    assert all("FRONTEND_URL" not in edge.evidence for edge in graph.edges)
+    serialized = graph.model_dump(mode="json")
+    assert serialized["sources"]["ignored_config"] == graph.sources.ignored_config
+
+
+@pytest.mark.parametrize("section", ["environment", "build.args"])
+def test_origin_patterns_are_ignored_before_any_provider_or_reference_inference(
+    section: str,
+) -> None:
+    entries = [
+        "FRONTEND_URL=http://web:3000",
+        "AUTH_ORIGIN=http://db:5432",
+        "ALLOWED_ORIGINS=http://web:3000,http://db:5432",
+        "CORS_STRIPE_URL=http://db:5432",
+        "CORS_RESEND_ORIGIN",
+        "cors_allowed_hosts=http://db:5432",
+        "API_URL=http://web:3000",
+    ]
+    spec = {"environment": entries} if section == "environment" else {"build": {"args": entries}}
+    graph = mapper.parse_compose(
+        {"services": {"api": spec, "web": {}, "db": {"image": "postgres"}}}, app="test"
+    )
+    assert graph.sources.ignored_config == sorted(
+        f"compose.services.api.{section}.{entry.partition('=')[0]}" for entry in entries[:-1]
+    )
+    assert len(graph.nodes) == 3  # CORS_* must not create external-provider nodes either.
+    assert [(e.source, e.target, e.kind) for e in graph.edges] == [("api", "web", "http")]
+
+
+def test_isolated_tool_default_can_be_flipped_with_an_override(graph: Graph) -> None:
+    mailhog = next(node for node in graph.nodes if node.id == "mailhog")
+    assert not mailhog.injectable
+    assert mailhog.injectable_reason == "Tool has no inbound dependency edges."
+    changed = mailhog.model_dump()
+    changed["injectable"] = True
+    result = mapper.apply_overrides(
+        graph, GraphOverrides.model_validate({"nodes": {"add": [changed]}})
+    )
+    overridden = next(node for node in result.nodes if node.id == "mailhog")
+    assert overridden.injectable
+    assert overridden.injectable_reason == "Set by nodes.add override."
+    assert not mailhog.injectable  # applying overrides leaves the input graph untouched
+
+
+def test_tool_default_changes_with_inbound_edges_but_outbound_does_not_count(graph: Graph) -> None:
+    inbound = {"source": "frontend", "target": "mailhog", "kind": "smtp", "evidence": "manual"}
+    result = mapper.apply_overrides(
+        graph, GraphOverrides.model_validate({"edges": {"add": [inbound]}})
+    )
+    node = next(node for node in result.nodes if node.id == "mailhog")
+    assert node.injectable and node.injectable_reason == "Tool has inbound dependency edges."
+    result = mapper.apply_overrides(
+        result,
+        GraphOverrides.model_validate(
+            {"edges": {"remove": [{"source": "frontend", "target": "mailhog"}]}}
+        ),
+    )
+    assert not next(node for node in result.nodes if node.id == "mailhog").injectable
+    outbound = dict(inbound, source="mailhog", target="frontend")
+    result = mapper.apply_overrides(
+        graph, GraphOverrides.model_validate({"edges": {"add": [outbound]}})
+    )
+    assert not next(node for node in result.nodes if node.id == "mailhog").injectable
+
+
+def test_cli_and_mermaid_display_flow_touch_sets(cli_workspace: Path) -> None:
+    result = CliRunner().invoke(cli.app, ["map", "--offline", "--mermaid"])
+    assert result.exit_code == 0, result.output
+    graph = read_json(cli_workspace / ".chaosai" / "graph.json", Graph)
+    diagram = (cli_workspace / "docs" / "graph.mmd").read_text()
+    for flow in graph.flows:
+        label = f"Flow {flow.name} touches: {', '.join(flow.path)}"
+        assert label in result.output and label in diagram
+        assert f"Flow {flow.name}: " not in result.output
+    assert "Flow checkout touches: frontend ->" not in result.output + diagram
+    assert "f0 -->" not in diagram and "f1 -->" not in diagram and "f2 -->" not in diagram
+
+
+def test_offline_snapshot_matches_mapper_nodes_edges_flows_and_ignored_config(
+    settings: Settings,
+) -> None:
+    settings.target_dir = COMPOSE.parent
+    settings.overrides_file = PROJECT_ROOT / "overrides.yaml"
+    parsed = mapper.map_target(settings)
+    # Use a separate workspace without overrides so the snapshot's flows are verified too.
+    snapshot = mapper.map_target(Settings(project_root=settings.project_root), offline=True)
+    assert not snapshot.sources.parsed and not snapshot.sources.overrides
+    assert snapshot.nodes == parsed.nodes
+    assert snapshot.edges == parsed.edges
+    assert snapshot.flows == parsed.flows
+    assert snapshot.sources.ignored_config == parsed.sources.ignored_config
 
 
 def test_cli_mapper_error_does_not_echo_yaml_values(cli_workspace: Path) -> None:
