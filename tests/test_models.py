@@ -55,6 +55,49 @@ def test_every_contract_round_trips() -> None:
             approvals=[Approval(experiment_id="redis-stop", decision="yes")],
         ),
     ]
+    product = models.Product(
+        id="p", name="Test", slug="test", description="d", price=12.5, stock=100000, categoryId="c"
+    )
+    values.extend(
+        [
+            models.APIModel(),
+            models.AuthResponse(
+                user=models.TargetUser(id="u", name="Test", email="user@test.com", role="USER"),
+                accessToken="mock-token",
+                refreshToken="mock-refresh",
+            ),
+            models.Category(id="c", name="Test", slug="test"),
+            models.ProductPage(
+                products=[product],
+                pagination=models.Pagination(page=1, limit=100, total=1, totalPages=1),
+            ),
+            models.OrderResponse(
+                order=models.TargetOrder(
+                    id="o",
+                    userId="u",
+                    status="pending",
+                    subtotal=12.5,
+                    shipping=10,
+                    total=22.5,
+                    items=[models.OrderItem(productId="p", name="Test", price=12.5, quantity=1)],
+                )
+            ),
+            models.QueueSnapshot(
+                name="notifications", vhost="/", consumers=1, messages_ready=0, messages=0
+            ),
+            models.ContainerStatus(
+                name="test",
+                service="postgres",
+                state="running",
+                paused=False,
+                health="healthy",
+                ports=[("localhost", 5433)],
+            ),
+            models.CheckResult(name="test", passed=True, detail="test"),
+            models.SeedResult(),
+            models.SmokeResult(order_id="o"),
+        ]
+    )
     covered: set[type[BaseModel]] = set()
     for value in values:
         for model in instances(value):

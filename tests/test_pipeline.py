@@ -165,11 +165,6 @@ def test_dry_run_cli(cli_workspace: Path) -> None:
 @pytest.mark.parametrize(
     "command",
     [
-        "doctor",
-        "up",
-        "status",
-        "seed",
-        "smoke",
         "map",
         "load",
         "baseline",

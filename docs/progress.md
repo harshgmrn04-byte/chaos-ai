@@ -2,7 +2,7 @@
 
 - [x] Phase 0 — Target reconnaissance
 - [x] Phase 1 — Scaffold and walking skeleton
-- [ ] Phase 2 — Bring-up, seed, smoke test, payment gate, doctor
+- [x] Phase 2 — Bring-up, seed, smoke test, payment gate, doctor
 - [ ] Phase 3 — Application mapper
 - [ ] Phase 4 — Load generator, metrics, baseline
 - [ ] Phase 5 — Faults, safety layer, watchdog, kill switch
@@ -64,3 +64,86 @@ empty because nothing is injected. Phase 2 has not started; Phase 0 runtime ques
 unresolved. The pre-existing tracked `.DS_Store` modification is left out of the commit.
 
 **Phase 1 "You verify" (copied from BUILD_PLAN.md):** open the generated `report.html` in a browser.
+
+
+## Phase 2 — 2026-10-11
+
+Implemented robust Docker SDK resolution: DOCKER_HOST (honoring SDK environment/TLS settings),
+active CLI context endpoint, Docker Desktop's user socket, then the system socket. Each
+candidate must ping; failures produce a credential-free fix hint. Container discovery filters
+and rechecks exact COMPOSE_PROJECT labels; service access rechecks after reload and rejects
+missing/ambiguous/stopped/paused targets. Added TCP and documented HTTP readiness probes.
+
+Implemented doctor (PASS/FAIL table with fix hints, Python, Docker, ten target services,
+health/paused state, all published host ports, catalog HTTP probes, LLM key presence and .env
+existence), scoped status, and up (explicit project/file, target cwd, up -d --build, bounded
+execution, withheld potentially sensitive build output). Relative TARGET_DIR resolves from
+chaos-ai rather than the invoking terminal directory.
+
+Seed uses scoped PostgreSQL to read only existing email identities, avoiding duplicate-register
+errors that can hang under this target's async error forwarding. Missing admin/load accounts
+are registered through the documented API (20 load users by default; --users/SEED_USERS
+configurable). The exact documented SQL promotes admin, followed by login for a fresh ADMIN
+token. Public category/product lists, including product pagination, identify existing slugs;
+admin APIs create two categories and four no-upload, stock-100000 products. No account reset,
+password-hash reads, Cloudinary uploads or undocumented product-update route. Existing seed
+product stock/category conflicts fail with a precise hint. Run seed serially, not concurrently.
+
+Smoke browses, logs in, creates one pending order with paymentMethod=stripe and retrieves it,
+validating identity, owner, items and totals (shipping boundary is strictly subtotal >100).
+Checkout is never retried automatically because HTTP 500 can follow persisted orders. Best-effort
+notification evidence checks notifications (routing key order.created) identity/consumer count,
+ready-count trend against baseline/preceding sample and total counts through RabbitMQ management;
+three post-order observations six seconds apart allow for default statistics refresh. Bounded
+scoped notification-service logs must contain the routing key and this order ID. Missing or
+unavailable evidence produces warnings without failing successful checkout. Receipt does not
+prove ack/actual Resend email delivery; no MailHog check.
+
+Added target API/result models in models.py, environment defaults/examples, README usage and
+human integration commands. Added target-notes section 11 separating official RabbitMQ API
+contract from target configuration/source facts and observation-policy decisions. Consulted only
+rabbitmq.com: HTTP API reference, rabbitmqctl manual and management documentation (including
+3.13's default statistics interval). Credentials/port use the cited Compose defaults, with env
+overrides. No .env or real API key was read, printed or committed; no real LLM used.
+
+Verification: source .venv/bin/activate; ruff check . passed; pytest -q -m "not integration"
+passed (96 tests; two integration tests deselected). Unit tests forbid sockets, subprocesses,
+real Docker constructors and dotenv reads unless explicitly mocked. Coverage includes endpoint
+precedence and failure cleanup, scope/refused foreign/paused containers, Compose argv/cwd,
+readiness/doctor flags and fix hints, request/response shapes, seed twice/partial seeds/promotion,
+catalog pagination/stock guards, queue encoding/auth/metrics/consumer and ready trends,
+log correlation/absence, checkout failure without retry, shipping boundary and credential-free
+errors. All pydantic contracts round-trip. CLI and seed --help passed; git diff --check passed.
+The target tracked/untracked working tree is pristine according to read-only git status.
+The pre-existing tracked .DS_Store modification in chaos-ai is excluded from this phase commit.
+
+Known gaps: live Docker/HTTP/checkout and image compatibility are unverified, as requested.
+No Docker command (including context inspection), live app request or integration test was run.
+No payment patch/scripts were created: source already bypasses placeholder keys and no live
+smoke failure has demonstrated a need. Existing admin must use its current password through
+SEED_PASSWORD; auth rate limits may require a 15-minute wait for unusually large/repeated seeds.
+RabbitMQ's current reference is v4.3 while the target image is v3; the used queue metrics remain
+subject to the human live check. The fixture runner remains Phase 1; no later phase implemented.
+
+**Phase 2 "You verify (Docker)" (copied from BUILD_PLAN.md):** `chaosai doctor`, `chaosai seed`,
+`chaosai smoke` all green. If smoke fails on payment, apply the patch flow, rebuild order-service,
+re-run smoke.
+
+Exact live commands (after configuring chaos-ai/.env yourself and starting Docker Desktop):
+
+```sh
+cd "/Users/harsh/Desktop/Bosch Hackathon Optimised/chaos-ai"
+source .venv/bin/activate
+chaosai up
+chaosai status
+chaosai doctor
+chaosai seed
+chaosai seed
+chaosai smoke
+pytest -q -m integration
+```
+
+Wait for target services to become ready and re-run doctor if startup is still in progress.
+The second seed must create no additional accounts/catalog entries. The integration checkout
+creates one additional order. Payment patch flow is conditional on a diagnosed live payment
+failure; no patch currently exists to apply.

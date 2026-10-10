@@ -217,3 +217,54 @@ These are unresolved runtime/configuration questions; no values or outcomes are 
 **Phase 0 “You verify” (copied from BUILD_PLAN.md):** skim the checkout and Stripe sections; note anything surprising.
 
 Additional useful checks for the human on the already-running app: verify one register/login/refresh sequence; seed existence/admin role after re-login; no-upload admin category/product creation; browse/detail; checkout response and matching `GET /orders/:id`; `notifications` queue receipts and stored notification status versus actual email. Fault/recovery measurements belong to later explicitly authorized phases. No Docker command was run for this recon.
+
+## 11. RabbitMQ management HTTP contract — official documentation, not target-source evidence
+
+Verified 2026-10-11 using rabbitmq.com only. This section records the vendor's HTTP
+contract, not a runtime observation of the target or an inference from its application code.
+
+Read a single queue with `GET /api/queues/{vhost}/{name}`. Percent-encode each path segment:
+the default vhost `/` becomes `%2F`, so this target's request is
+`GET /api/queues/%2F/notifications`. HTTP Basic authentication uses a RabbitMQ username
+and password. The successful JSON object identifies the queue with `name` and `vhost`;
+200 plus matching identifiers establishes existence. A missing queue is reported as 404;
+connection failures and authentication errors do not establish absence.
+Documentation: [HTTP API reference](https://www.rabbitmq.com/docs/http-api-reference)
+(Overview, GET /api/queues/{vhost}/{name}, and queue response-field sections).
+
+Fields used by Phase 2:
+
+| JSON field | Meaning / use |
+|---|---|
+| `name`, `vhost` | Confirm the requested queue identity. |
+| `consumers` | Number of consumers; expect at least one. |
+| `messages_ready` | Messages waiting for delivery; compare before/after checkout. |
+| `messages` | Total queue messages, including deliveries awaiting acknowledgement; report for context. |
+
+The API queue-field section incorporates `rabbitmqctl list_queues` fields; their definitions
+are in the official [rabbitmqctl manual](https://www.rabbitmq.com/docs/man/rabbitmqctl.8#list_queues).
+Missing metrics are unavailable evidence, not zero. RabbitMQ 3.13 emits statistics every
+five seconds by default, so wait between observations:
+[3.13 management statistics interval](https://www.rabbitmq.com/docs/3.13/management#statistics-interval).
+The current API reference is version 4.3; the target declares a RabbitMQ 3 image. Compatibility
+of these queue fields with the live image remains a human integration check.
+
+**Target configuration facts (source, separate from the vendor contract):** the host management
+port is `15672`; Compose sets `RABBITMQ_DEFAULT_USER=ecommerce` and the local sample password
+`RABBITMQ_DEFAULT_PASS=ecommerce123` (`ecommerce-microservices/docker-compose.yml:49-64`,
+already cited in section 1). Phase 2 defaults use those values, never the vendor's guest account.
+Override them through `RABBITMQ_MANAGEMENT_URL`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD` and
+`RABBITMQ_VHOST` in ChaosPilot configuration when the live deployment differs. No runtime
+credentials or `.env` contents were inspected.
+
+**Source logging detail:** the notification consumer emits `Received event: order.created`
+with event metadata (including `orderId`) before dispatching its handler and acknowledging.
+Evidence: `ecommerce-microservices/notification-service/src/consumers/orderConsumer.ts:163-177`.
+A correlated receipt proves consumer receipt, not acknowledgement or Resend delivery.
+
+**Phase 2 observation policy (implementation decision):** take a pre-order snapshot and three
+post-order snapshots six seconds apart. Confirm queue identity, at least one consumer in each
+snapshot, final ready count no higher than baseline or the preceding sample. Queue/log
+failures produce warnings; checkout still succeeds if browse/login/create/retrieve succeed.
+Read only this queue and bounded, scoped notification logs; never consume/purge management
+messages. No MailHog receipt is expected.

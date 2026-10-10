@@ -227,3 +227,107 @@ class Plan(RootModel[list[ExperimentSpec]]):
 
 class Findings(RootModel[list[Finding]]):
     pass
+
+
+# Phase 2 target contracts. API models ignore additional documented upstream fields.
+class APIModel(BaseModel):
+    model_config = ConfigDict(extra="ignore", allow_inf_nan=False)
+
+
+class TargetUser(APIModel):
+    id: str
+    name: str
+    email: str
+    role: Literal["USER", "ADMIN"]
+
+
+class AuthResponse(APIModel):
+    user: TargetUser
+    accessToken: str = Field(repr=False, min_length=1)
+    refreshToken: str = Field(repr=False, min_length=1)
+
+
+class Category(APIModel):
+    id: str = Field(min_length=1)
+    name: str
+    slug: str
+
+
+class Product(APIModel):
+    id: str = Field(min_length=1)
+    name: str
+    slug: str
+    description: str
+    price: float = Field(ge=0)
+    stock: int = Field(ge=0)
+    categoryId: str
+
+
+class Pagination(APIModel):
+    page: int = Field(ge=1)
+    limit: int = Field(ge=1)
+    total: int = Field(ge=0)
+    totalPages: int = Field(ge=0)
+
+
+class ProductPage(APIModel):
+    products: list[Product]
+    pagination: Pagination
+
+
+class OrderItem(APIModel):
+    productId: str
+    name: str
+    price: float
+    quantity: int
+
+
+class TargetOrder(APIModel):
+    id: str = Field(min_length=1)
+    userId: str
+    status: str
+    subtotal: float
+    shipping: float
+    total: float
+    items: list[OrderItem]
+
+
+class OrderResponse(APIModel):
+    order: TargetOrder
+
+
+class QueueSnapshot(APIModel):
+    name: str
+    vhost: str
+    consumers: int = Field(ge=0, strict=True)
+    messages_ready: int = Field(ge=0, strict=True)
+    messages: int = Field(ge=0, strict=True)
+
+
+class ContainerStatus(Model):
+    name: str
+    service: str
+    state: str
+    paused: bool
+    health: str
+    ports: list[tuple[str, int]]
+
+
+class CheckResult(Model):
+    name: str
+    passed: bool
+    detail: str
+    hint: str = ""
+
+
+class SeedResult(Model):
+    users_created: int = 0
+    users_existing: int = 0
+    categories_created: int = 0
+    products_created: int = 0
+
+
+class SmokeResult(Model):
+    order_id: str
+    warnings: list[str] = Field(default_factory=list)
+    evidence: list[str] = Field(default_factory=list)
