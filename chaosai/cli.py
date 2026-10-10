@@ -9,6 +9,7 @@ import typer
 from pydantic import ValidationError
 
 from chaosai.approval import ApprovalRequired, Approver
+from chaosai.baseline import measure_baseline, run_load
 from chaosai.config import PROJECT_ROOT, Settings, load_config
 from chaosai.doctor import doctor_checks, status_checks, target_status
 from chaosai.mapper import MapperError, map_target, mermaid, save_graph
@@ -32,16 +33,28 @@ def run(
 ) -> None:
     """Run map → baseline → plan → approvals → fixture results → analysis → score → report."""
     typer.echo(
-        "Simulated experiments/metrics; offline uses fixtures, otherwise map parses Compose."
+        "Experiments and findings remain fixtures. Offline baseline uses fixtures; "
+        "live baseline sends load to the target."
     )
     approver = Approver(yes=yes, is_tty=sys.stdin.isatty(), ask=input)
     try:
         run_dir = run_pipeline(
             load_config(offline=offline), approver, dry_run=dry_run, offline=offline
         )
-    except (ApprovalRequired, MapperError, ValidationError) as exc:
+    except (
+        ApprovalRequired,
+        MapperError,
+        ValidationError,
+        TargetError,
+        docker.errors.DockerException,
+        OSError,
+    ) as exc:
         message = (
-            "Invalid configuration or graph data." if isinstance(exc, ValidationError) else str(exc)
+            "Invalid configuration or graph data."
+            if isinstance(exc, ValidationError)
+            else str(exc)
+            if isinstance(exc, (ApprovalRequired, MapperError, TargetError))
+            else "Target baseline failed; check Docker readiness and artifact storage."
         )
         typer.echo(message, err=True)
         raise typer.Exit(2) from exc
@@ -227,14 +240,63 @@ def smoke() -> None:
     typer.echo("Notification receipt evidence does not prove Resend email delivery.")
 
 
+@app.command(name="load")
+def load_command(
+    users: int | None = typer.Option(None, min=1, max=150, help="Workers (default LOAD_USERS=10)."),
+    duration: float | None = typer.Option(None, min=0.01, help="Seconds (default 30)."),
+) -> None:
+    """Send homepage/browse/login/checkout load; checkout creates real orders."""
+    settings = target_config()
+    run_dir = create_run(settings.runs_dir)
+    try:
+        stats = run_load(
+            settings,
+            run_dir,
+            users if users is not None else settings.load_users,
+            duration if duration is not None else settings.load_duration_s,
+        )
+    except (TargetError, docker.errors.DockerException, OSError) as exc:
+        target_failure(exc)
+    for name, value in stats.items():
+        typer.echo(
+            f"{name}: n={value.n}, errors={value.error_rate:.2%}, "
+            f"p95={value.p95_ms:.1f}ms, rps={value.rps:.2f}"
+        )
+    typer.echo(f"Samples: {run_dir / 'samples.jsonl'}")
+
+
+@app.command(name="baseline")
+def baseline_command(
+    duration: float | None = typer.Option(
+        None, min=0.01, help="Measurement seconds (default 120)."
+    ),
+    quick: bool = typer.Option(False, help="10s warm-up plus 40s measurement."),
+) -> None:
+    """Measure live load and save run/latest baseline; checkout creates real orders."""
+    settings = target_config()
+    run_dir = create_run(settings.runs_dir)
+    try:
+        graph = map_target(settings)
+        save_graph(graph, settings, run_dir)
+        value = measure_baseline(graph, settings, run_dir, duration_s=duration, quick=quick)
+    except (TargetError, MapperError, docker.errors.DockerException, OSError) as exc:
+        target_failure(exc)
+    for name, stats in value.journeys.items():
+        typer.echo(
+            f"{name}: n={stats.n}, errors={stats.error_rate:.2%}, "
+            f"p95={stats.p95_ms:.1f}ms, rps={stats.rps:.2f}"
+        )
+    typer.echo(f"Stable: {value.stable}; window: {value.window_s:.1f}s")
+    typer.echo(f"Baseline: {run_dir / 'baseline.json'}")
+    typer.echo(f"Latest baseline: {settings.project_root / '.chaosai' / 'baseline.json'}")
+
+
 def not_implemented() -> None:
     typer.echo("not implemented yet")
     raise typer.Exit(2)
 
 
 for command_name in (
-    "load",
-    "baseline",
     "fault",
     "inject",
     "rollback",

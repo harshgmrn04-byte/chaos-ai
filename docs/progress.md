@@ -4,7 +4,7 @@
 - [x] Phase 1 — Scaffold and walking skeleton
 - [x] Phase 2 — Bring-up, seed, smoke test, payment gate, doctor
 - [x] Phase 3 — Application mapper
-- [ ] Phase 4 — Load generator, metrics, baseline
+- [x] Phase 4 — Load generator, metrics, baseline
 - [ ] Phase 5 — Faults, safety layer, watchdog, kill switch
 - [ ] Phase 6 — Experiment runner and Day-1 demo
 - [ ] Phase 7 — LLM layer and AI planner
@@ -330,3 +330,94 @@ cd "/Users/harsh/Desktop/Bosch Hackathon Optimised/chaos-ai"
 source .venv/bin/activate
 chaosai map --mermaid
 ```
+
+
+## Phase 4 — 2026-10-11
+
+Implemented homepage/browse/login/checkout load with the exact documented contracts. Homepage
+hits the configured frontend host root; browse lists products, reads a returned database ID,
+and lists categories. Workers own synchronous httpx clients, use weighted 10/60/10/20 journey
+selection, 0.2–1.0s think time, five-second request deadlines and per-request samples. Samples
+are serialized under one lock into memory and append-only/fsynced JSONL. Worker counts can
+change through set_workers/add_workers/remove_workers, with 150 total including retiring
+threads. Stop cancels pending admissions, joins workers and closes their clients.
+
+Seed account identities match chaosai seed. Preparation and every login reuse Phase 2's scoped
+DB existence/bcrypt comparison; absent/blank/mismatched/unverifiable users warn and skip with
+no login/registration. Passwords/tokens and raw HTTP/helper errors are absent from sample/log
+artifacts. Per-user locked token caches renew on use at ten minutes by verified re-login;
+checkout 401 invalidates/re-logins and retries once only with another checkout admission.
+HTTP 500/timeouts are never retried because orders can persist before publication fails.
+Shared checkout cap defaults to one request/s and survives worker changes. An additional
+nonburst auth cap defaults/maxes at 0.1 requests/s (90/15min) due to the known target IP limiter.
+Admission denials skip journeys, so observed proportions differ from offered weights. Tokens
+are renewed by re-login rather than the unsafe stored-refresh-token error path.
+
+Added pure interpolated percentiles, half-open window stats, per-journey stats/by_journey alias,
+stability checking and exact threshold derivation. Full baseline discards 30s warm-up and
+measures 120s; --quick uses 10s/40s. Requests started outside the measured window are excluded
+from both sample artifacts and stats, including late warm-up completions; in-window requests
+are allowed to finish after the window before statistics are finalized. Stability requires
+samples in both halves for every journey and a <=30% p95 change relative to the first half.
+An "all" aggregate supplies hypothesis error_rate +0.02; p95 multiple 2. Abort constants are
+0.5 error rate, 10 p95 multiple, 3 unhealthy containers, 10 minimum samples and 2 consecutive
+breaches. No scoring/fault/watchdog phase was started.
+
+Added five-second scoped Docker CPU-delta/memory/status/restart polling and RabbitMQ total
+notifications queue depth via the existing validated management contract. CPU is zero before
+a prior delta exists; memory is MiB. Baseline CPU/memory and queue depth are measured means;
+status and cumulative restarts are the last observations. Missing telemetry warns and is
+omitted rather than treated as a zero queue. Published TCP infra probes and frontend/catalog
+HTTP probes use config/current scoped bindings. Auth GET /me (confirmed in authRoutes.ts:25)
+and order GET /orders expect no-token middleware 401, which proves responsiveness only. Missing
+mapped infra is recorded false. Observations/probes are persisted separately in the run.
+
+CLI load and baseline now work; latest baseline is atomically written to .chaosai/baseline.json
+as well as the run directory. Normal run replaces the baseline fixture with measurement;
+--offline still uses fixtures with no Docker/HTTP/dotenv reads. Plans, experiment outcomes,
+findings and scores remain fixtures and the CLI/README state this. Added configuration variables,
+README usage and docs/load-baseline.md for data semantics and operational limits. Existing
+pre-session .DS_Store and untracked =, checkout, login, retrieve files remain untouched and
+excluded from this phase commit. No target files, dependencies or later-phase features changed.
+
+Verification: ruff check . passed; pytest -q -m "not integration" passed (207 tests, three
+human integration tests deselected). Tests cover percentile/window/journey/error stats, exact
+thresholds, p95 boundaries/missing halves, warm-up/late/end-boundary filtering, concurrent
+append-only buffers, shared nonburst rate caps, verified-credential refusal and rechecks with
+MockTransport, proactive token renewal, 401-only retry/cache invalidation, timeout/invalid
+response redaction, runtime worker changes/private-client cleanup, scoped Docker stats/CPU
+formula, queue contract/unavailability, actual TCP/safe HTTP probes, baseline artifacts and
+cleanup, env/CLI options and offline fixture isolation. python -m chaosai run --offline --yes
+completed with a report; chaosai load --help and chaosai baseline --help passed. Whitespace
+checks passed. Read-only target git status is clean. No live Docker/HTTP, integration tests,
+real LLM, API keys or .env contents were inspected by the coding agent.
+
+Open issues: actual live compatibility/telemetry/stability remain unverified. One generator's
+caps do not coordinate concurrent processes or preceding seed/smoke IP traffic; run serially
+and allow the 15-minute auth window to clear if it has been consumed. Quick mode has few login
+samples; repeat full windows to establish stability. Latency stability alone does not prove
+health; inspect errors and probes. The fresh credential preflight cannot prevent a concurrent
+account deletion/password change between comparison and HTTP; failed login is rechecked with
+no immediate retry. Every admitted checkout creates a durable pending order and may trigger
+Resend in the target. Runtime target config/deployment differences require config overrides.
+
+**Phase 4 "You verify (Docker)" (copied from BUILD_PLAN.md):** `chaosai baseline --quick`,
+then a full `chaosai baseline`; `baseline.json` shows believable numbers and `stable: true`;
+run it twice and compare.
+
+Exact live commands (target up; retain the current seeded users' SEED_PASSWORD in .env):
+
+```sh
+cd "/Users/harsh/Desktop/Bosch Hackathon Optimised/chaos-ai"
+source .venv/bin/activate
+export LOAD_USERS=10
+chaosai seed --users 10
+chaosai baseline --quick
+chaosai baseline
+chaosai baseline
+```
+
+Each baseline prints its run-specific baseline.json and latest .chaosai/baseline.json paths.
+Compare the two full run files, including per-journey n/errors/p95/RPS, containers, queues,
+thresholds and stable. A targeted human integration check is:
+`pytest -q -m integration tests/test_target_integration.py::test_live_quick_baseline`.

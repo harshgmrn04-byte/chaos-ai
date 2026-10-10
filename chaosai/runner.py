@@ -66,7 +66,7 @@ def run_pipeline(
     write_json(run_dir / "journal.json", [])
     graph = map_target(settings, offline=offline)
     save_graph(graph, settings, run_dir)
-    baseline = measure_baseline(graph)
+    baseline = measure_baseline(graph, settings, run_dir, offline=offline)
     write_json(run_dir / "baseline.json", baseline)
     plan, meta.planner_source = plan_experiments(
         graph, baseline, provider=settings.llm_provider, cache_dir=run_dir / "llm"

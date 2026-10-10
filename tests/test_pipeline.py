@@ -7,7 +7,18 @@ from typer.testing import CliRunner
 from chaosai import cli, runner
 from chaosai.approval import ApprovalRequired, Approver
 from chaosai.config import Settings
-from chaosai.models import ExperimentResult, Finding, Graph, Plan, RunMeta, Sample, Score, Summary
+from chaosai.fixture_data import fixture
+from chaosai.models import (
+    Baseline,
+    ExperimentResult,
+    Finding,
+    Graph,
+    Plan,
+    RunMeta,
+    Sample,
+    Score,
+    Summary,
+)
 from chaosai.report import render_report
 from chaosai.runs import read_json, read_jsonl, write_json
 
@@ -15,8 +26,9 @@ cli_runner = CliRunner()
 
 
 @pytest.fixture(autouse=True)
-def compose_fixture(settings: Settings) -> None:
+def compose_fixture(settings: Settings, monkeypatch: pytest.MonkeyPatch) -> None:
     settings.target_dir = Path(__file__).parent / "fixtures"
+    monkeypatch.setattr(runner, "measure_baseline", lambda *a, **kw: fixture("baseline", Baseline))
 
 
 def test_full_offline_cli(cli_workspace: Path) -> None:
@@ -176,8 +188,6 @@ def test_dry_run_cli(cli_workspace: Path) -> None:
 @pytest.mark.parametrize(
     "command",
     [
-        "load",
-        "baseline",
         "fault",
         "inject",
         "rollback",

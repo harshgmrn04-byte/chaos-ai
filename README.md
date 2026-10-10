@@ -4,10 +4,10 @@ AI-driven chaos engineering for cloud-native resilience. Python package: `chaosa
 
 Phase 2 provides live target bring-up, diagnostics, seeding and checkout verification.
 Phase 3 maps Compose deterministically, with manual overrides and Mermaid output.
-The `run` command maps Compose by default; `--offline` uses the bundled graph fixture.
-Experiments remain synthetic and never connect to Docker, the target APIs, or a real LLM.
-Metrics and findings
-illustrate possible outcomes and are not observations of the running application. The policy
+Phase 4 adds live threaded load, scoped telemetry and measured baselines.
+The `run` command maps Compose and measures a live baseline by default; `--offline` uses
+bundled fixtures without target access. Experiments and findings remain synthetic;
+real fault execution and analysis arrive in later phases. The policy
 decisions, rollback and recovery evidence are also fixtures. Real safety controls and scoring
 arrive in later phases.
 
@@ -39,8 +39,8 @@ Without a TTY, execution requires `--yes`. `n` skips, `a` approves the remaining
 and `q` writes a report for experiments already completed. EOF or Ctrl-C at the approval
 prompt also quits cleanly. Dry runs and entirely skipped plans have no assessed score.
 
-Commands deferred to later phases print `not implemented yet` and exit 2: `load`,
-`baseline`, `fault`, `inject`, `rollback`, `kill`, `plan`, `replay`.
+Commands deferred to later phases print `not implemented yet` and exit 2: `fault`,
+`inject`, `rollback`, `kill`, `plan`, `replay`.
 
 ## Application graph (Phase 3)
 
@@ -61,6 +61,41 @@ See [docs/overrides.md](docs/overrides.md) for override format/inference rules, 
 [docs/mapper-cross-check.md](docs/mapper-cross-check.md) for every dependency difference from
 the target notes. The shipped overrides define browse, login and checkout participants.
 
+## Load and baseline (Phase 4)
+
+Retain the seeded load users' current password in SEED_PASSWORD. An empty value, absent
+account, mismatch or unavailable DB/bcrypt verification skips that user without sending login.
+Run after starting the target and seeding it:
+
+```sh
+chaosai load --users 10 --duration 30
+chaosai baseline --quick       # 10s discarded warm-up + 40s measurement
+chaosai baseline               # 30s discarded warm-up + 120s measurement
+chaosai baseline --duration 120
+```
+
+These commands create real pending orders and trigger the target's notification consumer.
+CHECKOUT_RPS defaults to 1 globally across workers, including a possible retry after 401.
+HTTP 500 and timeouts never cause an order retry. AUTH_RPS is limited to 0.1 (90 requests
+per 15 minutes) to leave headroom under auth's IP limiter; run only one load process at a time.
+Recent seed/smoke calls also consume that IP limit, so allow its 15-minute window to clear
+if you see 429s. Tokens are cached per account and renewed by credential-verified login
+on use after ten minutes, and after 401. No unsafe refresh-token error probe is needed.
+
+The offered journey mix is 10% homepage, 60% browse, 10% login and 20% checkout; caps reduce
+actual admitted login/checkout traffic. Samples describe individual HTTP requests, so browse
+normally contributes three samples. Requests time out after five seconds. Workers pause
+0.2–1.0s between journeys and can be added/removed through LoadGenerator without resetting
+caps or token caches; all worker threads, including retiring ones, are bounded to 150.
+
+Baseline saves runs/<timestamp>/baseline.json and .chaosai/baseline.json. The run also contains
+samples.jsonl, containers.jsonl, queues.jsonl and probes.json. Stability requires each journey
+to have samples in both halves and its p95 to differ by at most 30% of the first half. Quick
+mode has few login samples, so repeat a full window to assess stability. Inspect error rates
+as well: stable latency alone does not establish health. See [docs/load-baseline.md](docs/load-baseline.md)
+for windowing, threshold derivation and telemetry semantics. Defaults and overrides are in
+.env.example; LOAD_USERS sets baseline workers and BASELINE_DURATION_S sets the full window.
+
 ## Live target commands (Phase 2)
 
 Configure `.env` yourself from `.env.example`; it is ignored by Git. Set a Gemini key locally
@@ -79,7 +114,7 @@ chaosai doctor
 chaosai seed
 chaosai seed                  # confirm repeatability: no new accounts/catalog entries
 chaosai smoke
-pytest -q -m integration      # readiness + one additional checkout
+pytest -q -m integration      # readiness, checkout and quick baseline (creates orders)
 ```
 
 `up` runs `docker compose --project-name COMPOSE_PROJECT up -d --build` in `TARGET_DIR`;

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Literal
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -19,6 +19,21 @@ class Settings(BaseModel):
     overrides_file: Path = Path("overrides.yaml")
     llm_provider: Literal["gemini", "mock", "none"] = "none"
     gemini_model: str | None = None
+
+    frontend_url: str = "http://localhost:3000"
+    load_duration_s: float = Field(default=30, gt=0)
+    load_users: int = Field(default=10, ge=1, le=150)
+    load_timeout_s: float = Field(default=5, gt=0, le=5)
+    checkout_rps: float = Field(default=1, gt=0)
+    auth_rps: float = Field(default=0.1, gt=0, le=0.1)
+    token_refresh_s: float = Field(default=600, gt=0, le=600)
+    think_min_s: float = Field(default=0.2, ge=0.2, le=1)
+    think_max_s: float = Field(default=1, ge=0.2, le=1)
+    warmup_s: float = Field(default=30, ge=0)
+    baseline_duration_s: float = Field(default=120, gt=0)
+    quick_warmup_s: float = Field(default=10, ge=0)
+    quick_duration_s: float = Field(default=40, gt=0)
+    metrics_interval_s: float = Field(default=5, gt=0)
 
     auth_url: str = "http://localhost:3004"
     product_url: str = "http://localhost:3002"
@@ -71,6 +86,12 @@ class Settings(BaseModel):
         "frontend",
     )
 
+    @model_validator(mode="after")
+    def validate_think_time(self) -> "Settings":
+        if self.think_max_s < self.think_min_s:
+            raise ValueError("THINK_MAX_S must be at least THINK_MIN_S")
+        return self
+
     @property
     def admin_login_password(self) -> SecretStr:
         return self.admin_password or self.seed_password
@@ -100,6 +121,18 @@ def load_config(*, offline: bool = False, project_root: Path = PROJECT_ROOT) -> 
     )
     target_options: dict[str, str] = {}
     for field, variable in (
+        ("frontend_url", "FRONTEND_URL"),
+        ("load_duration_s", "LOAD_DURATION_S"),
+        ("load_users", "LOAD_USERS"),
+        ("think_min_s", "THINK_MIN_S"),
+        ("think_max_s", "THINK_MAX_S"),
+        ("metrics_interval_s", "METRICS_INTERVAL_S"),
+        ("load_timeout_s", "LOAD_TIMEOUT_S"),
+        ("checkout_rps", "CHECKOUT_RPS"),
+        ("auth_rps", "AUTH_RPS"),
+        ("token_refresh_s", "TOKEN_REFRESH_S"),
+        ("warmup_s", "WARMUP_S"),
+        ("baseline_duration_s", "BASELINE_DURATION_S"),
         ("auth_url", "AUTH_URL"),
         ("product_url", "PRODUCT_URL"),
         ("order_url", "ORDER_URL"),
@@ -114,7 +147,8 @@ def load_config(*, offline: bool = False, project_root: Path = PROJECT_ROOT) -> 
         ("request_timeout_s", "REQUEST_TIMEOUT_S"),
         ("notification_interval_s", "NOTIFICATION_INTERVAL_S"),
     ):
-        if value := os.getenv(variable):
+        value = os.getenv(variable)
+        if value is not None and (value or field == "seed_password"):
             target_options[field] = value
     return Settings(
         **target_options,

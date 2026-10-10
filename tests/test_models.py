@@ -37,6 +37,10 @@ def instances(value: object) -> list[BaseModel]:
 
 def test_every_contract_round_trips() -> None:
     values = [
+        models.ContainerObservation(
+            t=1, name="test", stats=models.ContainerStats(cpu_pct=1, mem_mb=2, restarts=0)
+        ),
+        models.QueueObservation(t=1, name="notifications", depth=0),
         models.GraphOverrides(
             edges=models.EdgeOverrides(
                 remove=[models.EdgeSelector(source="frontend", target="auth-service")],

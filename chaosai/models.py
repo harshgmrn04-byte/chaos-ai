@@ -128,6 +128,19 @@ class ContainerStats(Model):
     cpu_pct: float
     mem_mb: float
     restarts: int
+    status: str = "unknown"
+
+
+class ContainerObservation(Model):
+    t: float
+    name: str
+    stats: ContainerStats
+
+
+class QueueObservation(Model):
+    t: float
+    name: str
+    depth: float = Field(ge=0)
 
 
 class Baseline(Model):
