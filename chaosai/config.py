@@ -28,6 +28,10 @@ class Settings(BaseModel):
     notification_queue: str = "notifications"
     seed_users: int = Field(default=20, ge=0)
     seed_password: SecretStr = SecretStr("ChaosPilotTest123!")
+    admin_password: SecretStr | None = None
+    auth_timeout_s: float = Field(default=4, ge=3, le=5)
+    auth_workdir: str = "/app"
+    products_database: str = "ecommerce_products"
     admin_email: str = "admin@test.com"
     load_email_template: str = "loaduser{index:03d}@test.com"
     postgres_user: str = "ecommerce"
@@ -66,6 +70,10 @@ class Settings(BaseModel):
     )
 
     @property
+    def admin_login_password(self) -> SecretStr:
+        return self.admin_password or self.seed_password
+
+    @property
     def resolved_target_dir(self) -> Path:
         return (self.project_root / self.target_dir).resolve()
 
@@ -95,6 +103,8 @@ def load_config(*, offline: bool = False, project_root: Path = PROJECT_ROOT) -> 
         ("rabbitmq_vhost", "RABBITMQ_VHOST"),
         ("seed_users", "SEED_USERS"),
         ("seed_password", "SEED_PASSWORD"),
+        ("admin_password", "ADMIN_PASSWORD"),
+        ("auth_timeout_s", "AUTH_TIMEOUT_S"),
         ("request_timeout_s", "REQUEST_TIMEOUT_S"),
         ("notification_interval_s", "NOTIFICATION_INTERVAL_S"),
     ):

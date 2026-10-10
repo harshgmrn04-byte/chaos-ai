@@ -45,6 +45,8 @@ def isolated(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest) ->
         "RABBITMQ_VHOST",
         "SEED_USERS",
         "SEED_PASSWORD",
+        "ADMIN_PASSWORD",
+        "AUTH_TIMEOUT_S",
         "REQUEST_TIMEOUT_S",
         "NOTIFICATION_INTERVAL_S",
     ):

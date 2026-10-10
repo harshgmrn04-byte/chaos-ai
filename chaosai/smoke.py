@@ -10,9 +10,17 @@ from docker.models.containers import Container
 from pydantic import ValidationError
 
 from chaosai.config import Settings
-from chaosai.models import OrderResponse, Product, QueueSnapshot, SmokeResult, TargetOrder
+from chaosai.models import (
+    AuthResponse,
+    OrderResponse,
+    Product,
+    QueueSnapshot,
+    SmokeResult,
+    TargetOrder,
+)
 from chaosai.target import TargetError, get_docker_client, require_scope, service_container
-from chaosai.target_api import login, order_body, product_page, request_json
+from chaosai.target_api import order_body, product_page, request_json
+from chaosai.target_auth import safe_admin_login
 
 
 def queue_snapshot(client: httpx.Client, settings: Settings) -> QueueSnapshot:
@@ -96,7 +104,22 @@ def smoke_target(settings: Settings, client: httpx.Client) -> SmokeResult:
     product = next((p for p in page.products if p.stock >= 1), None)
     if product is None:
         raise TargetError("Browse products: no in-stock products; run chaosai seed first.")
-    auth = login(client, settings)
+    docker_client = get_docker_client()
+    try:
+        postgres = service_container(docker_client, settings, "postgres")
+        auth = safe_admin_login(docker_client, postgres, settings, client)
+        return smoke_checkout(settings, client, docker_client, product, auth)
+    finally:
+        docker_client.close()
+
+
+def smoke_checkout(
+    settings: Settings,
+    client: httpx.Client,
+    docker_client: docker.DockerClient,
+    product: Product,
+    auth: AuthResponse,
+) -> SmokeResult:
     warnings: list[str] = []
     before: QueueSnapshot | None = None
     try:
@@ -131,50 +154,44 @@ def smoke_target(settings: Settings, client: httpx.Client) -> SmokeResult:
     result = SmokeResult(order_id=created.id, warnings=warnings)
     snapshots: list[QueueSnapshot] = []
     logs_found = False
-    docker_client: docker.DockerClient | None = None
     notification: Container | None = None
     try:
-        try:
-            docker_client = get_docker_client()
-            notification = service_container(docker_client, settings, "notification-service")
-        except (TargetError, docker.errors.DockerException):
-            result.warnings.append("Notification logs unavailable; check scoped service/Docker.")
-        for _ in range(settings.notification_samples):
-            time.sleep(settings.notification_interval_s)
-            if before is not None:
-                try:
-                    snapshots.append(queue_snapshot(client, settings))
-                except TargetError as exc:
-                    result.warnings.append(str(exc))
-                    before = None
-            if notification is not None and not logs_found:
-                try:
-                    notification.reload()
-                    require_scope(notification, settings.compose_project)
-                    logs_found = notification_received(
-                        notification.logs(since=since, tail=settings.notification_log_tail),
-                        created.id,
-                    )
-                except (TargetError, docker.errors.DockerException):
-                    result.warnings.append("Notification logs became unavailable.")
-                    notification = None
+        notification = service_container(docker_client, settings, "notification-service")
+    except (TargetError, docker.errors.DockerException):
+        result.warnings.append("Notification logs unavailable; check scoped service/Docker.")
+    for _ in range(settings.notification_samples):
+        time.sleep(settings.notification_interval_s)
         if before is not None:
-            queue_notes = queue_warnings(before, snapshots)
-            result.warnings.extend(queue_notes)
-            if not queue_notes:
-                last = snapshots[-1]
-                result.evidence.append(
-                    f"notifications exists: consumers={last.consumers}; "
-                    f"ready={before.messages_ready} -> {[s.messages_ready for s in snapshots]}; "
-                    f"total={last.messages}."
+            try:
+                snapshots.append(queue_snapshot(client, settings))
+            except TargetError as exc:
+                result.warnings.append(str(exc))
+                before = None
+        if notification is not None and not logs_found:
+            try:
+                notification.reload()
+                require_scope(notification, settings.compose_project)
+                logs_found = notification_received(
+                    notification.logs(since=since, tail=settings.notification_log_tail),
+                    created.id,
                 )
-        if logs_found:
-            result.evidence.append("notification-service received order.created for this order ID.")
-        elif notification is not None:
-            result.warnings.append(
-                "No notification receipt for this order ID within observation window."
+            except (TargetError, docker.errors.DockerException):
+                result.warnings.append("Notification logs became unavailable.")
+                notification = None
+    if before is not None:
+        queue_notes = queue_warnings(before, snapshots)
+        result.warnings.extend(queue_notes)
+        if not queue_notes:
+            last = snapshots[-1]
+            result.evidence.append(
+                f"notifications exists: consumers={last.consumers}; "
+                f"ready={before.messages_ready} -> {[s.messages_ready for s in snapshots]}; "
+                f"total={last.messages}."
             )
-    finally:
-        if docker_client is not None:
-            docker_client.close()
+    if logs_found:
+        result.evidence.append("notification-service received order.created for this order ID.")
+    elif notification is not None:
+        result.warnings.append(
+            "No notification receipt for this order ID within observation window."
+        )
     return result

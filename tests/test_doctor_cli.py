@@ -138,3 +138,25 @@ def test_invalid_config_cli_hides_values(cli_workspace: Path, monkeypatch: pytes
     result = CliRunner().invoke(cli.app, ["doctor"])
     assert result.exit_code == 1 and "Invalid target configuration" in result.output
     assert "fake-secret-invalid" not in result.output
+
+
+def test_admin_password_environment_is_separate_and_masked(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(config, "load_dotenv", lambda *_args, **_kw: None)
+    monkeypatch.setenv("ADMIN_PASSWORD", "fake-admin-secret")
+    monkeypatch.setenv("SEED_PASSWORD", "fake-load-secret")
+    monkeypatch.setenv("AUTH_TIMEOUT_S", "3")
+    settings = config.load_config(project_root=tmp_path)
+    assert settings.admin_login_password.get_secret_value() == "fake-admin-secret"
+    assert settings.seed_password.get_secret_value() == "fake-load-secret"
+    assert settings.auth_timeout_s == 3
+    assert "fake-admin-secret" not in repr(settings)
+
+
+@pytest.mark.parametrize("timeout", [2, 6])
+def test_auth_timeout_is_bounded(timeout: int) -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        Settings(auth_timeout_s=timeout)

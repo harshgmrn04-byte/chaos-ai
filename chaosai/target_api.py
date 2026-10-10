@@ -6,7 +6,7 @@ import httpx
 from pydantic import TypeAdapter, ValidationError
 
 from chaosai.config import Settings
-from chaosai.models import AuthResponse, Category, Product, ProductPage
+from chaosai.models import Category, Product, ProductPage
 from chaosai.target import TargetError
 
 T = TypeVar("T")
@@ -23,12 +23,18 @@ def request_json(
     token: str | None = None,
     body: dict[str, object] | None = None,
     params: dict[str, str | int] | None = None,
+    timeout: float | None = None,
 ) -> T:
     headers = {"Accept": "application/json"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
+    request_options: dict[str, object] = {}
+    if timeout is not None:
+        request_options["timeout"] = timeout
     try:
-        response = client.request(method, url, json=body, params=params, headers=headers)
+        response = client.request(
+            method, url, json=body, params=params, headers=headers, **request_options
+        )
     except httpx.HTTPError as exc:
         raise TargetError(
             f"{stage}: request unavailable or timed out; check service readiness. "
@@ -53,17 +59,6 @@ def request_json(
 
 def register_body(name: str, email: str, password: str) -> dict[str, object]:
     return {"name": name, "email": email, "password": password}
-
-
-def login(client: httpx.Client, settings: Settings) -> AuthResponse:
-    return request_json(
-        client,
-        "POST",
-        settings.auth_url + "/login",
-        AuthResponse,
-        stage="Login admin",
-        body={"email": settings.admin_email, "password": settings.seed_password.get_secret_value()},
-    )
 
 
 def product_body(name: str, slug: str, category_id: str) -> dict[str, object]:

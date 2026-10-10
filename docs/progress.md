@@ -147,3 +147,71 @@ Wait for target services to become ready and re-run doctor if startup is still i
 The second seed must create no additional accounts/catalog entries. The integration checkout
 creates one additional order. Payment patch flow is conditional on a diagnosed live payment
 failure; no patch currently exists to apply.
+
+### Phase 2 auth correction — 2026-10-11
+
+Human live diagnostics showed Login admin crashed/restarted auth-service with Invalid credentials.
+The initial seed checked account existence but assumed its configured password matched an existing
+admin. Fixed this within Phase 2; no target changes, new Python dependencies or later-phase work.
+
+Each account now gets a fresh scoped PostgreSQL existence check before registration; existing
+accounts are never registered again. A bounded read-only Node helper in the scoped auth-service
+uses the target's installed Prisma/bcrypt to compare configured credentials before login or
+reuse of an existing seed account. Only existence/match booleans leave the container; password
+hashes stay inside it. Candidate passwords use transient exec environment values rather than
+command arguments/files/log text. Failure to verify refuses auth HTTP calls. ADMIN_PASSWORD
+supports an existing admin independently from SEED_PASSWORD for load users; unset falls back
+to SEED_PASSWORD. Existing passwords are never reset. New-account passwords are checked locally
+for the documented minimum length. Auth HTTP requests use a 4-second timeout, configurable
+only within 3–5 seconds.
+
+Lost/timed-out registration/login responses trigger fresh DB and credential checks. A registration
+that persisted can be safely reused with an explicit warning; absent users get a readiness/rate
+hint. A failed login is not retried and only sends a password-mismatch hint when the DB/bcrypt
+recheck actually confirms a mismatch, otherwise a service/readiness/rate-limit hint. Concurrent
+account/password changes are reconciled rather than guessed. Smoke shares the exact credential
+preflight and requires scoped DB/auth access before attempting login. Queue/log evidence remains
+best-effort after checkout; no unverified credential fallback.
+
+After seed, independent PostgreSQL queries verify all requested identities, admin ADMIN role,
+and total/seed/high-stock product counts in ecommerce_products. CLI reports these counts.
+Added the Known target quirks note and configuration/README instructions. Source facts cited
+for the comparison algorithm, installed dependencies/workdir and product schema; human-supplied
+runtime evidence is explicitly distinguished from agent checks.
+
+Verification: ruff check . passed; pytest -q -m "not integration" passed (117 tests, two integration
+tests excluded). Added MockTransport/DB regressions for wrong existing admin/load passwords (no
+HTTP auth), distinct admin/load credentials, missing users, dropped/timeout login with state
+rechecks, dropped registration before/after commit, concurrent duplicate registration disconnect,
+no duplicate calls on rerun, post-seed DB count/user/role failures despite HTTP success, refused
+foreign auth containers, failed credential helpers, short new-admin passwords and timeout bounds.
+Every new model round-trips. Node --check passed for the helper's syntax without executing it.
+Whitespace checks passed; read-only git status confirmed the target tree pristine. No Docker
+command/live HTTP/integration test/real LLM call was run, and no .env or real secret was inspected.
+Pre-existing .DS_Store change stays outside the fix commit.
+
+Open issues: human must set ADMIN_PASSWORD to the existing admin's actual password and retain
+SEED_PASSWORD for existing load users. Live helper compatibility and end-to-end checkout still
+require the commands below. The helper depends on the target's installed Node/Prisma/bcrypt;
+if they are unavailable, preflight stops with an actionable error rather than probing unsafe
+HTTP paths. No payment patch is justified by these auth diagnostics.
+
+**Phase 2 "You verify (Docker)" (copied from BUILD_PLAN.md):** `chaosai doctor`, `chaosai seed`,
+`chaosai smoke` all green. If smoke fails on payment, apply the patch flow, rebuild order-service,
+re-run smoke.
+
+Exact re-verification commands (after editing .env locally; target already running):
+
+```sh
+cd "/Users/harsh/Desktop/Bosch Hackathon Optimised/chaos-ai"
+source .venv/bin/activate
+chaosai doctor
+chaosai seed
+chaosai seed
+chaosai smoke
+pytest -q -m integration
+```
+
+Second seed should create no additional accounts/catalog entries and report DB verification
+counts again. Both smoke and integration checkout create an order. No target rebuild is needed
+for this ChaosPilot-only fix.

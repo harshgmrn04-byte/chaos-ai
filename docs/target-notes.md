@@ -268,3 +268,37 @@ snapshot, final ready count no higher than baseline or the preceding sample. Que
 failures produce warnings; checkout still succeeds if browse/login/create/retrieve succeed.
 Read only this queue and bounded, scoped notification logs; never consume/purge management
 messages. No MailHog receipt is expected.
+
+
+## 12. Known target quirks — auth (Phase 2 fix)
+
+The auth service can hang/disconnect or crash on invalid-credential and duplicate-registration
+errors: its Express 4 async controllers throw AppError without a rejection wrapper. Source:
+`ecommerce-microservices/auth-service/src/controllers/authController.ts:37-39,69-76` and
+`ecommerce-microservices/auth-service/src/routes/authRoutes.ts:22-23`. Human-supplied live
+logs confirm `Invalid credentials` terminated the auth process and triggered restart;
+ChaosPilot seed/smoke/integration checkout failed at Login admin. No additional live check
+was performed by the coding agent. **Load generators must only send valid credentials**;
+never use a failed login/register to discover account existence.
+
+Phase 2 implementation uses fresh scoped psql reads of `id,email,role` in `ecommerce_auth."User"`
+before auth requests, registers only absent accounts, and rechecks DB state after a lost/timed-out
+response. Existing-account passwords are not reset. Before login (and before reusing an existing
+seed account), a bounded Node helper compares the candidate inside the scoped auth container
+with its installed `bcrypt.compare`, using Prisma's existing user lookup. This mirrors the
+source's credential algorithm (`authController.ts:69-76`; bcrypt dependency:
+`ecommerce-microservices/auth-service/package.json:13,15`; installed/generated client and working
+directory: `ecommerce-microservices/auth-service/Dockerfile:5-15`). Only existence/match booleans
+leave the helper; hashes and plaintext credentials are not printed. Candidate credentials use
+transient exec environment values, not files or command arguments. If preflight cannot verify
+credentials, no login is sent. Concurrent account deletion/password changes can still invalidate
+a preflight; a resulting failed request is rechecked and never blindly retried.
+
+`ADMIN_PASSWORD` configures the existing admin separately; unset falls back to `SEED_PASSWORD`.
+`SEED_PASSWORD` stays the load accounts' password. `AUTH_TIMEOUT_S` defaults to four seconds
+and is constrained to three–five seconds. A mismatch points to the appropriate variable in
+chaos-ai/.env without exposing its value. After seeding, psql verifies all requested users,
+admin role, and total/seed/high-stock product counts in `ecommerce_products."Product"`
+(schema source: `ecommerce-microservices/product-service/prisma/schema.prisma:17-31`).
+This is seed verification, not a catalog database write. The previous Phase 2 email-existence
+check alone did not guarantee the configured password matched the existing admin.

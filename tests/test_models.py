@@ -94,6 +94,9 @@ def test_every_contract_round_trips() -> None:
                 ports=[("localhost", 5433)],
             ),
             models.CheckResult(name="test", passed=True, detail="test"),
+            models.DatabaseUser(id="u", email="user@test.com", role="USER"),
+            models.CredentialCheck(exists=True, password_matches=True),
+            models.ProductCounts(total=4, seed=4, high_stock_seed=4),
             models.SeedResult(),
             models.SmokeResult(order_id="o"),
         ]

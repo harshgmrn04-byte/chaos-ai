@@ -44,8 +44,10 @@ Commands deferred to later phases print `not implemented yet` and exit 2: `map`,
 
 Configure `.env` yourself from `.env.example`; it is ignored by Git. Set a Gemini key locally
 for doctor's key-presence check (no model is called). If `admin@test.com` already exists,
-set `SEED_PASSWORD` to its existing password; seed does not reset existing accounts.
-The default password is for local test accounts only. All generated load users share it.
+set `ADMIN_PASSWORD` to its existing password; seed does not reset existing accounts.
+Keep `SEED_PASSWORD` set to the existing load users' password. New/default admins use
+SEED_PASSWORD when ADMIN_PASSWORD is unset. The default password is for local test accounts only;
+all generated load users share it.
 
 Run these commands from this directory with `.venv` active:
 
@@ -75,17 +77,30 @@ endpoints. A missing LLM key fails doctor even though seed/smoke require no LLM.
 
 `seed` creates `admin@test.com` and by default `loaduser001@test.com` through `loaduser020@test.com`,
 then promotes admin with the documented PostgreSQL UPDATE and logs in for a new ADMIN token.
-A scoped read of existing account emails avoids duplicate registration requests, which can
-hang in the target's unwrapped auth controllers. It never reads password hashes or container
-environment values. Public catalog lists (including pagination) identify existing slugs;
+Before each register/login, scoped PostgreSQL queries check that account's existence.
+Existing users are never re-registered. A bounded Node helper in the scoped auth container uses
+its installed Prisma/bcrypt to compare the configured password before any login; a mismatch
+stops locally with an ADMIN_PASSWORD/SEED_PASSWORD hint. Candidate passwords are supplied as
+transient exec environment values, never embedded in command arguments, files or log text;
+hashes stay inside the auth container and only existence/match booleans are returned.
+No new target file or Python dependency is needed. This avoids the target's HTTP error paths,
+which can hang or crash auth. Auth requests use AUTH_TIMEOUT_S=4 (allowed range 3–5 seconds).
+Dropped/timed-out registration/login responses trigger fresh database checks and credential
+verification; registration may already have committed. No blind retry occurs. A lost registration
+response can be reconciled from verified DB state, with a warning. A lost login response still
+fails with a readiness/rate-limit hint because no usable token was received. Public catalog lists (including pagination) identify existing slugs;
 admin APIs create two categories and four no-image products with stock 100000, string numeric
-fields and `featured: "true"`. Re-running adds only missing accounts/items. Stock/category
+fields and `featured: "true"`. Before reporting success, seed verifies all requested account
+identities and admin role directly in ecommerce_auth, and total/seed/high-stock product counts
+in ecommerce_products. The CLI reports these DB verification counts. Re-running adds only
+missing accounts/items. Stock/category
 conflicts stop with a precise reason instead of guessing an undocumented update endpoint.
 Run one seed process at a time. Use `chaosai seed --users 30` or `SEED_USERS` to choose the count.
 The auth service limits each IP to 100 requests per 15 minutes; large seeds or repeated smoke
 runs may hit this limit. Successful registrations remain and will be skipped on the next seed.
 
-`smoke` browses products, logs in as the seeded admin, creates one pending order using the
+`smoke` browses products, verifies admin existence/password via the same scoped DB/auth
+preflight, then logs in as the seeded admin and creates one pending order using the
 frontend's `paymentMethod: "stripe"`, retrieves it and validates owner/items/totals. Each run
 creates an order and can trigger the target's Resend handler. It never retries checkout:
 HTTP 500 can occur after order persistence. It checks the `notifications` queue (routing key
@@ -95,6 +110,9 @@ for a matching order ID. Queue identity/consumer/trend problems, unavailable met
 or absent log receipt produce warnings and do not fail successful checkout. Receipt and stable
 queue counts are evidence only; they do not prove acknowledgement or actual Resend delivery.
 There is no MailHog receipt check. See target-notes section 11 for the vendor contract.
+Docker/PostgreSQL/auth-container access is required for credential preflight; if verification
+is unavailable, smoke refuses to send an unverified login. Queue and notification-log evidence
+remain best-effort after successful checkout.
 
 No payment patch or patch scripts were created: the source already bypasses placeholder
 Stripe keys, and no live failure has demonstrated a need. If checkout fails, retain the

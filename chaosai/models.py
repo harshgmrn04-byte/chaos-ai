@@ -325,9 +325,31 @@ class SeedResult(Model):
     users_existing: int = 0
     categories_created: int = 0
     products_created: int = 0
+    verified_users: int = 0
+    verified_admin: bool = False
+    verified_products: int = 0
+    product_count: int = 0
+    warnings: list[str] = Field(default_factory=list)
 
 
 class SmokeResult(Model):
     order_id: str
     warnings: list[str] = Field(default_factory=list)
     evidence: list[str] = Field(default_factory=list)
+
+
+class DatabaseUser(Model):
+    id: str
+    email: str
+    role: Literal["USER", "ADMIN"]
+
+
+class CredentialCheck(Model):
+    exists: bool = Field(strict=True)
+    password_matches: bool = Field(strict=True)
+
+
+class ProductCounts(Model):
+    total: int = Field(ge=0)
+    seed: int = Field(ge=0)
+    high_stock_seed: int = Field(ge=0)

@@ -1,4 +1,5 @@
 import json
+import re
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -16,31 +17,74 @@ from .test_target import container
 
 
 @pytest.fixture
-def api(settings: Settings) -> tuple[httpx.Client, MagicMock, dict]:
+def api(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> tuple[httpx.Client, MagicMock, dict]:
     state = {"accounts": {}, "categories": [], "products": [], "requests": [], "orders": {}}
+    state.update({"passwords": {}, "db_reads": [], "credential_checks": [], "promote": True})
     postgres = container("postgres")
+    auth_container = container("auth-service")
     docker_client = MagicMock()
-    docker_client.containers.list.return_value = [postgres]
+    docker_client.containers.list.return_value = [postgres, auth_container]
 
     def sql(command: list[str]) -> SimpleNamespace:
-        assert command[:7] == [
-            "psql",
-            "-U",
-            "ecommerce",
-            "-d",
-            "ecommerce_auth",
-            "-v",
-            "ON_ERROR_STOP=1",
-        ]
-        if command[-1].startswith("SELECT"):
-            output = "\n".join(state["accounts"]).encode()
+        assert command[:4] == ["psql", "-U", "ecommerce", "-d"]
+        assert command[5:7] == ["-v", "ON_ERROR_STOP=1"]
+        query = command[-1]
+        if command[4] == "ecommerce_products":
+            selected = re.search(r"WHERE slug IN \((.*?)\)", query).group(1)
+            slugs = re.findall(r"'([^']*)'", selected)
+            products = [p for p in state["products"] if p["slug"] in slugs]
+            payload = {
+                "total": len(state["products"]),
+                "seed": len(products),
+                "high_stock_seed": sum(p["stock"] >= 100000 for p in products),
+            }
+            if state.get("db_product_counts") is not None:
+                payload = state["db_product_counts"]
+            state["db_reads"].append((command[4], payload))
+            output = json.dumps(payload).encode()
+        elif query.startswith("SELECT"):
+            selected = re.search(r"WHERE email IN \((.*?)\)", query).group(1)
+            emails = re.findall(r"'([^']*)'", selected)
+            payload = [
+                {k: user[k] for k in ("id", "email", "role")}
+                for email, user in state["accounts"].items()
+                if email in emails
+            ]
+            if state.get("hide_final_user") and len(emails) > 1:
+                payload = payload[:-1]
+            if state.get("bad_final_role") and len(emails) > 1:
+                for user in payload:
+                    if user["email"] == "admin@test.com":
+                        user["role"] = "USER"
+            state["db_reads"].append((command[4], payload))
+            output = json.dumps(payload).encode()
         else:
-            assert command[-1] == "UPDATE \"User\" SET role='ADMIN' WHERE email='admin@test.com';"
-            state["accounts"]["admin@test.com"]["role"] = "ADMIN"
+            assert query == "UPDATE \"User\" SET role='ADMIN' WHERE email='admin@test.com';"
+            if state["promote"]:
+                state["accounts"]["admin@test.com"]["role"] = "ADMIN"
             output = b"UPDATE 1"
         return SimpleNamespace(exit_code=0, output=output)
 
     postgres.exec_run.side_effect = sql
+
+    def credentials(command: list[str], **kwargs: object) -> SimpleNamespace:
+        assert command[0:2] == ["node", "-e"]
+        assert kwargs["workdir"] == settings.auth_workdir
+        environment = kwargs["environment"]
+        email = environment["CHAOSAI_AUTH_EMAIL"]
+        password = environment["CHAOSAI_AUTH_PASSWORD"]
+        assert email not in command[2] and password not in command[2]
+        state["credential_checks"].append(email)
+        payload = {
+            "exists": email in state["accounts"],
+            "password_matches": state["passwords"].get(email) == password,
+        }
+        return SimpleNamespace(exit_code=0, output=json.dumps(payload).encode())
+
+    auth_container.exec_run.side_effect = credentials
+    monkeypatch.setattr(smoke, "get_docker_client", lambda: docker_client)
 
     def auth(email: str) -> dict:
         return {
@@ -55,16 +99,34 @@ def api(settings: Settings) -> tuple[httpx.Client, MagicMock, dict]:
         path = request.url.path
         if path == "/register":
             assert set(body) == {"name", "email", "password"}
-            assert body["email"] not in state["accounts"], "Duplicate register must never happen"
+            assert request.extensions["timeout"]["read"] == settings.auth_timeout_s
+            if callback := state.get("before_register"):
+                callback(body)
+            if body["email"] in state["accounts"]:
+                raise httpx.RemoteProtocolError("Duplicate register disconnected")
+            if state.get("register_failure") == "before_commit":
+                raise httpx.ReadTimeout("Registration timed out before commit")
+            state["passwords"][body["email"]] = body["password"]
             state["accounts"][body["email"]] = {
                 "id": body["email"],
                 "name": body["name"],
                 "email": body["email"],
                 "role": "USER",
             }
+            if state.get("register_failure") == "after_commit":
+                raise httpx.RemoteProtocolError("Registration response disconnected after commit")
             return httpx.Response(201, json=auth(body["email"]))
         if path == "/login":
             assert set(body) == {"email", "password"}
+            assert request.extensions["timeout"]["read"] == settings.auth_timeout_s
+            assert body["email"] in state["accounts"], "Missing user must never reach login"
+            assert state["passwords"][body["email"]] == body["password"], "Invalid login forbidden"
+            if callback := state.get("before_login_failure"):
+                callback(body)
+            if state.get("login_failure") == "disconnect":
+                raise httpx.RemoteProtocolError("Server disconnected without sending a response")
+            if state.get("login_failure") == "timeout":
+                raise httpx.ReadTimeout("Login timed out")
             return httpx.Response(200, json=auth(body["email"]))
         if request.method == "POST":
             assert request.headers["Authorization"] == "Bearer mock-token"
@@ -168,10 +230,8 @@ def test_seed_rejects_foreign_postgres_before_sql(settings: Settings, api: tuple
 
 
 def test_promotion_requires_new_admin_token(settings: Settings, api: tuple) -> None:
-    client, docker_client, _ = api
-    postgres = docker_client.containers.list.return_value[0]
-    postgres.exec_run.side_effect = None
-    postgres.exec_run.return_value = SimpleNamespace(exit_code=0, output=b"")
+    client, docker_client, state = api
+    state["promote"] = False
     with pytest.raises(TargetError, match="ADMIN token"):
         seed.seed_target(settings, docker_client, client, users=0)
 
@@ -179,7 +239,7 @@ def test_promotion_requires_new_admin_token(settings: Settings, api: tuple) -> N
 def test_sql_failure_is_secret_free(settings: Settings) -> None:
     postgres = container("postgres")
     postgres.exec_run.return_value = SimpleNamespace(exit_code=1, output=b"secret password")
-    with pytest.raises(TargetError, match="database SQL failed") as exc:
+    with pytest.raises(TargetError, match="PostgreSQL query failed") as exc:
         seed.auth_sql(postgres, settings, 'SELECT email FROM "User";')
     assert "secret password" not in str(exc.value)
 
@@ -273,7 +333,7 @@ def test_smoke_success_correlates_order_and_logs(
         b"Received event: order.created {orderId: old-order}",
         b"Received event: order.created {orderId: new-order}",
     ]
-    docker_client.containers.list.return_value = [notification]
+    docker_client.containers.list.return_value.append(notification)
     monkeypatch.setattr(smoke, "get_docker_client", lambda: docker_client)
     sleep = MagicMock()
     monkeypatch.setattr(smoke.time, "sleep", sleep)
@@ -312,9 +372,7 @@ def test_notification_management_failure_only_warns(
             ),
         )
         monkeypatch.setattr(smoke.time, "sleep", lambda _: None)
-        monkeypatch.setattr(
-            smoke, "get_docker_client", MagicMock(side_effect=TargetError("offline"))
-        )
+        monkeypatch.setattr(smoke, "get_docker_client", lambda: docker_client)
         result = smoke.smoke_target(settings, client)
         assert result.order_id == "new-order" and result.warnings
         assert "test-secret" not in str(result)
@@ -410,9 +468,223 @@ def test_best_effort_log_timeout_warns(
     seed.seed_target(settings, docker_client, client)
     notification = container("notification-service")
     notification.logs.return_value = b"Received event: order.created old-order"
-    docker_client.containers.list.return_value = [notification]
+    docker_client.containers.list.return_value.append(notification)
     monkeypatch.setattr(smoke, "get_docker_client", lambda: docker_client)
     monkeypatch.setattr(smoke.time, "sleep", lambda _: None)
     result = smoke.smoke_target(settings, client)
     assert any("No notification receipt" in message for message in result.warnings)
     assert result.order_id == "new-order"
+
+
+def existing_account(state: dict, email: str, password: str, role: str = "USER") -> None:
+    state["accounts"][email] = {"id": email, "name": "Existing", "email": email, "role": role}
+    state["passwords"][email] = password
+
+
+def test_existing_admin_wrong_password_sends_no_http_auth(settings: Settings, api: tuple) -> None:
+    client, docker_client, state = api
+    existing_account(state, "admin@test.com", "different-existing-password", "ADMIN")
+    with pytest.raises(TargetError, match="exists but the password does not match") as error:
+        seed.seed_target(settings, docker_client, client)
+    assert "ADMIN_PASSWORD" in str(error.value)
+    assert "different-existing-password" not in str(error.value)
+    assert not state["requests"]
+    assert len(state["accounts"]) == 1
+
+
+def test_existing_load_user_is_not_reregistered_with_different_password(
+    settings: Settings, api: tuple
+) -> None:
+    client, docker_client, state = api
+    existing_account(state, "admin@test.com", settings.seed_password.get_secret_value(), "ADMIN")
+    existing_account(state, "loaduser001@test.com", "other-password")
+    with pytest.raises(TargetError, match="SEED_PASSWORD"):
+        seed.seed_target(settings, docker_client, client, users=1)
+    assert not state["requests"]
+
+
+def test_separate_admin_password_preserves_load_credentials(settings: Settings, api: tuple) -> None:
+    from pydantic import SecretStr
+
+    client, docker_client, state = api
+    settings.admin_password = SecretStr("existing-admin-password")
+    existing_account(state, "admin@test.com", "existing-admin-password", "ADMIN")
+    first = seed.seed_target(settings, docker_client, client, users=2)
+    assert first.users_created == 2 and first.users_existing == 1
+    assert state["passwords"]["loaduser001@test.com"] == settings.seed_password.get_secret_value()
+    assert first.verified_users == 3 and first.verified_admin
+    assert first.verified_products == first.product_count == 4
+    before = len(state["requests"])
+    second = seed.seed_target(settings, docker_client, client, users=2)
+    assert second.users_created == 0 and second.users_existing == 3
+    assert not any(path == "/register" for _, path, *_ in state["requests"][before:])
+
+
+def test_registered_account_disconnected_after_commit_is_reconciled(
+    settings: Settings, api: tuple
+) -> None:
+    client, docker_client, state = api
+    state["register_failure"] = "after_commit"
+    result = seed.seed_target(settings, docker_client, client, users=0)
+    assert result.users_created == result.verified_users == 1
+    assert result.verified_admin and result.warnings
+    assert "database recheck confirms account exists" in result.warnings[0]
+    assert sum(path == "/register" for _, path, *_ in state["requests"]) == 1
+    assert sum(path == "/login" for _, path, *_ in state["requests"]) == 1
+
+
+def test_registration_timeout_before_commit_checks_db_and_does_not_login(
+    settings: Settings, api: tuple
+) -> None:
+    client, docker_client, state = api
+    state["register_failure"] = "before_commit"
+    with pytest.raises(TargetError, match="database recheck confirms user is absent"):
+        seed.seed_target(settings, docker_client, client, users=0)
+    assert len(state["db_reads"]) == 2
+    assert len(state["requests"]) == 1 and state["requests"][0][1] == "/register"
+    assert not state["accounts"]
+
+
+def test_existing_accounts_never_reach_dropped_duplicate_register_transport(
+    settings: Settings, api: tuple
+) -> None:
+    client, docker_client, state = api
+    seed.seed_target(settings, docker_client, client, users=2)
+    state["requests"].clear()
+    # The transport disconnects whenever /register receives an existing email.
+    result = seed.seed_target(settings, docker_client, client, users=2)
+    assert result.users_existing == 3
+    assert not any(path == "/register" for _, path, *_ in state["requests"])
+
+
+def test_concurrent_duplicate_register_disconnect_is_reconciled(
+    settings: Settings, api: tuple
+) -> None:
+    client, docker_client, state = api
+    state["before_register"] = lambda body: existing_account(state, body["email"], body["password"])
+    result = seed.seed_target(settings, docker_client, client, users=0)
+    assert result.verified_users == 1 and result.warnings
+    assert "No registration retry" in result.warnings[0]
+    assert sum(path == "/register" for _, path, *_ in state["requests"]) == 1
+    assert state["credential_checks"].count("admin@test.com") >= 2
+
+
+def test_duplicate_registration_race_with_other_password_refuses_login(
+    settings: Settings, api: tuple
+) -> None:
+    client, docker_client, state = api
+    state["before_register"] = lambda body: existing_account(state, body["email"], "other-password")
+    with pytest.raises(TargetError, match="ADMIN_PASSWORD"):
+        seed.seed_target(settings, docker_client, client, users=0)
+    assert sum(path == "/register" for _, path, *_ in state["requests"]) == 1
+    assert not any(path == "/login" for _, path, *_ in state["requests"])
+
+
+@pytest.mark.parametrize("failure", ["disconnect", "timeout"])
+def test_login_transport_failure_rechecks_existing_valid_credentials(
+    settings: Settings, api: tuple, failure: str
+) -> None:
+    from chaosai.target_auth import safe_admin_login
+
+    client, docker_client, state = api
+    existing_account(state, "admin@test.com", settings.seed_password.get_secret_value(), "ADMIN")
+    state["login_failure"] = failure
+    postgres = docker_client.containers.list.return_value[0]
+    with pytest.raises(TargetError, match="database recheck confirms.*credentials match"):
+        safe_admin_login(docker_client, postgres, settings, client)
+    assert len(state["requests"]) == 1 and state["requests"][0][1] == "/login"
+    assert len(state["db_reads"]) == len(state["credential_checks"]) == 2
+
+
+def test_login_disconnect_recheck_reports_password_change(settings: Settings, api: tuple) -> None:
+    from chaosai.target_auth import safe_admin_login
+
+    client, docker_client, state = api
+    existing_account(state, "admin@test.com", settings.seed_password.get_secret_value(), "ADMIN")
+    state["login_failure"] = "disconnect"
+    state["before_login_failure"] = lambda body: state["passwords"].update(
+        {body["email"]: "concurrently-changed-password"}
+    )
+    postgres = docker_client.containers.list.return_value[0]
+    with pytest.raises(TargetError, match="ADMIN_PASSWORD") as error:
+        safe_admin_login(docker_client, postgres, settings, client)
+    assert "concurrently-changed-password" not in str(error.value)
+    assert len(state["requests"]) == 1 and len(state["db_reads"]) == 2
+
+
+def test_smoke_missing_or_wrong_password_never_sends_login(settings: Settings, api: tuple) -> None:
+    client, docker_client, state = api
+    seed.seed_target(settings, docker_client, client, users=0)
+    state["requests"].clear()
+    state["passwords"]["admin@test.com"] = "different-existing-password"
+    with pytest.raises(TargetError, match="password does not match"):
+        smoke.smoke_target(settings, client)
+    assert not any(path in ("/login", "/register", "/orders") for _, path, *_ in state["requests"])
+    state["accounts"].pop("admin@test.com")
+    with pytest.raises(TargetError, match="absent.*run chaosai seed"):
+        smoke.smoke_target(settings, client)
+    assert not any(path == "/login" for _, path, *_ in state["requests"])
+
+
+@pytest.mark.parametrize("failure", ["missing_users", "bad_role", "product_count"])
+def test_post_seed_database_verification_is_required(
+    settings: Settings, api: tuple, failure: str
+) -> None:
+    client, docker_client, state = api
+    if failure == "missing_users":
+        state["hide_final_user"] = True
+    elif failure == "bad_role":
+        state["bad_final_role"] = True
+    else:
+        state["db_product_counts"] = {"total": 3, "seed": 3, "high_stock_seed": 3}
+    with pytest.raises(TargetError, match="Seed database verification failed"):
+        seed.seed_target(settings, docker_client, client, users=1)
+    # All documented HTTP creation responses succeeded; DB evidence still denies success.
+    assert len(state["products"]) == 4
+
+
+def test_credential_helper_failure_does_not_login_or_disclose_output(
+    settings: Settings, api: tuple
+) -> None:
+    from chaosai.target_auth import safe_admin_login
+
+    client, docker_client, state = api
+    existing_account(state, "admin@test.com", settings.seed_password.get_secret_value(), "ADMIN")
+    auth = docker_client.containers.list.return_value[1]
+    auth.exec_run.side_effect = None
+    auth.exec_run.return_value = SimpleNamespace(exit_code=2, output=b"sensitive hash/password")
+    with pytest.raises(TargetError, match="No further auth request") as error:
+        safe_admin_login(
+            docker_client, docker_client.containers.list.return_value[0], settings, client
+        )
+    assert "sensitive" not in str(error.value) and not state["requests"]
+
+
+def test_foreign_auth_container_is_never_used(settings: Settings, api: tuple) -> None:
+    from chaosai.target_auth import safe_admin_login
+
+    client, docker_client, state = api
+    existing_account(state, "admin@test.com", settings.seed_password.get_secret_value(), "ADMIN")
+    foreign = container("auth-service", "outside")
+    docker_client.containers.list.return_value = [
+        docker_client.containers.list.return_value[0],
+        foreign,
+    ]
+    with pytest.raises(TargetError, match="Expected one scoped auth-service"):
+        safe_admin_login(
+            docker_client, docker_client.containers.list.return_value[0], settings, client
+        )
+    foreign.exec_run.assert_not_called()
+    assert not state["requests"]
+
+
+def test_new_admin_short_password_is_rejected_before_register(
+    settings: Settings, api: tuple
+) -> None:
+    from pydantic import SecretStr
+
+    client, docker_client, state = api
+    settings.admin_password = SecretStr("short")
+    with pytest.raises(TargetError, match="at least six characters"):
+        seed.seed_target(settings, docker_client, client, users=0)
+    assert not state["requests"]

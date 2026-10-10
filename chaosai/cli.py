@@ -138,8 +138,13 @@ def seed(
     typer.echo(
         f"PASS: seed complete; accounts created={result.users_created}, "
         f"existing={result.users_existing}; categories created={result.categories_created}; "
-        f"products created={result.products_created}."
+        f"products created={result.products_created}; DB verified users={result.verified_users}, "
+        f"admin={result.verified_admin}, seed products={result.verified_products}, "
+        f"total products={result.product_count}."
     )
+
+    for warning in result.warnings:
+        typer.echo(f"WARNING: {warning}")
 
 
 @app.command()
@@ -149,7 +154,7 @@ def smoke() -> None:
     try:
         with httpx.Client(timeout=settings.request_timeout_s, trust_env=False) as client:
             result = smoke_target(settings, client)
-    except TargetError as exc:
+    except (TargetError, docker.errors.DockerException) as exc:
         target_failure(exc)
     typer.echo(f"PASS: browse -> login -> checkout -> retrieve; order={result.order_id}.")
     for evidence in result.evidence:
