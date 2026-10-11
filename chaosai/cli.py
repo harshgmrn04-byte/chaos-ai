@@ -16,10 +16,10 @@ from chaosai.doctor import doctor_checks, status_checks, target_status
 from chaosai.faults import get_fault
 from chaosai.faults.base import FaultContext, hold_fault
 from chaosai.mapper import MapperError, map_target, mermaid, save_graph
-from chaosai.models import AbortRule, ExperimentSpec, Hypothesis
+from chaosai.models import AbortRule, Baseline, ExperimentResult, ExperimentSpec, Hypothesis
 from chaosai.report import render_report
-from chaosai.runner import run_pipeline
-from chaosai.runs import create_run, write_json
+from chaosai.runner import demo_spec, execute_experiment, run_pipeline
+from chaosai.runs import create_run, read_json, write_json
 from chaosai.safety import (
     SafetyError,
     SafetyInterrupted,
@@ -38,22 +38,23 @@ from chaosai.smoke import smoke_target
 from chaosai.target import TargetError, compose_up, get_docker_client
 
 app = typer.Typer(
-    help="ChaosPilot: target tools and Phase 1 fixture simulation.", no_args_is_help=True
+    help="ChaosPilot: measured experiments and offline fixture simulation.", no_args_is_help=True
 )
 
 
 @app.command()
 def run(
     offline: bool = typer.Option(False, help="Disable LLM calls; use deterministic fixtures."),
-    yes: bool = typer.Option(False, "--yes", help="Approve all simulated experiments."),
+    yes: bool = typer.Option(False, "--yes", help="Approve experiments."),
     dry_run: bool = typer.Option(False, help="Write a plan/report without executing experiments."),
 ) -> None:
-    """Run map → baseline → plan → approvals → fixture results → analysis → score → report."""
+    """Run one measured Redis experiment, or the offline fixture pipeline."""
     typer.echo(
-        "Experiments and findings remain fixtures. Offline baseline uses fixtures; "
-        "live baseline sends load to the target."
+        "Offline fixture simulation."
+        if offline
+        else "One measured Redis stop; analysis/scoring remain Phase 9."
     )
-    approver = Approver(yes=yes, is_tty=sys.stdin.isatty(), ask=input)
+    approver = Approver(yes=yes, is_tty=sys.stdin.isatty(), ask=input, simulation=offline)
     try:
         run_dir = run_pipeline(
             load_config(offline=offline), approver, dry_run=dry_run, offline=offline
@@ -75,7 +76,18 @@ def run(
         )
         typer.echo(message, err=True)
         raise typer.Exit(2) from exc
+    exit_code = 0
+    if not offline and not dry_run:
+        for path in (run_dir / "experiments").glob("*/result.json"):
+            result = read_json(path, ExperimentResult)
+            show_experiment(result)
+            if not result.rollback_ok and not result.skipped:
+                exit_code = 2
+            if result.abort_reason and result.abort_reason.startswith("Interrupted"):
+                exit_code = 130
     typer.echo(f"Report: {run_dir / 'report.html'}")
+    if exit_code:
+        raise typer.Exit(exit_code)
 
 
 @app.command(name="map")
@@ -467,7 +479,6 @@ def kill_command() -> None:
 
 
 for command_name in (
-    "inject",
     "plan",
     "replay",
 ):
@@ -475,3 +486,78 @@ for command_name in (
         name=command_name,
         context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
     )(not_implemented)
+
+
+def show_experiment(result: ExperimentResult) -> None:
+    impact = ", ".join(result.impacted_journeys) or "none observed"
+    typer.echo(f"Verdict: {result.verdict}; impact: {impact}")
+    typer.echo(f"Container rollback OK: {result.rollback_ok}")
+    typer.echo(
+        f"Application recovered: {result.recovered}; recovery seconds: {result.recovery_time_s}"
+    )
+    typer.echo(f"Abort reason: {result.abort_reason or 'none'}")
+    if result.skipped:
+        typer.echo(f"Skipped: {result.skip_reason}")
+    for name, stats in result.during.items():
+        typer.echo(
+            f"During {name}: n={stats.n}, errors={stats.error_rate:.2%}, p95={stats.p95_ms:.1f}ms"
+        )
+    for limit in result.evidence_limits:
+        typer.echo(f"Evidence limit: {limit}")
+
+
+@app.command("inject")
+def inject_command(
+    fault: str,
+    target: str,
+    duration: int = typer.Option(30, help="Seconds, policy-clamped to [5,120]."),
+    abort_error_rate: float | None = typer.Option(None, help="Watchdog error limit, [0.05,0.9]."),
+    yes: bool = typer.Option(False, "--yes", help="Approve this measured live experiment."),
+) -> None:
+    """Inject kill/stop/pause with load, watchdog and measured recovery."""
+    approver = Approver(yes=yes, is_tty=sys.stdin.isatty(), ask=input, simulation=False)
+    try:
+        approver.ensure_interactive()
+        settings = target_config()
+        graph = map_target(settings)
+        latest = settings.safety_dir / "baseline.json"
+        if not latest.exists():
+            raise SafetyError("No saved baseline; run chaosai baseline first.")
+        baseline = read_json(latest, Baseline)
+        decision = policy_gate(
+            demo_spec(
+                baseline,
+                fault=fault,
+                target=target,
+                duration=duration,
+                abort_error_rate=abort_error_rate,
+            )
+        )
+        get_fault(fault).validate(decision.final, graph)
+        from chaosai.approval import approval_prompt
+
+        typer.echo(approval_prompt(decision, simulation=False).rsplit("[y]es", 1)[0])
+        run_dir = create_run(settings.runs_dir)
+        save_graph(graph, settings, run_dir)
+        write_json(run_dir / "baseline.json", baseline)
+        write_json(run_dir / "decisions.json", [decision])
+        result = execute_experiment(
+            decision, run_dir, settings=settings, graph=graph, baseline=baseline, approver=approver
+        )
+    except ApprovalRequired as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(2) from exc
+    except (
+        TargetError,
+        MapperError,
+        ValidationError,
+        docker.errors.DockerException,
+        OSError,
+    ) as exc:
+        target_failure(exc)
+    show_experiment(result)
+    typer.echo(f"Result: {run_dir / 'experiments' / result.spec.id / 'result.json'}")
+    if not result.rollback_ok and not result.skipped:
+        raise typer.Exit(2)
+    if result.abort_reason and result.abort_reason.startswith("Interrupted"):
+        raise typer.Exit(130)

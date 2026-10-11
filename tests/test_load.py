@@ -406,3 +406,27 @@ def test_verified_login_reaches_configured_cap_with_auth_timeout(
     assert len(seen) == (5 if rps == 0.5 else 10)
     assert all(r.extensions["timeout"]["read"] == settings.auth_timeout_s == 4 for r in seen)
     assert verified.call_count == len(seen) + 1  # preflight before each admitted login
+
+
+def test_prepare_cancellation_skips_future_verification_and_http(settings, tmp_path) -> None:
+    from unittest.mock import Mock
+
+    from chaosai.load import LoadGenerator, SampleBuffer
+
+    factory = Mock(side_effect=AssertionError("Cancelled preparation must not open HTTP"))
+    generator = LoadGenerator(
+        settings, Mock(), SampleBuffer(tmp_path / "samples.jsonl"), client_factory=factory
+    )
+    calls = []
+
+    def verify(email: str) -> bool:
+        calls.append(email)
+        generator._shutdown.set()
+        return True
+
+    generator._verify = verify
+    generator.prepare(10)
+    assert len(calls) == 1
+    factory.assert_not_called()
+    generator.prepare(10)
+    assert len(calls) == 1

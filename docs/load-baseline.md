@@ -102,8 +102,9 @@ health. Auth's exact read route is confirmed in
 is in `src/middlewares/auth.ts:9-12`. Order's read route/middleware are cited in target-notes
 section 2. Notification has no published HTTP port and is observed through Docker/queue data.
 
-Normal run now measures baseline but still produces fixture plans/experiments/findings; its
-report must not be used as measured chaos findings. --offline retains fully synthetic baseline
-and never opens Docker/HTTP or dotenv. Baseline/load do not call an LLM. Live compatibility,
+Phase 6 live run reuses a saved baseline (or measures one when absent) and executes one
+measured Redis stop. Analysis/scoring remain unassessed until Phase 9. --offline retains the
+fully synthetic baseline/fixture pipeline and never opens Docker/HTTP or dotenv.
+See [experiments.md](experiments.md) for readiness, recovery and sparse-evidence limitations. Baseline/load do not call an LLM. Live compatibility,
 actual credentials, active ports and corrected telemetry/login behavior remain human
 integration checks. The human reported the original live baselines stable and repeatable.

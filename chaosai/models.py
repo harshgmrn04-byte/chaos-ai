@@ -200,6 +200,7 @@ class UndoRecord(Model):
     fault: FaultType
     original: OriginalContainerState
     done: bool = False
+    done_at: float | None = Field(default=None, ge=0)
 
 
 class JournalData(Model):
@@ -253,6 +254,10 @@ class ExperimentResult(Model):
     log_excerpts: dict[str, list[str]]
     rollback_ok: bool
     samples_path: str
+    skipped: bool = False
+    skip_reason: str | None = None
+    evidence_limits: list[str] = Field(default_factory=list)
+    approval_decision: Literal["yes", "skip", "all", "quit"] = "yes"
 
 
 class Finding(Model):
@@ -301,6 +306,7 @@ class RunMeta(Model):
     analyzer_source: LLMSource
     target_project: str
     approvals: list[Approval]
+    offline: bool = True
 
 
 class Plan(RootModel[list[ExperimentSpec]]):

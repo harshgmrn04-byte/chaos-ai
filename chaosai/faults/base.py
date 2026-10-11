@@ -23,6 +23,7 @@ class FaultContext:
     journal: UndoJournal
     record: UndoRecord | None = None
     self_healed: bool | None = None
+    cancel_event: threading.Event | None = None
 
 
 class Fault(ABC):
@@ -39,19 +40,27 @@ class Fault(ABC):
         if not 5 <= spec.duration_s <= 120:
             raise SafetyError("Fault duration must pass the policy gate first.")
 
+    @staticmethod
+    def _check_cancelled(ctx: FaultContext) -> None:
+        if ctx.cancel_event is not None and ctx.cancel_event.is_set():
+            raise SafetyError("Experiment cancelled before apply; no new fault permitted.")
+        if kill_requested(ctx.settings):
+            raise SafetyError("KILL flag present; rollback and explicitly clear it first.")
+
     def apply(self, ctx: FaultContext) -> None:
         """Keep journal + Docker operation indivisible relative to second-terminal rollback."""
         self.validate(ctx.spec, ctx.graph)
         with file_lock(ctx.settings.operation_lock_path):
-            if kill_requested(ctx.settings):
-                raise SafetyError("KILL flag present; rollback and explicitly clear it first.")
+            self._check_cancelled(ctx)
             container = scope_guard(
                 ctx.spec.target, ctx.graph, ctx.client, ctx.settings.compose_project
             )
             if container.status != "running" or container.attrs.get("State", {}).get("Paused"):
                 raise SafetyError("Injection requires a running, unpaused container.")
+            self._check_cancelled(ctx)
             ctx.record = ctx.journal.record(container, self.name)
             require_scope(container, ctx.settings.compose_project)
+            self._check_cancelled(ctx)
             self._apply(container)
 
     @abstractmethod

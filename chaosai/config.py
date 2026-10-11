@@ -34,6 +34,9 @@ class Settings(BaseModel):
     baseline_duration_s: float = Field(default=120, gt=0)
     quick_warmup_s: float = Field(default=10, ge=0)
     quick_duration_s: float = Field(default=40, gt=0)
+    precheck_timeout_s: float = Field(default=60, gt=0, le=60)
+    recovery_timeout_s: float = Field(default=120, gt=0, le=120)
+    experiment_log_line_chars: int = Field(default=300, ge=1, le=1000)
     metrics_interval_s: float = Field(default=5, gt=0)
 
     auth_url: str = "http://localhost:3004"

@@ -1,4 +1,4 @@
-"""Walking skeleton orchestration; execution returns fixtures only."""
+"""Measured single-experiment state machine and isolated offline fixture pipeline."""
 
 from datetime import UTC, datetime
 from pathlib import Path
@@ -7,20 +7,26 @@ from chaosai.analyzer import analyze_results
 from chaosai.approval import Approver
 from chaosai.baseline import measure_baseline
 from chaosai.config import Settings
+from chaosai.experiment import execute_experiment
 from chaosai.fixture_data import fixture
 from chaosai.mapper import map_target, save_graph
 from chaosai.models import (
     Approval,
+    Baseline,
     ExperimentResult,
     ExperimentSpec,
+    Plan,
     PolicyDecision,
     RunMeta,
     Sample,
+    Summary,
 )
 from chaosai.planner import plan_experiments
 from chaosai.report import render_report
-from chaosai.runs import append_jsonl, create_run, write_json
+from chaosai.runs import append_jsonl, create_run, read_json, write_json
+from chaosai.safety import file_lock, policy_gate, replay_journals
 from chaosai.scoring import score_results
+from chaosai.target import get_docker_client
 
 
 def fixture_decision(spec: ExperimentSpec) -> PolicyDecision:
@@ -34,7 +40,7 @@ def fixture_decision(spec: ExperimentSpec) -> PolicyDecision:
     )
 
 
-def execute_experiment(decision: PolicyDecision, run_dir: Path) -> ExperimentResult:
+def execute_fixture(decision: PolicyDecision, run_dir: Path) -> ExperimentResult:
     """Persist simulated evidence without waiting, injecting, or touching the target."""
     result = next(
         r for r in fixture("results", list[ExperimentResult]) if r.spec.id == decision.experiment_id
@@ -60,37 +66,127 @@ def run_pipeline(
         analyzer_source="heuristic",
         target_project=settings.compose_project,
         approvals=[],
+        offline=offline,
     )
     write_json(run_dir / "run.json", meta)
-    # Empty by design: no real faults or undo actions exist in Phase 1.
+    # Legacy empty journal is upgraded durably by the first real fault.
     write_json(run_dir / "journal.json", [])
+    if not offline and not dry_run:
+        client = get_docker_client()
+        try:
+            with file_lock(settings.active_lock_path, blocking=False):
+                replay_journals(client, settings)
+        finally:
+            client.close()
     graph = map_target(settings, offline=offline)
     save_graph(graph, settings, run_dir)
-    baseline = measure_baseline(graph, settings, run_dir, offline=offline)
-    write_json(run_dir / "baseline.json", baseline)
-    plan, meta.planner_source = plan_experiments(
-        graph, baseline, provider=settings.llm_provider, cache_dir=run_dir / "llm"
+    latest = settings.safety_dir / "baseline.json"
+    baseline = (
+        read_json(latest, Baseline)
+        if not offline and latest.exists()
+        else measure_baseline(graph, settings, run_dir, offline=offline)
     )
+    write_json(run_dir / "baseline.json", baseline)
+    if offline:
+        plan, meta.planner_source = plan_experiments(
+            graph, baseline, provider=settings.llm_provider, cache_dir=run_dir / "llm"
+        )
+    else:
+        plan = Plan(root=[demo_spec(baseline)])
     write_json(run_dir / "plan.json", plan)
-    decisions = [fixture_decision(spec) for spec in plan.root]
+    decisions = [fixture_decision(spec) if offline else policy_gate(spec) for spec in plan.root]
     write_json(run_dir / "decisions.json", decisions)
     results: list[ExperimentResult] = []
     if not dry_run:
         for decision in decisions:
+            if not offline:
+                result = execute_experiment(
+                    decision,
+                    run_dir,
+                    settings=settings,
+                    graph=graph,
+                    baseline=baseline,
+                    approver=approver,
+                )
+                results.append(result)
+                meta.approvals.append(
+                    Approval(
+                        experiment_id=decision.experiment_id,
+                        decision=result.approval_decision,
+                    )
+                )
+                write_json(run_dir / "run.json", meta)
+                break
             choice = approver.decide(decision)
             meta.approvals.append(Approval(experiment_id=decision.experiment_id, decision=choice))
             write_json(run_dir / "run.json", meta)
             if choice == "quit":
                 break
             if choice != "skip":
-                results.append(execute_experiment(decision, run_dir))
-    findings, meta.analyzer_source = analyze_results(
-        results, provider=settings.llm_provider, cache_dir=run_dir / "llm"
-    )
+                results.append(execute_fixture(decision, run_dir))
+    if offline:
+        findings, meta.analyzer_source = analyze_results(
+            results, provider=settings.llm_provider, cache_dir=run_dir / "llm"
+        )
+    else:
+        findings = []
     write_json(run_dir / "findings.json", findings)
-    scores, summary = score_results(results)
+    scores, summary = (
+        score_results(results)
+        if offline
+        else (
+            [],
+            Summary(
+                overall_score=0,
+                band="not assessed",
+                ranked_weaknesses=[],
+                top_fixes=[],
+                narrative=(
+                    "Measured experiment evidence is available; analysis/scoring arrive in Phase 9."
+                    if results
+                    else "Plan only; no experiment executed. Analysis/scoring pending."
+                ),
+            ),
+        )
+    )
     write_json(run_dir / "scores.json", scores)
     write_json(run_dir / "summary.json", summary)
     write_json(run_dir / "run.json", meta)
     render_report(run_dir)
     return run_dir
+
+
+def demo_spec(
+    baseline: Baseline,
+    *,
+    fault: str = "stop",
+    target: str = "redis",
+    duration: int = 30,
+    abort_error_rate: float | None = None,
+) -> ExperimentSpec:
+    """One deterministic experiment; automatic planning belongs to later phases."""
+    from chaosai.models import AbortRule, Hypothesis
+
+    return ExperimentSpec(
+        id=f"{target}-{fault}",
+        fault=fault,
+        target=target,
+        duration_s=duration,
+        intensity=None,
+        rank=1,
+        reason="Measured Day-1 resilience experiment.",
+        hypothesis=Hypothesis(
+            journey="all",
+            max_error_rate=baseline.thresholds.hypothesis.max_error_rate,
+            max_p95_multiple=baseline.thresholds.hypothesis.p95_multiple,
+            statement="All journeys remain within the baseline-derived hypothesis limits.",
+        ),
+        abort=AbortRule(
+            max_error_rate=(
+                baseline.thresholds.abort.max_error_rate
+                if abort_error_rate is None
+                else abort_error_rate
+            ),
+            max_p95_multiple=baseline.thresholds.abort.p95_multiple,
+        ),
+    )

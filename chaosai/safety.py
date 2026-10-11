@@ -7,6 +7,7 @@ import math
 import os
 import signal
 import threading
+import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -240,8 +241,12 @@ class UndoJournal:
             ):
                 raise SafetyError("CPU limits were not restored; undo remains pending.")
 
+    def completion(self, record_id: str) -> tuple[bool, float | None]:
+        record = next((r for r in self._load().records if r.id == record_id), None)
+        return (record.done, record.done_at) if record else (False, None)
+
     def is_done(self, record_id: str) -> bool:
-        return any(r.id == record_id and r.done for r in self._load().records)
+        return self.completion(record_id)[0]
 
     def replay_all(self, *, container: str | None = None, fault: str | None = None) -> int:
         """Reverse pending operations; retain failures and attempt every remaining record."""
@@ -263,6 +268,7 @@ class UndoJournal:
             try:
                 self._restore(record)
                 record.done = True
+                record.done_at = time.time()
                 self._save(data)
                 restored += 1
             except (TargetError, docker.errors.DockerException, OSError, ValueError):

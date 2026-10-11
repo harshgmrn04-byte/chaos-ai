@@ -195,11 +195,15 @@ class LoadGenerator:
         if not 1 <= users <= 150:
             raise TargetError("Load workers must be between 1 and 150.")
         for index in range(1, users + 1):
+            if self._shutdown.is_set():
+                return
             email = self.settings.load_email_template.format(index=index)
             if self._verify(email):
                 self.sessions.append(Session(email))
         if not self.sessions:
             logger.warning("No verified load users; login and checkout will be skipped.")
+        if self._shutdown.is_set():
+            return
         with self.client_factory() as client:
             page = product_page(client, self.settings)
         self.products = [p for p in page.products if p.stock >= 1]

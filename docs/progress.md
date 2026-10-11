@@ -6,7 +6,7 @@
 - [x] Phase 3 — Application mapper
 - [x] Phase 4 — Load generator, metrics, baseline
 - [x] Phase 5 — Faults, safety layer, watchdog, kill switch
-- [ ] Phase 6 — Experiment runner and Day-1 demo
+- [x] Phase 6 — Experiment runner and Day-1 demo
 - [ ] Phase 7 — LLM layer and AI planner
 - [ ] Phase 8 — Extended faults and automatic run
 - [ ] Phase 9 — Analyzer, scoring, report
@@ -612,3 +612,81 @@ Updated workspace BUILD_PLAN.md section 2 with this evidence and corrected its s
 requested the build-plan update; it is outside the chaos-ai Git repository. Corrected the
 catalog probe in docs/safety.md from /api/products to /products, matching target-notes section
 2's explicit no-/api route contract. No safety thresholds or Phase 6 requirements changed.
+
+
+## Phase 6 — 2026-10-11
+
+Implemented the measured single-experiment runner exported by runner.py, with lifecycle code
+in experiment.py and pure evaluation in evaluate.py. APPROVE/PRECHECK/INJECT/OBSERVE/UNDO/
+RECOVER/RESULT events are persisted alongside samples and scoped one-second container telemetry.
+Reuses Phase 4 load/metrics and Phase 5 scope/policy/journal/lease/Watchdog/signals; no live LLM,
+planner or analyzer calls. Final policy-clamped thresholds are applied to a deep copy, leaving
+saved baseline evidence unchanged. Readiness waits at most 60 seconds, including threaded load
+preparation; a timeout records a skip. Preparation stops between bounded calls before joining.
+
+An independent pre-apply timer requests undo directly at the duration cap. A separate half-second
+control observer detects KILL and second-terminal done records even during main-thread SDK I/O.
+A cancellation check inside the operation lock prevents delayed application after cancellation.
+Journal restoration timestamps preserve measured boundaries across second-terminal rollback;
+legacy completed records without timestamps use their observation time. Rollback runs on normal
+completion, watchdog abort, KILL, external rollback, exception, SIGINT and SIGTERM. It precedes
+thread joins; all clients/threads are closed/joined while signals are ignored during cleanup.
+Active-lease denial does not replay another process's fault. Failed undo remains pending and
+sets rollback_ok=false with an aborted result.
+
+Pure half-open during/after statistics, impact, verdict and recovery use synthetic-testable
+functions. Hypothesis latency uses the existing multiple/+100ms floor helper; >=20 samples in
+both baseline and during are required to support a verdict. Impact retains sparse descriptive
+breaches with explicit evidence limitations. Recovery needs ALL journeys in three consecutive,
+complete, nonempty 1s windows with p95 <=1.5x baseline and hypothesis error-rate limit, ending
+within 120 seconds after undo. Empty/sparse journeys never imply health. Sealed live windows
+exclude in-flight requests; final calculation drains the buffer. Rollback/container restoration
+is explicitly separate from application recovery. Kill self-heal is observed before our undo.
+
+Added measured inject CLI with duration/error override, policy clamps, approval/non-TTY refusal
+and readable impact/recovery/abort output. Live run performs one deterministic Redis stop,
+reusing a saved baseline or measuring one if absent. Its report includes measured evidence and
+no fixture scores/findings; these remain Phase 9. Offline fixtures and dry runs are preserved.
+Artifacts include complete result.json, events.jsonl, samples.jsonl, container state/restart
+changes, skip/abort reasons, approval decision and bounded logs (<=40 lines, truncated and
+redacted after exact scope rechecks for target/direct dependents). Added executable Day-1 script
+with doctor, baseline creation/reuse, normal/strict experiments and a separate active-fault kill
+that waits for an OBSERVE event plus pending journal record. KILL is never silently cleared.
+Updated README, docs/safety.md, docs/load-baseline.md and docs/experiments.md.
+
+Verification: ruff check . passed; pytest -q -m "not integration" passed (356 tests, three
+human integration tests deselected); python -m chaosai run --offline --yes passed and produced
+runs/20261011-003939/report.html. bash -n scripts/day1_demo.sh and git diff --check passed.
+Tests cover half-open boundaries, latency floors/equality, sample-count verdict bounds, sparse/
+empty recovery, error limit equality, 120s recovery boundary/timeout, S9 skip/preparation timeout,
+normal duration, independent timer during blocked observation, cancellation before late apply,
+real Watchdog with final clamped thresholds, KILL, second-terminal rollback, exception after
+mutation, load/preparation/cleanup failures, SIGINT/SIGTERM, ignored signals throughout cleanup,
+startup reconciliation, active-lease denial, failed retained undo, kill self-heal, log scope/
+redaction/bounds, actual load preparation cancellation, measured CLI/live single-experiment
+pipeline, offline isolation and dry-run non-execution. No Docker/live HTTP/integration/real LLM,
+.env read or key inspection was performed. Read-only target status remains clean. Pre-existing
+.DS_Store and untracked =, checkout, login, retrieve remain untouched and excluded from commit.
+Local commit message: feat: experiment runner and day-1 demo. Never pushed.
+The human explicitly requested a root BUILD_PLAN.md checkpoint and continuation prompt;
+that documentation update is outside this repository and does not start a later phase.
+
+Open issues: live impact, Watchdog abort and application recovery require human verification.
+Sparse login/checkout may prevent three nonempty 1s windows despite restored containers; a
+low-sample verdict may be inconclusive. Auth's 100/15-minute IP budget can contaminate repeated
+runs or cause S9 to skip; allow a fresh rate-limit window and inspect 429s. The strict error
+threshold is a requested limit, not a guarantee that a sufficient sustained breach will occur.
+In-flight Docker mutations/operation locks cannot be interrupted; bounded SDK calls can delay
+restoration and cleanup beyond the requested timer/readiness deadline. Failed/replaced containers
+or unreadable journals need explicit repair/replay; no unrelated resource is repaired. Later
+phases (AI, extended faults, automatic multiple experiments and real scoring) were not started.
+
+**Phase 6 "You verify (Docker)" (copied from BUILD_PLAN.md):**
+- `chaosai inject stop redis --duration 30` -> result shows impact and recovery.
+- `chaosai inject stop redis --duration 30 --abort-error-rate 0.05` -> aborted by the watchdog
+  and rolled back.
+- Run the Day-1 demo script once: `bash scripts/day1_demo.sh`.
+
+Run from chaos-ai with the target already up and seeded; activate .venv and run doctor first.
+Create a baseline with chaosai baseline if none is saved. The demo leaves KILL set; after the
+injector exits and rollback is reviewed, explicitly run chaosai rollback --clear-kill.

@@ -19,10 +19,13 @@ vertical-align:top;overflow-wrap:anywhere}.notice{background:#fff1cd;padding:16p
 .score{font-size:32px;font-weight:bold}code{overflow-wrap:anywhere}
 </style></head><body>
 <h1>ChaosPilot resilience report</h1>
-<p class="notice"><strong>Phase 1 simulation — fixture data only.</strong>
+{% if meta.offline %}<p class="notice"><strong>Phase 1 simulation — fixture data only.</strong>
 No containers were inspected or changed. Metrics, verdicts, policy decisions, recovery and findings
 are synthetic examples, not measured target behavior.
 Safety controls and real scoring are pending.</p>
+{% else %}<p class="notice"><strong>Measured Phase 6 experiment.</strong>
+Execution status and measured evidence are recorded below. Analysis/scoring arrive in Phase 9.
+Application recovery requires three nonempty 1s windows for every journey.</p>{% endif %}
 <p>Run {{ meta.run_id }} · project {{ meta.target_project }}<br>
 Planner: {{ meta.planner_source }} · Analyzer: {{ meta.analyzer_source }}</p>
 <section><h2>Summary</h2>
@@ -36,7 +39,7 @@ Planner: {{ meta.planner_source }} · Analyzer: {{ meta.analyzer_source }}</p>
 <td>{{ n.container or '—' }}</td><td>{{ n.host_ports|join(', ') }}</td>
 <td>{{ n.injectable }}</td></tr>{% endfor %}</table>
 {% for f in graph.flows %}<p>{{ f.name }}: {{ f.path|join(' → ') }}</p>{% endfor %}</section>
-<section><h2>Baseline (synthetic)</h2><table>
+<section><h2>Baseline{% if meta.offline %} (synthetic){% endif %}</h2><table>
 <tr><th>Journey</th><th>Samples</th><th>Errors</th><th>p95 ms</th><th>RPS</th></tr>
 {% for name,s in baseline.journeys.items() %}<tr><td>{{ name }}</td><td>{{ s.n }}</td>
 <td>{{ s.error_rate }}</td><td>{{ s.p95_ms }}</td><td>{{ "%.2f"|format(s.rps) }}</td></tr>
@@ -45,21 +48,28 @@ Planner: {{ meta.planner_source }} · Analyzer: {{ meta.analyzer_source }}</p>
 <tr><th>Experiment</th><th>Fault / target</th><th>Reason</th><th>Approval</th></tr>
 {% for s in plan.root %}<tr><td>{{ s.id }}</td><td>{{ s.fault }} / {{ s.target }}</td>
 <td>{{ s.reason }}</td><td>{{ approvals.get(s.id, 'not executed') }}</td></tr>{% endfor %}</table>
-</section><section><h2>Results (synthetic)</h2>
+</section><section><h2>Results{% if meta.offline %} (synthetic){% endif %}</h2>
 {% for r in results %}<h3>{{ r.spec.id }} · {{ r.verdict }}</h3>
 <p>Recovered: {{ r.recovered }} · Recovery seconds: {{ r.recovery_time_s }} ·
-Rollback OK (simulated): {{ r.rollback_ok }}</p>
+Rollback OK{% if meta.offline %} (simulated){% endif %}: {{ r.rollback_ok }}</p>
 <p>Impacted journeys: {{ r.impacted_journeys|join(', ') or 'none' }}</p>
+<p>Abort reason: {{ r.abort_reason or 'none' }} · Skipped: {{ r.skip_reason or 'no' }}</p>
+{% for limit in r.evidence_limits %}<p>{{ limit }}</p>{% endfor %}
+<table><tr><th>During journey</th><th>N</th><th>Errors</th><th>p95 ms</th></tr>
+{% for name,s in r.during.items() %}<tr><td>{{ name }}</td><td>{{ s.n }}</td>
+<td>{{ s.error_rate }}</td><td>{{ s.p95_ms }}</td></tr>{% endfor %}</table>
 <p>Sample artifact: <code>{{ r.samples_path }}</code></p>
-{% else %}<p>No fixture experiments executed (dry run, skip or quit).</p>{% endfor %}</section>
-<section><h2>Scores (fixture penalties)</h2><table>
+{% else %}<p>No experiments executed (dry run, skip or quit).</p>{% endfor %}</section>
+<section><h2>Scores{% if meta.offline %} (fixture penalties)
+{% else %} (not assessed){% endif %}</h2><table>
 <tr><th>Experiment</th><th>Score</th><th>Error</th><th>Latency</th><th>Recovery</th>
 <th>Blast</th><th>Abort</th></tr>
 {% for s in scores %}<tr><td>{{ s.experiment_id }}</td><td>{{ s.score }}</td>
 <td>{{ "%.2f"|format(s.error_pen) }}</td><td>{{ "%.2f"|format(s.latency_pen) }}</td>
 <td>{{ "%.2f"|format(s.recovery_pen) }}</td><td>{{ "%.2f"|format(s.blast_pen) }}</td>
 <td>{{ s.abort_pen }}</td></tr>{% endfor %}</table></section>
-<section><h2>Findings and recommended fixes (examples)</h2>
+<section><h2>Findings and recommended fixes
+{% if meta.offline %} (examples){% else %} (pending){% endif %}</h2>
 {% for f in findings %}<h3>{{ f.severity }} · {{ f.summary }}</h3><p>{{ f.root_cause }}</p>
 <ul>{% for e in f.evidence %}<li>{{ e }}</li>{% endfor %}</ul>
 <ul>{% for fix in f.fixes %}<li>{{ fix }}</li>{% endfor %}</ul>{% endfor %}
@@ -95,8 +105,13 @@ def render_report(run_dir: Path) -> Path:
     html_path = run_dir / "report.html"
     html_path.write_text(rendered, encoding="utf-8")
     markdown = (
-        f"# ChaosPilot — {meta.run_id}\n\nPhase 1 simulation: fixture data only.\n\n"
-        f"Band: {summary.band}.\n\n{summary.narrative}\n"
+        f"# ChaosPilot — {meta.run_id}\n\n"
+        + (
+            "Phase 1 simulation: fixture data only.\n\n"
+            if meta.offline
+            else "Phase 6 measured experiment. Analysis/scoring pending.\n\n"
+        )
+        + f"Band: {summary.band}.\n\n{summary.narrative}\n"
     )
     (run_dir / "report.md").write_text(markdown, encoding="utf-8")
     return html_path

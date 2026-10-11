@@ -78,7 +78,7 @@ def test_ordering_and_mock_cache(settings: Settings, monkeypatch: pytest.MonkeyP
         "map_target",
         "measure_baseline",
         "plan_experiments",
-        "execute_experiment",
+        "execute_fixture",
         "analyze_results",
         "score_results",
         "render_report",
@@ -100,20 +100,20 @@ def test_ordering_and_mock_cache(settings: Settings, monkeypatch: pytest.MonkeyP
         order.append("approval")
         return "y"
 
-    run_dir = runner.run_pipeline(settings, Approver(yes=False, is_tty=True, ask=ask))
+    run_dir = runner.run_pipeline(settings, Approver(yes=False, is_tty=True, ask=ask), offline=True)
     graph = read_json(run_dir / "graph.json", Graph)
-    assert graph.sources.parsed and len(graph.edges) == 14
+    assert not graph.sources.parsed
     assert read_json(settings.project_root / ".chaosai" / "graph.json", Graph) == graph
     assert order == [
         "map_target",
         "measure_baseline",
         "plan_experiments",
         "approval",
-        "execute_experiment",
+        "execute_fixture",
         "approval",
-        "execute_experiment",
+        "execute_fixture",
         "approval",
-        "execute_experiment",
+        "execute_fixture",
         "analyze_results",
         "score_results",
         "render_report",
@@ -137,7 +137,7 @@ def test_skip_all_quit_and_matching_analysis(
 ) -> None:
     replies = iter(answers)
     run_dir = runner.run_pipeline(
-        settings, Approver(yes=False, is_tty=True, ask=lambda _: next(replies))
+        settings, Approver(yes=False, is_tty=True, ask=lambda _: next(replies)), offline=True
     )
     meta = read_json(run_dir / "run.json", RunMeta)
     assert [a.decision for a in meta.approvals] == choices
@@ -170,6 +170,7 @@ def test_dry_run_never_prompts_or_executes(
     def fail(*args: object, **kwargs: object) -> str:
         raise AssertionError("Dry run must not execute or prompt")
 
+    monkeypatch.setattr(runner, "execute_fixture", fail)
     monkeypatch.setattr(runner, "execute_experiment", fail)
     run_dir = runner.run_pipeline(
         settings, Approver(yes=False, is_tty=False, ask=fail), dry_run=True
@@ -188,7 +189,6 @@ def test_dry_run_cli(cli_workspace: Path) -> None:
 @pytest.mark.parametrize(
     "command",
     [
-        "inject",
         "plan",
         "replay",
     ],
@@ -200,7 +200,9 @@ def test_placeholder_commands(command: str) -> None:
 
 
 def test_report_escapes_untrusted_text(settings: Settings) -> None:
-    run_dir = runner.run_pipeline(settings, Approver(yes=True, is_tty=False, ask=lambda _: "y"))
+    run_dir = runner.run_pipeline(
+        settings, Approver(yes=True, is_tty=False, ask=lambda _: "y"), offline=True
+    )
     findings = read_json(run_dir / "findings.json", list[Finding])
     findings[0].evidence.append('<script>alert("injected")</script>')
     write_json(run_dir / "findings.json", findings)

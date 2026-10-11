@@ -1,9 +1,10 @@
-# Phase 5 safety building blocks
+# Deterministic safety — Phases 5 and 6
 
-All operations are deterministic; none call an LLM. `run` remains the fixture experiment
-pipeline. `fault apply` executes the real kill, stop or pause mechanism with approval,
-a duration cap, durable undo, signals and KILL polling. Load, metric watchdog attachment,
-prechecks and measured experiment results belong to Phase 6.
+All live fault and measured experiment operations are deterministic; none call an LLM.
+`fault apply` runs a low-level mechanism test. `inject` and live `run` attach load, one-second
+container polling, the S5 Watchdog, S9 precheck and measured recovery. `run --offline` retains
+synthetic fixtures. See [experiments.md](experiments.md) for the full Phase 6 lifecycle and
+[../scripts/day1_demo.sh](../scripts/day1_demo.sh) for the walkthrough.
 
 ## Contracts and recovery
 
@@ -46,7 +47,7 @@ observations. SDK calls have target.py's bounded timeouts and can delay cleanup;
 measured after apply returns. A failed rollback is reported and remains retryable.
 
 Rollback restores recorded containers, without trying to repair unrelated pre-existing target
-failures. Phase 6 will implement run-level readiness/precheck/reconciliation. A successful
+failures. Phase 6 implements journal reconciliation and measured S9 precheck. A successful
 rollback proves running/unpaused/resource restoration, not HTTP readiness, broker
 resubscription or application recovery. In particular, the RabbitMQ reconnect and Redis
 fallback hypotheses in target-notes still need measured verification.

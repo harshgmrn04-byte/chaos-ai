@@ -6,10 +6,10 @@ Phase 2 provides live target bring-up, diagnostics, seeding and checkout verific
 Phase 3 maps Compose deterministically, with manual overrides and Mermaid output.
 Phase 4 adds live threaded load, scoped telemetry and measured baselines.
 Phase 5 adds deterministic faults, scope/policy checks, durable undo, watchdog and kill switch.
-The `run` command maps Compose and measures a live baseline by default; `--offline` uses
-bundled fixtures without target access. Experiments and findings remain synthetic.
-The `fault apply` command executes live faults separately. Policy decisions, rollback and
-recovery evidence within `run` remain fixtures until Phase 6; analysis/scoring arrive later.
+Phase 6 runs one measured experiment with load, one-second telemetry, watchdog, durable rollback
+and recovery evidence. `inject` supports kill/stop/pause; live `run` performs one deterministic
+Redis stop. `--offline` retains synthetic fixtures without target access. Live analysis/scoring
+and automatic multiple-experiment mode remain later phases.
 
 ```sh
 cd chaos-ai
@@ -26,7 +26,7 @@ use `PYTHON=/path/to/python3.11 bash scripts/bootstrap.sh`.
 The CLI prints the generated `runs/<timestamp>/report.html` path. Open it in a browser.
 The HTML has inline CSS and requires no network. Run JSON, plan, decisions, findings, scores,
 summary and per-experiment JSON/JSONL evidence are stored alongside it. `journal.json` is empty
-because no faults are applied. Run directories and credentials are git-ignored.
+in offline mode because no faults are applied. Run directories and credentials are git-ignored.
 
 ```sh
 python -m chaosai run --offline             # interactive y/n/a/q approval per experiment
@@ -40,7 +40,7 @@ and `q` writes a report for experiments already completed. EOF or Ctrl-C at the 
 prompt also quits cleanly. Dry runs and entirely skipped plans have no assessed score.
 
 Commands deferred to later phases print `not implemented yet` and exit 2:
-`inject`, `plan`, `replay`.
+`plan`, `replay`.
 
 ## Faults and recovery (Phase 5)
 
@@ -61,8 +61,30 @@ targets with the exact Compose project label are injectable. One active fault is
 per ChaosPilot workspace. `KILL` remains set until explicitly cleared after successful recovery.
 
 These are low-level mechanism tests: they generate no load and attach no metric watchdog.
-The tested watchdog consumes live buffers for Phase 6's measured experiment runner.
+Measured `inject` attaches the watchdog and load; see the Phase 6 section below.
 See [safety.md](docs/safety.md) for contracts, recovery limits and exact two-terminal checks.
+
+## Measured experiments (Phase 6)
+
+```sh
+chaosai baseline                              # or reuse the saved stable baseline
+chaosai inject stop redis --duration 30
+chaosai inject stop redis --duration 30 --abort-error-rate 0.05
+chaosai run                                   # one measured Redis stop
+chaosai run --dry-run                         # plan/report without injection
+bash scripts/day1_demo.sh
+```
+
+`inject` requires a saved baseline, prints clamps and asks approval unless `--yes` is passed.
+Each measured experiment starts its own load; avoid running a second load process. S9 waits
+at most 60s for near-baseline evidence and records a skip if readiness is not established.
+The final abort thresholds reach the Watchdog without modifying the saved baseline.
+Artifacts include events, request samples, container state/restarts, redacted logs and result.json.
+Container restoration and application recovery are separate. Recovery requires every journey
+in three nonempty 1s windows; sparse login traffic can prevent a claim despite a healthy app.
+The demo leaves KILL set for explicit inspection/reset, and auth's 100/15-minute IP limiter
+can require waiting between live runs. See [experiments.md](docs/experiments.md) for evaluation
+rules, timing bounds, evidence limits and demo instructions.
 
 ## Application graph (Phase 3)
 
