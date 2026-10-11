@@ -958,7 +958,7 @@ manual investigation while retained journals block continuation. These remain op
 `chaosai run --dry-run`, then `chaosai run` (approve each) completing at least 4 experiments
 covering >= 3 fault types, and the app healthy afterwards (`chaosai smoke`).
 
-- [ ] chaosai run --dry-run — deferred, not passed.
+- [x] chaosai run --dry-run — user-supplied run 20261011-014504 passed; no faults applied.
 - [ ] chaosai run — approve each; actually complete >=4 experiments across >=3 fault types;
   review measured impact, rollback/cleanup and recovery/cooldown evidence — deferred, not passed.
 - [ ] chaosai smoke — confirm the app healthy afterwards — deferred, not passed.
@@ -975,3 +975,34 @@ At final verification, first complete the explicitly deferred fresh baseline and
 checks listed above and in experiments.md/safety.md. An S9 skip, mechanism denial, successful
 container rollback or synthetic fixture never counts as a completed live experiment/recovery.
 Do not silently clear KILL or repair unjournaled state. Phases 9 and 10 remain unchecked.
+
+### Phase 8 human check review and continuation — 2026-10-11
+
+Phase 8 implementation is complete at local commit f474f23; live verification is partial,
+so the phase is almost done rather than fully live-verified. The user supplied terminal
+output and authorized continuing to Phase 9, with all waiting-related checks and any
+confirmed fixes deferred to final verification after Phase 10. No live commands were run
+by the agent during this review. No runtime gate or saved baseline was changed.
+
+- Dry-run 20261011-014504 generated a plan/report without faults. Its newly measured
+  baseline has stable=true and zero request errors.
+- Run 20261011-014810 recorded one approval, but applied zero faults: S9 timed out with
+  checkout 0/10 precheck samples, then measured cooldown failed. Journal is empty;
+  rollback_ok=true and cleanup_ok=true do not establish application recovery. The result
+  remains skipped/inconclusive, recovered=false, recovery_time_s=null.
+- Saved samples confirm auth HTTP 429s: 21/47 baseline login requests, all 26 precheck
+  login requests, and all 25 cooldown login requests. This new baseline is stable=true
+  under the existing drift rule but is rate-limit-contaminated, not clean verification
+  evidence. Historical baseline 20261011-011425 still has stable=false; it is unchanged.
+- User-supplied smoke failed at admin login; the database recheck confirmed matching
+  credentials. Rate limiting is a likely explanation, not a proven smoke response status.
+- RabbitMQ emitted RemoteProtocolError warnings, although both new baselines contain
+  some queue-depth observations. Visibility is intermittent, not completely restored.
+
+The target has a shared 100-auth-request/15-minute IP window. Allow a fresh window before
+final live verification and avoid consecutive fresh dry-run/run baselines. Waiting alone
+does not prove readiness and a long sequence can exhaust the budget again. Re-measure a
+clean baseline; do not reuse the contaminated one or reset/bypass the limiter. At the end
+of Phase 10, complete >=4 injected experiments across >=3 fault types, measured recovery,
+passing smoke and the deferred Phase 6 impact/abort/KILL/signals/Day-1 checks. Diagnose and
+fix reproducible issues then; no successful recovery or multi-fault demonstration is claimed.
