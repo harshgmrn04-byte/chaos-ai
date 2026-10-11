@@ -34,8 +34,9 @@ independent of model availability.
 Validated responses are cached in the run's llm directory by SHA-256(task, system, user).
 Cache hits are revalidated. Malformed responses are retained with invalid-attempt suffixes;
 model resolution probe responses have separate hashes. No credentials are part of prompts or
-cache keys. The none provider never reads a response cache or opens a client. The replay CLI
-is still deferred; report regeneration reads saved artifacts without LLM calls.
+cache keys. The none provider never reads a response cache or opens a client. Phase 9 replay
+has a separate cache-only reader that never instantiates the transport; report regeneration
+reads saved artifacts without LLM calls. See [analysis.md](analysis.md).
 
 ## Planning and trace
 
@@ -106,7 +107,8 @@ through the measured runner, requiring cleanup and measured cooldown readiness b
 The complete plan/decisions and a source-facts snapshot are retained; run metadata records all
 planner sources and approvals. Dry-run prints plan/decisions without fault execution. Offline run preserves the original three synthetic evidence
 examples and their IDs/order; its mock/none providers cannot open a real Gemini client, even
-when passed Gemini settings directly. Live analysis and scoring remain Phase 9.
+when passed Gemini settings directly. Phase 9 adds analysis/scoring after experiment cleanup;
+these stages never control injection, rollback or recovery.
 
 ## Deferred live evidence
 

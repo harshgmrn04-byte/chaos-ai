@@ -305,6 +305,7 @@ def test_final_policy_thresholds_reach_real_watchdog(harness: Harness) -> None:
     result = h.run(duration=30, abort_error_rate=0)  # Policy clamps to .05.
     assert_clean(h, result)
     assert result.aborted and result.verdict == "aborted"
+    assert result.watchdog_aborted is True
     assert "error rate exceeds 0.05" in result.abort_reason
     assert result.decision.clamps[0].final == 0.05
     assert h.watchdog.thresholds.abort.max_error_rate == 0.05
@@ -328,6 +329,7 @@ def test_every_exit_restores_and_cleans(harness: Harness, mode: str, reason: str
     result = harness.run(duration=30)
     assert_clean(harness, result)
     assert result.aborted and result.verdict == "aborted" and reason in result.abort_reason
+    assert result.watchdog_aborted is False
     if mode == "KILL":
         assert harness.settings.kill_path.exists()
         assert not result.recovered

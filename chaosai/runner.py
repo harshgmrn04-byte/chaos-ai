@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
-from chaosai.analyzer import analyze_results
+from chaosai.analyzer import analyze_run
 from chaosai.approval import Approver
 from chaosai.baseline import measure_baseline
 from chaosai.config import Settings
@@ -22,7 +22,6 @@ from chaosai.models import (
 from chaosai.planner import plan_experiments
 from chaosai.report import render_report
 from chaosai.runs import append_jsonl, create_run, read_json, write_json
-from chaosai.scoring import score_results
 
 
 def fixture_decision(spec: ExperimentSpec) -> PolicyDecision:
@@ -101,7 +100,6 @@ def run_pipeline(
     write_json(run_dir / "plan.json", plan)
     decisions = read_json(run_dir / "decisions.json", list[PolicyDecision])
     meta.planner_sources = list(dict.fromkeys(d.source for d in decisions))
-    results: list[ExperimentResult] = []
     if not dry_run:
         for decision in decisions[:max_experiments]:
             choice = approver.decide(decision)
@@ -110,15 +108,9 @@ def run_pipeline(
             if choice == "quit":
                 break
             if choice != "skip":
-                results.append(execute_fixture(decision, run_dir))
-    findings, meta.analyzer_source = analyze_results(
-        results, provider=provider, cache_dir=run_dir / "llm"
-    )
-    write_json(run_dir / "findings.json", findings)
-    scores, summary = score_results(results)
-    write_json(run_dir / "scores.json", scores)
-    write_json(run_dir / "summary.json", summary)
+                execute_fixture(decision, run_dir)
     write_json(run_dir / "run.json", meta)
+    analyze_run(run_dir, settings.model_copy(update={"llm_provider": provider}))
     render_report(run_dir)
     return run_dir
 

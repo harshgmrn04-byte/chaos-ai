@@ -44,6 +44,7 @@ def test_every_contract_round_trips() -> None:
         *CATALOGUE,
         *SOURCE_FACTS,
         models.LLMProbe(ok=True),
+        models.AnalysisTrace(experiment_id="test", source="heuristic"),
         models.ResolvedModel(model="test-model"),
         models.PlannerOutput.model_validate_json(mock_response("planner", models.PlannerOutput)),
         models.JournalData(

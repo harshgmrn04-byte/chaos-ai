@@ -15,7 +15,7 @@ from pydantic import BaseModel, ValidationError
 
 from chaosai.config import Settings, load_config
 from chaosai.fixture_data import fixture
-from chaosai.models import LLMProbe, Plan, PlannerOutput, ResolvedModel
+from chaosai.models import Finding, LLMProbe, Plan, PlannerOutput, ResolvedModel, Summary
 from chaosai.runs import read_json, write_json
 
 M = TypeVar("M", bound=BaseModel)
@@ -74,10 +74,23 @@ def response_key(task: str, system: str, user: str) -> str:
     return hashlib.sha256(json.dumps([task, system, user]).encode()).hexdigest()
 
 
-def mock_response(task: str, model_cls: type[M]) -> str:
+def mock_response(task: str, model_cls: type[M], user: str = "") -> str:
     """Serve the original fixtures and the flat planner contract without transport."""
     if task == "probe":
         return '{"ok":true}'
+    if task == "analyzer" and model_cls is Finding:
+        packet = json.loads(user)
+        return Finding(
+            experiment_id=packet["experiment_id"],
+            summary="Recorded experiment observation",
+            root_cause="Mock explanation; the root cause remains unproven.",
+            severity=packet["severity"],
+            evidence=packet["evidence_choices"],
+            fixes=["Test bounded dependency deadlines and recovery under the same fault."],
+        ).model_dump_json()
+    if task == "analyzer-summary" and model_cls is Summary:
+        packet = json.loads(user)
+        return Summary.model_validate(packet["summary"]).model_dump_json()
     name = TASK_FIXTURES.get(task)
     if name is None:
         raise LLMUnavailable("No mock fixture for this task.")
@@ -288,7 +301,7 @@ class LLM:
             for attempt in range(2):
                 try:
                     if self.provider == "mock":
-                        raw = mock_response(task, model_cls)
+                        raw = mock_response(task, model_cls, user)
                     else:
                         while True:
                             try:

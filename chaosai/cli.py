@@ -9,6 +9,7 @@ import httpx
 import typer
 from pydantic import ValidationError
 
+from chaosai.analyzer import analyze_run
 from chaosai.approval import ApprovalRequired, Approver
 from chaosai.baseline import measure_baseline, run_load
 from chaosai.catalogue import definition
@@ -65,7 +66,7 @@ def run(
     typer.echo(
         "Offline fixture simulation."
         if offline
-        else "AI/heuristic plan; sequential measured faults; analysis/scoring remain Phase 9."
+        else "AI/heuristic plan; sequential measured faults; evidence analysis and scoring."
     )
     approver = Approver(yes=yes, is_tty=sys.stdin.isatty(), ask=input, simulation=offline)
     try:
@@ -206,10 +207,29 @@ def report(run_dir: Path = typer.Argument(..., help="Run directory path or run I
         raise typer.Exit(2)
     try:
         path = render_report(run_dir)
-    except (OSError, ValidationError) as exc:
-        typer.echo(f"Cannot render run artifacts: {exc}", err=True)
+    except (OSError, ValueError) as exc:
+        typer.echo("Cannot render run artifacts; check saved JSON and sample paths.", err=True)
         raise typer.Exit(2) from exc
     typer.echo(f"Report: {path}")
+
+
+@app.command()
+def replay(
+    run_dir: Path = typer.Argument(..., help="Saved run path or ID; cache-only analysis."),
+) -> None:
+    """Recompute analysis/scores from saved evidence and caches, with no network or dotenv."""
+    if not run_dir.is_dir():
+        run_dir = PROJECT_ROOT / "runs" / run_dir
+    if not run_dir.resolve().is_relative_to(PROJECT_ROOT):
+        typer.echo("Run directory must be inside chaos-ai/.", err=True)
+        raise typer.Exit(2)
+    try:
+        analyze_run(run_dir, load_config(offline=True), cached_only=True)
+        path = render_report(run_dir)
+    except (OSError, ValueError) as exc:
+        typer.echo("Cannot replay run artifacts; check saved JSON and sample paths.", err=True)
+        raise typer.Exit(2) from exc
+    typer.echo(f"Replay (cache only; missing/invalid entries use fallback): {path}")
 
 
 def target_config() -> Settings:
@@ -422,11 +442,6 @@ def baseline_command(
     typer.echo(f"Latest baseline: {settings.project_root / '.chaosai' / 'baseline.json'}")
 
 
-def not_implemented() -> None:
-    typer.echo("not implemented yet")
-    raise typer.Exit(2)
-
-
 fault_app = typer.Typer(help="Low-level faults with durable rollback.", no_args_is_help=True)
 app.add_typer(fault_app, name="fault")
 
@@ -577,13 +592,6 @@ def kill_command() -> None:
     finally:
         if client is not None:
             client.close()
-
-
-for command_name in ("replay",):
-    app.command(
-        name=command_name,
-        context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-    )(not_implemented)
 
 
 def show_experiment(result: ExperimentResult) -> None:

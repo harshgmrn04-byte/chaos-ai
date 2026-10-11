@@ -7,6 +7,7 @@ from pathlib import Path
 
 import docker
 
+from chaosai.analyzer import analyze_run
 from chaosai.approval import Approver, Choice
 from chaosai.baseline import measure_baseline
 from chaosai.catalogue import definition
@@ -27,7 +28,6 @@ from chaosai.models import (
     JournalData,
     PolicyDecision,
     RunMeta,
-    Summary,
 )
 from chaosai.planner import plan_experiments
 from chaosai.planner_facts import SOURCE_REVISION, source_facts
@@ -246,10 +246,10 @@ def run_automatic(
         target_project=settings.compose_project,
         approvals=[],
         offline=False,
+        data_source="measured",
     )
     write_json(run_dir / "run.json", meta)
     write_json(run_dir / "journal.json", [])
-    results: list[ExperimentResult] = []
     abort = threading.Event()
     client = None
     leased = False
@@ -340,7 +340,6 @@ def run_automatic(
                             except Exception:
                                 ok = False
                             result = failed_result(decision, run_dir, choice, exc, rollback_ok=ok)
-                        results.append(result)
                         if result.interrupted:
                             meta.stop_reason = "Interrupted by signal."
                             break
@@ -372,19 +371,9 @@ def run_automatic(
             meta.stop_reason = "Run client cleanup failed."
         finally:
             write_json(run_dir / "run.json", meta)
-    write_json(run_dir / "findings.json", [])
-    write_json(run_dir / "scores.json", [])
-    write_json(
-        run_dir / "summary.json",
-        Summary(
-            overall_score=0,
-            band="not assessed",
-            ranked_weaknesses=[],
-            top_fixes=[],
-            narrative="Measured evidence available; analysis/scoring remain Phase 9."
-            if results
-            else "Plan only; no experiment executed. Analysis/scoring pending.",
-        ),
+    analyze_run(
+        run_dir,
+        settings.model_copy(update={"llm_provider": "none"}) if meta.stop_reason else settings,
     )
     if all((run_dir / name).exists() for name in ("graph.json", "baseline.json", "plan.json")):
         render_report(run_dir)

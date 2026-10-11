@@ -70,7 +70,9 @@ unresolved journals, KILL, signals or failed readiness stop the sequence; q exit
 KILL is never cleared implicitly. `run.json` records approvals, overall/per-item planner sources,
 target project, baseline source and stop reason. `plan.json`, `decisions.json` and
 `source-facts.json` preserve requested/final reasoning, clamps and grounded source provenance.
-Live reports contain measured evidence with **no live scores/findings**; Phase 9 remains pending.
+Phase 9 reports score recorded during-fault evidence and explain it with validated AI output
+or deterministic fallback. Skips/absent during measurements are unscored; sparse scores remain
+descriptive. Analysis never establishes recovery or changes safety decisions. See [analysis.md](analysis.md).
 
 ## Extended mechanisms
 

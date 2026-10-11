@@ -321,6 +321,7 @@ class ExperimentResult(Model):
     evidence_limits: list[str] = Field(default_factory=list)
     cleanup_ok: bool = True
     interrupted: bool = False
+    watchdog_aborted: bool | None = None
     approval_decision: Literal["yes", "skip", "all", "quit"] = "yes"
 
 
@@ -374,6 +375,14 @@ class RunMeta(Model):
     planner_sources: list[str] = Field(default_factory=list)
     stop_reason: str | None = None
     baseline_source: str | None = None
+    data_source: Literal["fixture", "measured"] = "fixture"
+    analyzer_sources: list[str] = Field(default_factory=list)
+
+
+class AnalysisTrace(Model):
+    experiment_id: str
+    source: LLMSource
+    fallback_reason: str | None = None
 
 
 class Plan(RootModel[list[ExperimentSpec]]):

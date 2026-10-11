@@ -157,8 +157,9 @@ def test_order_rank_approval_cleanup_cooldown_and_full_plan(stages: Stages) -> N
     assert [a.decision for a in meta.approvals] == ["yes"] * 4
     assert meta.baseline_source == "measured" and meta.stop_reason is None
     assert len(read_json(directory / "plan.json", Plan).root) == 4
-    assert read_json(directory / "findings.json", list) == []
-    assert read_json(directory / "scores.json", list) == []
+    assert len(read_json(directory / "findings.json", list)) == 4
+    assert len(read_json(directory / "scores.json", list)) == 4
+    assert meta.data_source == "measured" and meta.analyzer_source == "mock"
     stages.client.close.assert_called_once()
 
 

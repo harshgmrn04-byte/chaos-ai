@@ -433,6 +433,13 @@ def execute_experiment(
         after=after,
         aborted=aborted,
         abort_reason=reason,
+        watchdog_aborted=bool(
+            aborted
+            and watchdog is not None
+            and watchdog.breach_reason is not None
+            and watchdog.breach_reason == reason
+            and reason != "Watchdog evaluation unavailable."
+        ),
         verdict=evaluate_verdict(during, baseline, thresholds, spec.hypothesis, aborted=aborted),
         recovered=recovered,
         recovery_time_s=recovery_time,

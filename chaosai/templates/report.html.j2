@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>ChaosPilot — {{ meta.run_id }}</title>
+<style>
+:root{color-scheme:light}body{font:16px/1.55 system-ui,sans-serif;color:#183345;
+background:#f1f5f7;max-width:1100px;margin:35px auto;padding:0 24px}
+h1,h2,h3{line-height:1.2}section,article{background:white;padding:24px;margin:18px 0;
+border:1px solid #d4e0e5;border-radius:12px}.notice{background:#fff1ce;padding:18px}
+.score{font-size:36px;font-weight:700;color:#13616b}table{width:100%;border-collapse:collapse}
+th,td{text-align:left;border-bottom:1px solid #d4e0e5;padding:8px;vertical-align:top}
+td,p,li,pre{overflow-wrap:anywhere}pre{white-space:pre-wrap;background:#eef3f5;padding:12px}
+svg{display:block;width:100%;max-width:550px;height:120px}.muted{color:#516775}
+</style></head><body>
+<h1>ChaosPilot resilience report</h1>
+{% if meta.data_source == 'fixture' %}
+<p class="notice"><strong>Simulation — fixture data only.</strong> All metrics, faults,
+verdicts and recovery are synthetic examples, not measured target behavior.</p>
+{% else %}
+<p class="notice"><strong>Measured evidence.</strong> Container rollback and application
+recovery are separate. Sparse or incomplete observations cannot establish resilience.</p>
+{% endif %}
+<p>Run {{ meta.run_id }} · {{ meta.started_at }} · project {{ meta.target_project }}<br>
+Planner: {{ meta.planner_source }} · Analyzer: {{ meta.analyzer_source }}<br>
+Planner sources: {{ meta.planner_sources|join(', ') }} ·
+Analyzer sources: {{ meta.analyzer_sources|join(', ') }} · Baseline: {{ meta.baseline_source or 'legacy' }}</p>
+{% if meta.stop_reason %}<p class="notice">Stopped: {{ meta.stop_reason }}</p>{% endif %}
+<section><h2>Summary</h2>
+{% if scores %}<p class="score">{{ '%.1f'|format(summary.overall_score) }}/100 · {{ summary.band }}</p>
+<p>{{ scores|length }} experiments scored. Scores with sparse/inconclusive evidence are descriptive;
+a partial run is not a full application assessment.</p>
+{% else %}<p>No resilience score assessed. No injected-fault measurement available.</p>{% endif %}
+<p>{{ summary.narrative }}</p></section>
+<section><h2>Ranked weaknesses</h2><ol>
+{% for w in summary.ranked_weaknesses %}<li><strong>{{ w.severity }} · {{ w.title }}</strong>
+({{ w.experiments|join(', ') }}) — {{ w.fix }}</li>
+{% else %}<li>No scored weaknesses available; untested behavior remains unknown.</li>{% endfor %}
+</ol><h3>Top fixes</h3><ul>{% for fix in summary.top_fixes %}<li>{{ fix }}</li>{% endfor %}</ul>
+<h2>What held up</h2>{% for f in held %}<p>{{ f.experiment_id }} · {{ f.summary }}</p>
+{% else %}<p>No confirmed experiment with score at least 80.</p>{% endfor %}</section>
+<section><h2>Application map</h2><p>{{ graph.app }} · {{ graph.edges|length }} dependency edges</p>
+<table><tr><th>Node</th><th>Kind</th><th>Container</th><th>Ports</th><th>Injectable</th></tr>
+{% for n in graph.nodes %}<tr><td>{{ n.id }}</td><td>{{ n.kind }}</td><td>{{ n.container or '—' }}</td>
+<td>{{ n.host_ports|join(', ') }}</td><td>{{ n.injectable }}</td></tr>{% endfor %}</table>
+{% for f in graph.flows %}<p>{{ f.name }}: {{ f.path|join(' → ') }}</p>{% endfor %}</section>
+<section><h2>Baseline{% if meta.data_source == 'fixture' %} (synthetic){% endif %}</h2>
+<p>Created {{ baseline.created_at }} · window {{ baseline.window_s }}s · stable={{ baseline.stable }}.
+Stability measures drift; it does not establish an error-free baseline.</p>
+<table><tr><th>Journey</th><th>N</th><th>Errors</th><th>p95 ms</th><th>RPS</th><th>Low sample</th></tr>
+{% for name,s in baseline.journeys.items() %}<tr><td>{{ name }}</td><td>{{ s.n }}</td>
+<td>{{ '%.4f'|format(s.error_rate) }}</td><td>{{ '%.3f'|format(s.p95_ms) }}</td>
+<td>{{ '%.3f'|format(s.rps) }}</td><td>{{ s.low_sample }}</td></tr>{% endfor %}</table>
+<h3>Baseline thresholds</h3><pre>{{ baseline.thresholds.model_dump_json(indent=2) }}</pre>
+<p>Queues (available observations only): {{ baseline.queues }}</p></section>
+<section><h2>Experiment plan and Results</h2>
+{% for c in cards %}{% set s = c.spec %}{% set r = c.result %}
+<article><h3>{{ s.rank }}. {{ s.id }} · {{ s.fault }} / {{ s.target }}</h3>
+<p>Duration {{ s.duration_s }}s · intensity {{ s.intensity }} · approval {{ approvals.get(s.id, 'not executed') }}</p>
+<p><strong>Hypothesis:</strong> {{ s.hypothesis.statement }}<br>
+Journey {{ s.hypothesis.journey }} · max errors {{ s.hypothesis.max_error_rate }} ·
+p95 multiple {{ s.hypothesis.max_p95_multiple }}</p><p>Reason: {{ s.reason }}</p>
+{% if r %}<p><strong>Verdict: {{ r.verdict }}</strong> · skipped={{ r.skipped }} · {{ r.skip_reason or '' }}</p>
+<p>Recovered={{ r.recovered }} · recovery seconds={{ r.recovery_time_s }} · self-healed={{ r.self_healed }}<br>
+Container rollback OK={{ r.rollback_ok }} · cleanup OK={{ r.cleanup_ok }} · interrupted={{ r.interrupted }}<br>
+Abort: {{ r.abort_reason or 'none' }} · impacted journeys: {{ r.impacted_journeys|join(', ') or 'none observed' }}</p>
+{% for limit in r.evidence_limits %}<p class="muted">{{ limit }}</p>{% endfor %}
+<h4>Scores and breakdown</h4>{% if c.score %}<p>{{ c.score.score }}/100 ·
+E={{ '%.3f'|format(c.score.error_pen) }} · L={{ '%.3f'|format(c.score.latency_pen) }} ·
+R={{ '%.3f'|format(c.score.recovery_pen) }} · B={{ '%.3f'|format(c.score.blast_pen) }} · A={{ c.score.abort_pen }}</p>
+{% else %}<p>Unscored: no injected-fault measurement.</p>{% endif %}
+<h4>Timeline sparkline</h4>
+{% if c.points %}<svg viewBox="0 0 500 110" role="img" aria-label="Mean request latency by time bucket">
+<path d="M10 90 H490" stroke="#cad8de" fill="none"/>
+<polyline points="{% for x,y in c.points %}{{ x }},{{ y }} {% endfor %}" fill="none" stroke="#087a85" stroke-width="2"/>
+</svg><p class="muted">Mean latency, up to 100 time buckets across precheck/fault/recovery; scaled to this experiment.</p>
+{% else %}<p>No sample timeline available.</p>{% endif %}
+<ul>{% for e in r.events %}<li>{{ e.t }} · {{ e.phase }} · {{ e.note }}</li>{% endfor %}</ul>
+{% for label,stats in [('During', r.during), ('After', r.after)] %}<h4>{{ label }}</h4>
+<table><tr><th>Journey</th><th>N</th><th>Errors</th><th>p95 ms</th></tr>
+{% for name,j in stats.items() %}<tr><td>{{ name }}</td><td>{{ j.n }}</td><td>{{ j.error_rate }}</td>
+<td>{{ '%.3f'|format(j.p95_ms) }}</td></tr>{% endfor %}</table>{% endfor %}
+<h4>Findings and fixes</h4>{% if c.finding %}<p><strong>{{ c.finding.severity }} · {{ c.finding.summary }}</strong></p>
+<p>Analyzer interpretation (root cause unproven unless cited source establishes it): {{ c.finding.root_cause }}</p>
+<ul>{% for e in c.finding.evidence %}<li>{{ e }}</li>{% endfor %}</ul>
+<ul>{% for fix in c.finding.fixes %}<li>{{ fix }}</li>{% endfor %}</ul>{% else %}<p>No analysis recorded.</p>{% endif %}
+<h4>Container events and logs (untrusted evidence)</h4>
+<ul>{% for e in r.container_events %}<li>{{ e }}</li>{% endfor %}</ul>
+{% for name,logs in r.log_excerpts.items() %}<p>{{ name }}</p>{% for line in logs %}<pre>{{ line }}</pre>{% endfor %}{% endfor %}
+<p>Sample artifact: {{ r.samples_path }}</p>
+{% else %}<p>Planned only; no experiment result. No score or recovery claim.</p>{% endif %}</article>
+{% else %}<p>No experiments planned.</p>{% endfor %}</section>
+<section><h2>Decision trace</h2>
+{% for d in decisions|sort(attribute='final.rank') %}<h3>{{ d.experiment_id }} · {{ d.source }}</h3>
+<p>Allowed={{ d.allowed }} · denial={{ d.deny_reason or 'none' }}<br>
+Requested reason: {{ d.requested.reason }}<br>Final reason: {{ d.final.reason }}</p>
+<details><summary>Requested and final specs</summary><pre>{{ d.requested.model_dump_json(indent=2) }}</pre>
+<pre>{{ d.final.model_dump_json(indent=2) }}</pre></details>
+<ul>{% for c in d.clamps %}<li>{{ c.field }}: {{ c.requested }} → {{ c.final }} — {{ c.reason }}</li>{% endfor %}</ul>
+{% else %}<p>No decision trace stored.</p>{% endfor %}</section>
+<section><h2>Methodology</h2>
+<p>Score = clamp(100 − E − L − R − B − A, 0, 100), rounded to the nearest integer.
+Overall is the mean of scored experiments; skips and absent during evidence are excluded.</p>
+<ul><li>E = 40 × min(1, max(0, worst during-minus-baseline error rate) / 0.5).</li>
+<li>L = 20 × min(1, max(0, worst during/baseline p95 − 1) / 4).</li>
+<li>R = 0 for measured recovery within 10s; 25 if recovery is unproven; otherwise 25 × min(1, recovery seconds / 60).</li>
+<li>B = 10 × impacted hypothesis journeys / total baseline journeys (excluding aggregate all).</li>
+<li>A = 5 for a metric/blast-radius Watchdog abort; operator KILL/signals do not add this penalty.</li></ul>
+<p>Zero baseline p95: zero during p95 has no latency penalty; positive during p95 saturates L.
+Sparse scores are descriptive, not hypothesis confirmation. Missing journeys are evidence gaps.</p>
+<p>Bands: ≥85 resilient; ≥70 acceptable; ≥50 weak; otherwise fragile.
+Severity: critical below 30 or aborted with ≥2 impacted journeys; high below 60; medium below 80; otherwise low.
+Confirmed experiments scoring ≥80 appear under What held up, never ranked weaknesses.</p>
+<p>Recovery requires three complete nonempty one-second HTTP windows for every journey;
+container restoration alone cannot prove it. Stability/readiness, safety thresholds and
+source-grounded policy clamps are unchanged. AI explains evidence; deterministic code sets scores.</p>
+</section></body></html>

@@ -1,0 +1,85 @@
+# ChaosPilot — {{ meta.run_id }}
+
+{% if meta.data_source == 'fixture' %}Simulation: fixture data only; all observations are synthetic.
+{% else %}Measured evidence; container rollback does not establish HTTP recovery.
+{% endif %}
+
+Project: {{ meta.target_project }}. Planner: {{ meta.planner_source }}. Analyzer: {{ meta.analyzer_source }}.
+
+{% if scores %}Overall: {{ '%.1f'|format(summary.overall_score) }}/100 ({{ summary.band }}).
+{% else %}No resilience score assessed.
+{% endif %}
+
+{{ summary.narrative }}
+
+Stop reason: {{ meta.stop_reason or 'none' }}.
+
+## Ranked weaknesses
+
+{% for w in summary.ranked_weaknesses %}- {{ w.severity }}: {{ w.title }} ({{ w.experiments|join(', ') }}). Fix: {{ w.fix }}
+{% endfor %}
+
+## What held up
+
+{% for f in held %}- {{ f.experiment_id }}: {{ f.summary }}
+{% endfor %}
+
+## Baseline
+
+Created {{ baseline.created_at }}. Stable={{ baseline.stable }} (drift, not absence of errors).
+
+{% for name,s in baseline.journeys.items() %}- {{ name }}: n={{ s.n }}, errors={{ s.error_rate }}, p95={{ s.p95_ms }}ms, rps={{ s.rps }}.
+{% endfor %}
+
+Thresholds: {{ baseline.thresholds.model_dump_json() }}
+
+## Experiments (plan rank order)
+
+{% for c in cards %}
+### {{ c.spec.rank }}. {{ c.spec.id }} — {{ c.spec.fault }} / {{ c.spec.target }}
+
+Hypothesis: {{ c.spec.hypothesis.statement }}. Reason: {{ c.spec.reason }}.
+
+{% if c.result %}Verdict: {{ c.result.verdict }}. Skipped={{ c.result.skipped }}; {{ c.result.skip_reason or '' }}.
+Recovered={{ c.result.recovered }}; seconds={{ c.result.recovery_time_s }}; rollback={{ c.result.rollback_ok }}; cleanup={{ c.result.cleanup_ok }}.
+
+{% if c.score %}Score={{ c.score.score }}; E={{ c.score.error_pen }}, L={{ c.score.latency_pen }}, R={{ c.score.recovery_pen }}, B={{ c.score.blast_pen }}, A={{ c.score.abort_pen }}.
+{% else %}Unscored: no injected-fault measurement.
+{% endif %}
+
+{% for e in c.result.events %}- {{ e.phase }} at {{ e.t }}: {{ e.note }}
+{% endfor %}
+
+{% for limit in c.result.evidence_limits %}- Evidence limit: {{ limit }}
+{% endfor %}
+
+{% if c.finding %}Finding: {{ c.finding.severity }} — {{ c.finding.summary }}.
+Interpretation (root cause unproven unless cited source establishes it): {{ c.finding.root_cause }}
+
+{% for e in c.finding.evidence %}- {{ e }}
+{% endfor %}
+
+{% for f in c.finding.fixes %}- Fix: {{ f }}
+{% endfor %}{% endif %}
+{% else %}Planned only; no score or recovery claim.
+{% endif %}
+{% endfor %}
+
+## Decision trace
+
+{% for d in decisions|sort(attribute='final.rank') %}- {{ d.experiment_id }} ({{ d.source }}): allowed={{ d.allowed }}; {{ d.deny_reason or '' }}. Requested reason: {{ d.requested.reason }}. Final reason: {{ d.final.reason }}.
+{% for c in d.clamps %}  - {{ c.field }}: {{ c.requested }} -> {{ c.final }} ({{ c.reason }})
+{% endfor %}{% endfor %}
+
+## Methodology
+
+Score = clamp(100 - E - L - R - B - A, 0, 100), rounded to nearest integer.
+E=40*min(1,max(0,worst error delta)/0.5); L=20*min(1,max(0,worst p95 ratio-1)/4).
+R=0 within 10s; 25 if unproven; otherwise 25*min(1,recovery/60).
+B=10*(impacted journeys/total baseline journeys, excluding all); A=5 for Watchdog abort.
+Overall is mean of scored experiments; skipped and absent measurements are excluded.
+Zero baseline p95: positive during p95 saturates L; zero during p95 gives L=0.
+Sparse/inconclusive scores are descriptive. Partial runs do not establish full app resilience.
+Bands: >=85 resilient, >=70 acceptable, >=50 weak, otherwise fragile.
+Severity: critical below 30 or aborted with >=2 impacted journeys; high below 60; medium below 80; low otherwise.
+Confirmed score >=80 belongs under What held up. AI cannot change scores, severity or ranking.

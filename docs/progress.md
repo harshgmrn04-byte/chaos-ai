@@ -9,7 +9,7 @@
 - [x] Phase 6 — Experiment runner and Day-1 demo
 - [x] Phase 7 — LLM layer and AI planner
 - [x] Phase 8 — Extended faults and automatic run
-- [ ] Phase 9 — Analyzer, scoring, report
+- [x] Phase 9 — Analyzer, scoring, report
 - [ ] Phase 10 — Freeze and polish
 - [ ] Phase 11 — Optional stretch
 
@@ -945,7 +945,7 @@ strict Watchdog abort, active-fault KILL, Ctrl-C recovery and the Day-1 walkthro
 **pending, not passed**. Phase 8 human Docker checks are deferred/pending too; none were requested
 from the human during this implementation session.
 
-The latest saved baseline 20261011-011425 remains stable=false despite zero request errors:
+At the Phase 8 implementation checkpoint, baseline 20261011-011425 remained stable=false despite zero request errors:
 checkout half-window p95 drift was 32.28%, beyond the unchanged 30% bound. Low-sample login
 was excluded. No saved baseline data or stability/readiness rule was edited. RabbitMQ queue-depth
 telemetry remains unavailable. Sparse recovery windows and the target's shared 100-request /
@@ -959,9 +959,9 @@ manual investigation while retained journals block continuation. These remain op
 covering >= 3 fault types, and the app healthy afterwards (`chaosai smoke`).
 
 - [x] chaosai run --dry-run — user-supplied run 20261011-014504 passed; no faults applied.
-- [ ] chaosai run — approve each; actually complete >=4 experiments across >=3 fault types;
-  review measured impact, rollback/cleanup and recovery/cooldown evidence — deferred, not passed.
-- [ ] chaosai smoke — confirm the app healthy afterwards — deferred, not passed.
+- [ ] chaosai run — supplied attempt 20261011-014810 injected zero faults; >=4 experiments
+  across >=3 fault types and measured recovery/cooldown remain deferred until end of Phase 10.
+- [ ] chaosai smoke — supplied attempt failed at login; passing retest deferred until end of Phase 10.
 
 ```sh
 cd "/Users/harsh/Desktop/Bosch Hackathon Optimised/chaos-ai"
@@ -1006,3 +1006,97 @@ clean baseline; do not reuse the contaminated one or reset/bypass the limiter. A
 of Phase 10, complete >=4 injected experiments across >=3 fault types, measured recovery,
 passing smoke and the deferred Phase 6 impact/abort/KILL/signals/Day-1 checks. Diagnose and
 fix reproducible issues then; no successful recovery or multi-fault demonstration is claimed.
+
+## Phase 9 — 2026-10-11
+
+The user explicitly authorized moving to the next phase after documenting Phase 8 as almost
+complete, with waiting-related live verification and confirmed issue fixes deferred until
+final verification after Phase 10. Implemented Phase 9 only. Phase 10 and stretch/netem were
+not started. Phase checkboxes track implementation, not completion of pending human checks.
+
+Replaced fixture scoring with pure BUILD_PLAN.md section 7 penalties, integer rounding,
+overall mean, bands, deterministic severity and ranking. Original example scores remain
+53/17/95 (overall 55); postgres-pause severity is now correctly critical and the confirmed
+95-point CPU example appears under What held up, excluded from weaknesses. Scores never
+come from the model. Skips/absent during measurements are excluded; sparse/inconclusive
+scores are descriptive and partial coverage is explicit. Zero baseline latency, unknown
+recovery and operator versus Watchdog abort handling are documented in analysis.md. Added
+watchdog_aborted metadata without changing the runner's safety/abort/undo/recovery behavior;
+legacy metric reason patterns remain usable. Baseline, thresholds and original fixtures
+are unchanged.
+
+Added analyzer prompt and per-experiment Finding calls plus one Summary call through the
+existing bounded LLM session. Input quotes spec, hypothesis, verdict, baseline/during/after,
+measured recovery/self-heal, container events, <=3 bounded untrusted log excerpts, limitations,
+scores/severity and archived source facts. Finding identity and exact supplied evidence
+citations are validated; empty explanations/fixes, invalid JSON or unavailable responses
+fall back per experiment. Severity, all scores, bands, weakness ordering and fixes in the
+summary remain deterministic. No self-heal does not prove a missing restart policy. Skipped
+or unmeasured results get diagnostics without LLM calls. Stopped live runs use fallback after
+cleanup. analysis.json records per-item/summary source and fallback reason; run.json records
+analyzer source(s) and data_source=fixture|measured. Existing planner provenance is retained.
+
+Replaced the minimal report with packaged Jinja HTML/Markdown templates, autoescape on for
+all text. Inline CSS/SVG only; plan-ordered cards group hypotheses, verdicts, score breakdowns,
+events, mean-latency sparklines, observations, finding/fixes and recovery/cleanup evidence.
+Includes baseline thresholds, decision trace with requested/final reasons/clamps, ranked
+weaknesses, What held up, methodology and run/source metadata. Banner follows data_source,
+not offline; explicit legacy measured/reused-baseline provenance is respected, ambiguous
+old runs keep the conservative fixture default. Sample/output paths cannot escape their run.
+
+`report <run>` regenerates stored artifacts without target/LLM access. `replay <run>` recomputes
+analysis and scores from evidence and exact validated response-cache matches, with no transport
+instance, Docker, target, dotenv or network. Cache misses/malformed/semantically invalid entries
+use explicit fallback. Replay retains original plan, decisions, baseline and experiment evidence;
+only derived analysis/report artifacts change. Matching per-item source provenance is retained.
+Offline run and dry-run stay isolated; live run analyzes only after the existing safety cleanup.
+Updated README, experiments.md, llm-planning.md and added docs/analysis.md. No dependencies added.
+
+Actual agent checks using the existing .venv:
+- ruff check .: passed.
+- pytest -q -m "not integration": 584 passed, three integration tests deselected. The existing
+  google-genai/Python 3.14 deprecation warning remains; no failures.
+- python -m chaosai run --offline --yes: passed; synthetic report at
+  runs/20261011-020747/report.html.
+- python -m chaosai run --offline --dry-run: passed; unscored plan-only report at
+  runs/20261011-020748/report.html.
+- python -m chaosai report runs/20261011-020747: passed.
+- python -m chaosai replay runs/20261011-020747: passed using deterministic cache-miss fallback;
+  mock tests separately confirm exact cached replay with transport creation forbidden.
+- git diff --check: passed; read-only target git status clean.
+
+New mock-only tests cover every penalty and boundary, zero latency, unknown recovery,
+Watchdog/operator distinction, exclusion of skips/empty evidence, rounding bounds, bands,
+severity/rank/held-up split, valid mock calls, invalid JSON retry/fallback, invalid citations/
+identity, unavailable summary, model score/severity/rank overrides, archived source facts,
+untrusted excerpt bounds, no unsupported restart-policy assertion, cache-only CLI replay,
+missing/invalid/semantic caches, mixed source preservation, report sections/order, fixture/
+measured/legacy banners, HTML escaping across findings/logs/decisions/baseline, self-contained
+assets, sample/output confinement and missing timelines. Existing safety/cleanup tests pass.
+No agent live Docker, HTTP/load, real LLM calls or .env/key inspection occurred. Target and
+unrelated .DS_Store, =, checkout, login, retrieve remain untouched and excluded from staging.
+Local commit message: feat: analyzer, scoring and report. Nothing pushed.
+
+Open issues: natural-language explanations still require human assessment; exact citation
+checks cannot prove every causal inference. Changed prompts/evidence can miss old cache keys
+and use fallback. No live fault/recovery evidence was created by this phase. CPU configurations
+that cannot restore exactly, auth window/budget, sparse recovery and intermittent RabbitMQ
+telemetry remain open Phase 8/earlier limits; none was bypassed to obtain a report/score.
+
+**Phase 9 "You verify" (copied from BUILD_PLAN.md; pending for final verification after Phase 10):**
+with a real run directory, `chaosai report <run>` opens a readable `report.html`; with Wi-Fi off,
+`chaosai replay <run>` still works.
+
+```sh
+chaosai report runs/<real-run-id>
+open runs/<real-run-id>/report.html
+# With Wi-Fi off:
+chaosai replay runs/<real-run-id>
+open runs/<real-run-id>/report.html
+```
+
+Retain the Phase 8 dry-run pass, but complete >=4 actual live experiments across >=3 fault types,
+passing smoke, a fresh clean baseline and all deferred Phase 6 impact/application recovery,
+Watchdog abort, active-fault KILL, Ctrl-C and Day-1 checks after Phase 10. Allow a clean auth
+window when needed; waiting alone never establishes readiness. Investigate and fix reproducible
+issues then. Phase 10 remains unchecked and unimplemented.

@@ -79,8 +79,7 @@ def test_ordering_and_mock_cache(settings: Settings, monkeypatch: pytest.MonkeyP
         "measure_baseline",
         "plan_experiments",
         "execute_fixture",
-        "analyze_results",
-        "score_results",
+        "analyze_run",
         "render_report",
     ):
         original = getattr(runner, stage)
@@ -114,13 +113,12 @@ def test_ordering_and_mock_cache(settings: Settings, monkeypatch: pytest.MonkeyP
         "execute_fixture",
         "approval",
         "execute_fixture",
-        "analyze_results",
-        "score_results",
+        "analyze_run",
         "render_report",
     ]
     meta = read_json(run_dir / "run.json", RunMeta)
     assert meta.planner_source == meta.analyzer_source == "mock"
-    assert len(list((run_dir / "llm").glob("*.json"))) == 2
+    assert len(list((run_dir / "llm").glob("*.json"))) == 5
 
 
 @pytest.mark.parametrize(
@@ -186,16 +184,10 @@ def test_dry_run_cli(cli_workspace: Path) -> None:
     assert result.exit_code == 0, result.output
 
 
-@pytest.mark.parametrize(
-    "command",
-    [
-        "replay",
-    ],
-)
-def test_placeholder_commands(command: str) -> None:
-    result = cli_runner.invoke(cli.app, [command, "ignored", "--offline"])
+def test_replay_missing_run_reports_error(cli_workspace: Path) -> None:
+    result = cli_runner.invoke(cli.app, ["replay", "missing"])
     assert result.exit_code == 2
-    assert result.output.strip() == "not implemented yet"
+    assert "Cannot replay run artifacts" in result.output
 
 
 def test_report_escapes_untrusted_text(settings: Settings) -> None:

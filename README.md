@@ -9,7 +9,8 @@ Phase 5 adds deterministic faults, scope/policy checks, durable undo, watchdog a
 Phase 8 runs grounded AI/heuristic plans sequentially with approval, measured load/telemetry,
 watchdog, durable rollback and recovery/cooldown gates. CPU and traffic faults extend kill,
 stop and pause; CPU settings that cannot be restored exactly are refused before mutation.
-Live analysis/scoring remain Phase 9. `--offline` retains synthetic fixtures without
+Phase 9 adds evidence-based analysis, deterministic scoring, escaped HTML/Markdown reports
+and cache-only replay. `--offline` retains synthetic fixtures without
 Docker, target access, dotenv, network or waiting.
 
 ```sh
@@ -33,6 +34,7 @@ in offline mode because no faults are applied. Run directories and credentials a
 python -m chaosai run --offline             # interactive y/n/a/q approval per experiment
 python -m chaosai run --offline --dry-run   # plan + report, no simulated execution or approvals
 python -m chaosai report runs/<timestamp>  # regenerate report from saved artifacts
+python -m chaosai replay runs/<timestamp>  # cache-only analysis; no network or dotenv
 chaosai --help
 ```
 
@@ -40,8 +42,12 @@ Without a TTY, execution requires `--yes`. `n` skips, `a` approves the remaining
 and `q` writes a report for experiments already completed. EOF or Ctrl-C at the approval
 prompt also quits cleanly. Dry runs and entirely skipped plans have no assessed score.
 
-Commands deferred to later phases print `not implemented yet` and exit 2:
-`replay`.
+Report regeneration uses saved artifacts. Replay recomputes scores and analysis with exact
+validated cache matches, falling back deterministically when a response is unavailable.
+It never opens an LLM transport, Docker or the target. See [analysis.md](docs/analysis.md).
+Phase 8 implementation is complete; its multi-fault live run/recovery and smoke verification
+remain pending after observed auth HTTP 429s. Waiting-related live checks and the remaining
+Phase 6 checks are explicitly deferred until final verification after Phase 10.
 
 ## AI planning (Phase 7)
 
