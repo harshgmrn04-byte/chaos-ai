@@ -207,3 +207,61 @@ def test_paused_postgres_is_not_ready(settings: Settings) -> None:
     with pytest.raises(TargetError, match="paused"):
         target.service_container(client, settings, "postgres")
     postgres.exec_run.assert_not_called()
+
+
+@pytest.mark.parametrize("block", ["kill", "pending", "malformed", "active"])
+def test_compose_recreation_refused_with_unresolved_safety_state(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch, block: str
+) -> None:
+    from chaosai.safety import file_lock
+
+    called = []
+    monkeypatch.setattr(target, "_compose_up", lambda *_: called.append("build"))
+    if block == "kill":
+        settings.kill_path.parent.mkdir(parents=True)
+        settings.kill_path.write_text("retained")
+    elif block in {"pending", "malformed"}:
+        path = settings.runs_dir / "old/journal.json"
+        path.parent.mkdir(parents=True)
+        path.write_text(
+            "{invalid secret input"
+            if block == "malformed"
+            else json.dumps(
+                {
+                    "version": 1,
+                    "records": [
+                        {
+                            "resource": "load",
+                            "id": "pending",
+                            "project": settings.compose_project,
+                            "fault": "traffic_spike",
+                            "original_workers": 1,
+                            "owner_pid": 1,
+                        }
+                    ],
+                }
+            )
+        )
+    if block == "active":
+        with file_lock(settings.active_lock_path, blocking=False):
+            with pytest.raises(TargetError, match="active"):
+                target.compose_up(settings)
+    else:
+        with pytest.raises(TargetError) as error:
+            target.compose_up(settings)
+        assert "secret input" not in str(error.value)
+    assert not called
+
+
+def test_compose_holds_lease_through_build(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from chaosai.safety import file_lock
+
+    def build(*args: object) -> None:
+        with pytest.raises(TargetError, match="active"):
+            with file_lock(settings.active_lock_path, blocking=False):
+                pytest.fail("Bring-up released lease before build completed")
+
+    monkeypatch.setattr(target, "_compose_up", build)
+    target.compose_up(settings)

@@ -9,7 +9,7 @@ border:1px solid #d4e0e5;border-radius:12px}.notice{background:#fff1ce;padding:1
 .score{font-size:36px;font-weight:700;color:#13616b}table{width:100%;border-collapse:collapse}
 th,td{text-align:left;border-bottom:1px solid #d4e0e5;padding:8px;vertical-align:top}
 td,p,li,pre{overflow-wrap:anywhere}pre{white-space:pre-wrap;background:#eef3f5;padding:12px}
-svg{display:block;width:100%;max-width:550px;height:120px}.muted{color:#516775}
+svg{display:block;width:100%;max-width:550px;height:auto}.muted{color:#516775}
 </style></head><body>
 <h1>ChaosPilot resilience report</h1>
 {% if meta.data_source == 'fixture' %}
@@ -19,7 +19,7 @@ verdicts and recovery are synthetic examples, not measured target behavior.</p>
 <p class="notice"><strong>Measured evidence.</strong> Container rollback and application
 recovery are separate. Sparse or incomplete observations cannot establish resilience.</p>
 {% endif %}
-<p>Run {{ meta.run_id }} · {{ meta.started_at }} · project {{ meta.target_project }}<br>
+<p>Run {{ meta.run_id }} · {{ meta.started_at|readable_time }} · project {{ meta.target_project }}<br>
 Planner: {{ meta.planner_source }} · Analyzer: {{ meta.analyzer_source }}<br>
 Planner sources: {{ meta.planner_sources|join(', ') }} ·
 Analyzer sources: {{ meta.analyzer_sources|join(', ') }} · Baseline: {{ meta.baseline_source or 'legacy' }}</p>
@@ -41,15 +41,24 @@ a partial run is not a full application assessment.</p>
 <table><tr><th>Node</th><th>Kind</th><th>Container</th><th>Ports</th><th>Injectable</th></tr>
 {% for n in graph.nodes %}<tr><td>{{ n.id }}</td><td>{{ n.kind }}</td><td>{{ n.container or '—' }}</td>
 <td>{{ n.host_ports|join(', ') }}</td><td>{{ n.injectable }}</td></tr>{% endfor %}</table>
-{% for f in graph.flows %}<p>{{ f.name }}: {{ f.path|join(' → ') }}</p>{% endfor %}</section>
+{% for f in graph.flows %}<p>{{ f.name }} touches: {{ f.path|join(', ') }}</p>{% endfor %}</section>
 <section><h2>Baseline{% if meta.data_source == 'fixture' %} (synthetic){% endif %}</h2>
-<p>Created {{ baseline.created_at }} · window {{ baseline.window_s }}s · stable={{ baseline.stable }}.
+<p>Created {{ baseline.created_at|readable_time }} · window {{ baseline.window_s }}s · stable={{ baseline.stable }}.
 Stability measures drift; it does not establish an error-free baseline.</p>
 <table><tr><th>Journey</th><th>N</th><th>Errors</th><th>p95 ms</th><th>RPS</th><th>Low sample</th></tr>
 {% for name,s in baseline.journeys.items() %}<tr><td>{{ name }}</td><td>{{ s.n }}</td>
 <td>{{ '%.4f'|format(s.error_rate) }}</td><td>{{ '%.3f'|format(s.p95_ms) }}</td>
 <td>{{ '%.3f'|format(s.rps) }}</td><td>{{ s.low_sample }}</td></tr>{% endfor %}</table>
-<h3>Baseline thresholds</h3><pre>{{ baseline.thresholds.model_dump_json(indent=2) }}</pre>
+<h3>Baseline thresholds</h3>
+<table><tr><th>Rule</th><th>Hypothesis</th><th>Abort / Watchdog</th></tr>
+<tr><td>Error rate limit</td><td>{{ '%.2f%%'|format(baseline.thresholds.hypothesis.max_error_rate * 100) }}</td><td>{{ '%.2f%%'|format(baseline.thresholds.abort.max_error_rate * 100) }}</td></tr>
+<tr><td>p95 multiple</td><td>{{ baseline.thresholds.hypothesis.p95_multiple }}×</td><td>{{ baseline.thresholds.abort.p95_multiple }}×</td></tr>
+<tr><td>p95 absolute increment</td><td>{{ baseline.thresholds.hypothesis.p95_floor_ms }} ms</td><td>{{ baseline.thresholds.abort.p95_floor_ms }} ms</td></tr>
+<tr><td>Non-target containers leaving running</td><td>—</td><td>&gt; {{ baseline.thresholds.abort.max_unhealthy_containers }}</td></tr>
+<tr><td>Minimum samples / consecutive breaches</td><td>Verdict needs 20 baseline and during samples per journey</td><td>{{ baseline.thresholds.abort.min_samples }} / {{ baseline.thresholds.abort.consecutive_breaches }}</td></tr></table>
+<p class="muted">Latency breaches exceed max(multiple × baseline p95, baseline p95 + absolute increment).
+The S9 precheck and recovery use 1.5× baseline p95 with no absolute floor.
+Each card's final policy-clamped spec supplies its hypothesis and abort limits.</p>
 <p>Queues (available observations only): {{ baseline.queues }}</p></section>
 <section><h2>Experiment plan and Results</h2>
 {% for c in cards %}{% set s = c.spec %}{% set r = c.result %}
@@ -68,12 +77,23 @@ E={{ '%.3f'|format(c.score.error_pen) }} · L={{ '%.3f'|format(c.score.latency_p
 R={{ '%.3f'|format(c.score.recovery_pen) }} · B={{ '%.3f'|format(c.score.blast_pen) }} · A={{ c.score.abort_pen }}</p>
 {% else %}<p>Unscored: no injected-fault measurement.</p>{% endif %}
 <h4>Timeline sparkline</h4>
-{% if c.points %}<svg viewBox="0 0 500 110" role="img" aria-label="Mean request latency by time bucket">
-<path d="M10 90 H490" stroke="#cad8de" fill="none"/>
-<polyline points="{% for x,y in c.points %}{{ x }},{{ y }} {% endfor %}" fill="none" stroke="#087a85" stroke-width="2"/>
-</svg><p class="muted">Mean latency, up to 100 time buckets across precheck/fault/recovery; scaled to this experiment.</p>
+{% if c.points %}<svg viewBox="0 0 570 155" role="img" aria-label="Mean request latency (ms) versus elapsed time (s)">
+<title>Mean latency per bucket, including errors; elapsed time from first recorded sample</title>
+<path d="M60 20 V100 H540" stroke="#516775" fill="none"/>
+<text x="60" y="14" font-size="11">Mean latency (ms)</text>
+<text x="52" y="24" font-size="11" text-anchor="end">{{ '%.1f'|format(c.chart.maximum) }}</text>
+<text x="52" y="103" font-size="11" text-anchor="end">0</text>
+<text x="60" y="120" font-size="11">0</text>
+<text x="540" y="120" font-size="11" text-anchor="end">{{ '%.1f'|format(c.chart.span) }}</text>
+<text x="300" y="143" font-size="11" text-anchor="middle">Elapsed time (s)</text>
+{% for m in c.chart.markers %}<line x1="{{ m.x }}" x2="{{ m.x }}" y1="20" y2="100" stroke="#889da8" stroke-dasharray="3 3"><title>{{ m.event.phase }} at +{{ m.elapsed }}s: {{ m.event.note }}</title></line>{% endfor %}
+<polyline transform="translate(50 10)" points="{% for x,y in c.points %}{{ x }},{{ y }} {% endfor %}" fill="none" stroke="#087a85" stroke-width="2"/>
+</svg><p class="muted">Mean latency, up to 100 time buckets including failed requests; scaled to this experiment.
+First sample: {{ c.chart.start|readable_time }}. Dashed markers are recorded events within the sample span;
+INJECT is an attempt, OBSERVE records completed application, UNDO begins restoration (not proof of recovery).</p>
+<ul>{% for m in c.chart.markers %}<li>+{{ m.elapsed }}s · {{ m.event.phase }}</li>{% endfor %}</ul>
 {% else %}<p>No sample timeline available.</p>{% endif %}
-<ul>{% for e in r.events %}<li>{{ e.t }} · {{ e.phase }} · {{ e.note }}</li>{% endfor %}</ul>
+<ul>{% for e in r.events %}<li>{{ e.t|readable_time }} · {{ e.phase }} · {{ e.note }}</li>{% endfor %}</ul>
 {% for label,stats in [('During', r.during), ('After', r.after)] %}<h4>{{ label }}</h4>
 <table><tr><th>Journey</th><th>N</th><th>Errors</th><th>p95 ms</th></tr>
 {% for name,j in stats.items() %}<tr><td>{{ name }}</td><td>{{ j.n }}</td><td>{{ j.error_rate }}</td>

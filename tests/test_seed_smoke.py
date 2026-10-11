@@ -688,3 +688,29 @@ def test_new_admin_short_password_is_rejected_before_register(
     with pytest.raises(TargetError, match="at least six characters"):
         seed.seed_target(settings, docker_client, client, users=0)
     assert not state["requests"]
+
+
+@pytest.mark.parametrize("status", [429, 503])
+def test_admin_http_failure_keeps_status_without_body_or_retry(
+    settings: Settings, api: tuple, status: int
+) -> None:
+    from chaosai.target_auth import safe_admin_login
+
+    _, docker_client, state = api
+    existing_account(state, "admin@test.com", settings.seed_password.get_secret_value(), "ADMIN")
+    calls = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(status, text="secret body with password and token")
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        with pytest.raises(TargetError) as error:
+            safe_admin_login(
+                docker_client, docker_client.containers.list.return_value[0], settings, client
+            )
+    message = str(error.value)
+    assert f"Observed HTTP {status}" in message
+    assert "credentials match" in message and "no automatic login retry" in message
+    assert "secret body" not in message and settings.seed_password.get_secret_value() not in message
+    assert len(calls) == 1 and len(state["credential_checks"]) == 2

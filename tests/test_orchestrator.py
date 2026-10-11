@@ -518,3 +518,14 @@ def test_outer_client_close_failure_is_recorded(stages: Stages) -> None:
     meta = read_json(directory / "run.json", RunMeta)
     assert meta.stop_reason == "Run client cleanup failed."
     assert "untrusted error text" not in meta.model_dump_json()
+
+
+@pytest.mark.parametrize("reuse", [False, True])
+def test_corrupt_unused_or_reuse_baseline_measures_fresh(stages: Stages, reuse: bool) -> None:
+    latest = stages.settings.safety_dir / "baseline.json"
+    latest.parent.mkdir(parents=True, exist_ok=True)
+    latest.write_text("{invalid")
+    directory = stages.run(max_experiments=1, reuse_baseline=reuse)
+    assert "baseline" in stages.order
+    assert read_json(directory / "run.json", RunMeta).baseline_source == "measured"
+    assert read_json(directory / "baseline.json", Baseline) == stages.baseline

@@ -187,3 +187,38 @@ def test_ambiguous_legacy_defaults_to_fixture(directory: Path) -> None:
     meta["baseline_source"] = None
     write_json(directory / "run.json", meta)
     assert "Simulation — fixture data only." in render_report(directory).read_text()
+
+
+def test_chart_labels_recorded_event_bounds_and_readable_times(directory: Path) -> None:
+    from chaosai.models import Event
+    from chaosai.report import chart_context, readable_time
+
+    samples = [
+        Sample(t=t, journey="browse", ok=True, status=200, latency_ms=20, error=None)
+        for t in (10, 20)
+    ]
+    events = [
+        Event(t=t, phase=phase, note="recorded")
+        for t, phase in [(5, "PRECHECK"), (15, "OBSERVE"), (21, "UNDO")]
+    ]
+    chart = chart_context(samples, events)
+    assert chart["span"] == 10 and chart["maximum"] == 20
+    assert [(m["x"], m["elapsed"], m["event"].phase) for m in chart["markers"]] == [
+        (300, 5, "OBSERVE")
+    ]
+    assert chart_context([], events) == {}
+    assert readable_time(0) == "1970-01-01 00:00:00.000+00:00"
+    assert readable_time(1e100) == "Timestamp outside supported date range"
+    html = render_report(directory).read_text()
+    for label in (
+        "Mean latency (ms)",
+        "Elapsed time (s)",
+        "p95 absolute increment",
+        "Minimum samples / consecutive breaches",
+        "touches:",
+        "+00:00",
+    ):
+        assert label in html
+    assert "INJECT is an attempt" in html
+    assert "Baseline thresholds</h3><pre>" not in html
+    assert timeline(samples) == [(10, 10), (490, 10)]

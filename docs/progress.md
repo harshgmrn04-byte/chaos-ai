@@ -10,7 +10,7 @@
 - [x] Phase 7 — LLM layer and AI planner
 - [x] Phase 8 — Extended faults and automatic run
 - [x] Phase 9 — Analyzer, scoring, report
-- [ ] Phase 10 — Freeze and polish
+- [x] Phase 10 — Freeze and polish (implementation/offline checks; measured sample/live verification pending)
 - [ ] Phase 11 — Optional stretch
 
 ## Phase 0 — 2026-10-11
@@ -1124,3 +1124,105 @@ rollback, script exit or selected-spec count cannot prove injection/recovery/div
 No live checks, .env reads, target changes or unrelated-file changes occurred in this handoff.
 Validation: checkpoint/prompt content and diff whitespace checked. Code/tests were unchanged;
 prior Phase 9 checks remain the latest code verification. Handoff committed locally only.
+
+
+## Phase 10 — 2026-10-11
+
+Implemented the feature freeze only, from handoff b3f7dd7. No Phase 11, netem, new fault,
+re-planning, target patch, dependency or relaxed safety/recovery/scoring gate was added.
+Phase checkboxes record implementation; deferred human evidence and the measured sample
+submission remain pending.
+
+Built safe executable scripts/clean_run.sh: configured existing target or pinned clone under
+.chaosai/target-source, existing patch flow only if needed on that clone, venv bootstrap,
+KILL/active-lease/pending-or-malformed-journal preflight, scoped Compose up, doctor/seed/smoke,
+run --yes --max-experiments 4, report-path/completed-evidence validation and final smoke.
+It retains volumes, failed-run output and journals, never resets the target or clears KILL.
+A reported reproduction pass requires a stable error-free measured baseline, >=4 completed,
+non-skipped supported verdicts with recorded OBSERVE/during evidence, cleanup/exact undo and
+measured recovery across >=3 actual fault types. Selected specs/CLI success alone do not pass.
+Independent safety demonstrations, visual QA and sample publication still need human review.
+Live script steps were never executed by the coding agent; shell subprocess tests use fake
+bootstrap/CLI/git plus local artifact validators with config replaced (no dotenv/network).
+
+Completed the final README (deployment, CLI/config, Mermaid, S1–S10, score formula, AI and
+fallbacks, offline/replay, limitations and MIT target/patch provenance), docs/architecture.md,
+docs/demo-script.md (2:55 recording with preparation/waits outside the video),
+docs/freeze-audit.md and the complete serial human checklist in docs/final-verification.md.
+examples/sample-run/README.md records the measured deliverable as pending, with inspected run
+provenance and required five-file follow-up. No synthetic/skipped report was substituted.
+No eligible completed real run exists: measured dry-run 014504 has no results; 014810 has
+only a skipped zero-impact entry; standalone inject attempts 005504/005640 have zero during
+samples/no full run report. The video and measured findings submission remain human work.
+
+Confirmed fixes from the source/invariant audit:
+- Unexpected admin HTTP failures now retain the numeric response status through the mandatory
+  matching-credential recheck. No response body/key/URL or automatic retry is added. This makes
+  future smoke/seed diagnosis actionable without inventing the historical smoke status.
+- Default fresh runs no longer parse an unused latest-baseline cache. Opt-in reuse of an
+  unreadable cache measures fresh evidence instead; freshness/stability/S9 remain unchanged.
+- Direct chaosai up now refuses KILL/pending/malformed journals and holds the existing active
+  lease/operation lock through Compose execution, preventing recreation of an active or
+  unresolved journaled container. No automatic replay/repair or container normalization.
+- Reports label graph flows as touch-sets, show readable UTC milliseconds and threshold tables,
+  and label chart latency/time axes with recorded in-span phase markers. INJECT is an attempt,
+  OBSERVE means apply returned and UNDO begins restoration. No invented event/recovery times,
+  source/ranking/score changes, external assets or escaping regressions. Rendered visual QA
+  remains pending; the existing Computer Use file:// restriction was not bypassed.
+
+Actual agent checks, using the existing .venv:
+- .venv/bin/ruff check .: passed.
+- .venv/bin/pytest -q -m "not integration": **615 passed, 3 integration tests deselected**.
+  The existing installed google-genai/Python 3.14 deprecation warning remains; no failures.
+  Initial mock-shell tests exposed a harness shebang issue with the spaced workspace path;
+  the quoted wrapper fixed it. Final full suite passed after all code/script changes.
+- .venv/bin/python -m chaosai --help: passed. Documentation check matched all 16 commands,
+  checked **19 root/subcommand help invocations and documented flags**, and verified **24
+  local documentation links**. The external HTTPS target-repository link was checked for
+  syntax only, not fetched under the no-network scope.
+- bash -n scripts/clean_run.sh scripts/day1_demo.sh: passed. Embedded Python bodies were
+  formatted/compiled and executed only against mocked settings/artifacts in unit checks.
+- .venv/bin/python -m chaosai run --offline --yes: passed; synthetic report at
+  runs/20261011-022844/report.html.
+- .venv/bin/python -m chaosai run --offline --dry-run: passed; unscored fixture preview at
+  runs/20261011-022845/report.html.
+- .venv/bin/python -m chaosai report runs/20261011-022844: passed.
+- .venv/bin/python -m chaosai replay runs/20261011-022844: passed, cache-only with explicit
+  cache-miss deterministic fallback. Existing mock tests confirm matching cached responses
+  work with transport creation forbidden; this is not real-run/Wi-Fi-off verification.
+- git diff --check: passed; read-only target git status remains clean.
+
+New regressions cover secret-free HTTP status retention/no retry, unused/corrupt reusable
+baseline handling, Compose safety blocks/lease duration, chart scale/recorded marker bounds/
+readable times and all prior escaping, and clean-run scoped ordering/pinned cloning/failure
+stops/KILL/pending undo/malformed journals/active lease/patch refusal/truthful completion.
+No live Docker, HTTP/load, integration test, real LLM call or private .env/key read occurred.
+All writes remain inside chaos-ai. Historical evidence, unrelated .DS_Store and untracked
+=, checkout, login, retrieve stay untouched and excluded from Phase 10 staging. No run data
+is staged. Local commit message: docs: freeze, readme, architecture, clean run. Never push.
+
+Preserved evidence: Phase 8 dry-run 20261011-014504 passed. Run 20261011-014810 injected zero
+faults after auth HTTP 429s blocked checkout S9 (0/10) and cooldown. Its stable=true baseline
+has 21/47 login errors; all 26 precheck/25 cooldown login requests were 429. Smoke failed at
+admin login with matching credentials, but its actual HTTP status remains unknown. Historical
+20261011-011425 stays stable=false (32.28% checkout p95 drift vs unchanged 30%). Fixture
+scores 53/17/95, overall 55 (weak), remain synthetic; the real target is unassessed.
+
+Open limits: shared 100/15-minute auth budget (preceding/long traffic can exhaust it again),
+sparse all-journey 1s recovery (regular 0.5/s login admission leaves gaps), intermittent
+RabbitMQ telemetry, exact CPU quota-0/NanoCpus refusal, unknown/live traffic-owner undo,
+bounded SDK/HTTP cleanup delays and natural-language interpretation review. Waiting alone
+cannot establish readiness. No limiter/threshold/recovery/scoring bypass is authorized.
+
+**Phase 10 You verify (Docker), copied from BUILD_PLAN.md:** run scripts/clean_run.sh from
+scratch on your machine, start to finish.
+
+[Complete final human verification commands/checklist](final-verification.md) preserve all
+unfinished work: fresh uncontaminated stable baselines, Phase 6 measured impact/recovery,
+strict Watchdog abort, active-fault KILL, Ctrl-C and Day-1 walkthrough; Phase 8 >=4 completed
+experiments across >=3 actual fault types and passing smoke; Phase 9 rendered real report
+and Wi-Fi-off replay; three human integration tests; eligible five-file sample provenance,
+<=3-minute video and submission deliverables. All remain **pending, not passed**; the historical
+Phase 8 dry-run pass is retained. Run serial auth traffic with fresh windows when needed,
+inspect actual evidence and provide sanitized failures for further confirmed fixes within
+this freeze. Phase 11 stays unstarted.

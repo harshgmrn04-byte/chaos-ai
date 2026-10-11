@@ -1,12 +1,14 @@
 """Self-contained, escaped HTML/Markdown from saved evidence; no target access."""
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
 from chaosai.models import (
     Baseline,
+    Event,
     ExperimentResult,
     Finding,
     Graph,
@@ -33,8 +35,44 @@ def timeline(samples: list[Sample]) -> list[tuple[float, float]]:
     values = {b: sum(v) / len(v) for b, v in groups.items()}
     maximum = max(max(values.values()), 1)
     return [
-        (round(10 + b * 4.8, 2), round(90 - 80 * v / maximum, 2)) for b, v in sorted(values.items())
+        (round(10 + b * 480 / 99, 2), round(90 - 80 * v / maximum, 2))
+        for b, v in sorted(values.items())
     ]
+
+
+def readable_time(value: datetime | float) -> str:
+    """Use explicit UTC and milliseconds consistently for metadata and epoch events."""
+    try:
+        stamp = value if isinstance(value, datetime) else datetime.fromtimestamp(value, UTC)
+    except (ValueError, OverflowError, OSError):
+        return "Timestamp outside supported date range"
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=UTC)
+    return stamp.astimezone(UTC).isoformat(timespec="milliseconds").replace("T", " ")
+
+
+def chart_context(samples: list[Sample], events: list[Event]) -> dict[str, object]:
+    """Labels share the sparkline's bucket scale; markers use recorded events only."""
+    if not samples:
+        return {}
+    start, end = min(s.t for s in samples), max(s.t for s in samples)
+    groups: dict[int, list[float]] = {}
+    for sample in samples:
+        bucket = min(99, int(99 * (sample.t - start) / (end - start))) if end > start else 0
+        groups.setdefault(bucket, []).append(sample.latency_ms)
+    maximum = max(max(sum(v) / len(v) for v in groups.values()), 1)
+    markers = [
+        {
+            "x": round(60 + 480 * (e.t - start) / (end - start), 2),
+            "elapsed": round(e.t - start, 3),
+            "event": e,
+        }
+        for e in events
+        if end > start
+        and start <= e.t <= end
+        and e.phase in {"PRECHECK", "INJECT", "OBSERVE", "UNDO", "RECOVER", "RESULT"}
+    ]
+    return {"start": start, "span": end - start, "maximum": maximum, "markers": markers}
 
 
 def report_context(run_dir: Path) -> dict[str, object]:
@@ -74,12 +112,15 @@ def report_context(run_dir: Path) -> dict[str, object]:
     for spec in sorted(specs.values(), key=lambda s: s.rank):
         result = by_result.get(spec.id)
         points: list[tuple[float, float]] = []
+        chart: dict[str, object] = {}
         if result:
             path = (run_dir / result.samples_path).resolve()
             if not path.is_relative_to(run_dir.resolve()):
                 raise ValueError("Sample artifact must remain inside its run directory.")
             if path.exists():
-                points = timeline(read_jsonl(path, Sample))
+                samples = read_jsonl(path, Sample)
+                points = timeline(samples)
+                chart = chart_context(samples, result.events)
         cards.append(
             {
                 "spec": spec,
@@ -87,6 +128,7 @@ def report_context(run_dir: Path) -> dict[str, object]:
                 "score": by_score.get(spec.id),
                 "finding": by_finding.get(spec.id),
                 "points": points,
+                "chart": chart,
             }
         )
     decision_path = run_dir / "decisions.json"
@@ -118,6 +160,7 @@ def render_report(run_dir: Path) -> Path:
         trim_blocks=True,
         lstrip_blocks=True,
     )
+    environment.filters["readable_time"] = readable_time
     for name in ("report.html", "report.md"):
         if not (run_dir / name).resolve().is_relative_to(run_dir.resolve()):
             raise ValueError("Report output must remain inside its run directory.")

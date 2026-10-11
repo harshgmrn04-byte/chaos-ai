@@ -281,7 +281,13 @@ def run_automatic(
                     },
                 )
                 latest = settings.safety_dir / "baseline.json"
-                baseline = read_json(latest, Baseline) if latest.exists() else None
+                baseline = None
+                if reuse_baseline and latest.exists():
+                    try:
+                        baseline = read_json(latest, Baseline)
+                    except (OSError, ValueError):
+                        # An unreadable cache cannot justify reuse; measure fresh evidence.
+                        pass
                 # Reuse is opt-in; the flag never overrides freshness/stability.
                 if (
                     reuse_baseline

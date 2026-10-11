@@ -1,278 +1,231 @@
 # ChaosPilot
 
-AI-driven chaos engineering for cloud-native resilience. Python package: `chaosai`.
+AI-driven chaos engineering for cloud-native resilience, built for the Bosch hackathon.
+The Python package `chaosai` maps a Compose application, measures a baseline, proposes faults,
+asks for approval, injects within a deterministic safety boundary, measures impact/recovery,
+and produces a reproducible findings report. Gemini explains evidence; Python controls faults
+and computes scores. No agent framework is used.
 
-Phase 2 provides live target bring-up, diagnostics, seeding and checkout verification.
-Phase 3 maps Compose deterministically, with manual overrides and Mermaid output.
-Phase 4 adds live threaded load, scoped telemetry and measured baselines.
-Phase 5 adds deterministic faults, scope/policy checks, durable undo, watchdog and kill switch.
-Phase 8 runs grounded AI/heuristic plans sequentially with approval, measured load/telemetry,
-watchdog, durable rollback and recovery/cooldown gates. CPU and traffic faults extend kill,
-stop and pause; CPU settings that cannot be restored exactly are refused before mutation.
-Phase 9 adds evidence-based analysis, deterministic scoring, escaped HTML/Markdown reports
-and cache-only replay. `--offline` retains synthetic fixtures without
-Docker, target access, dotenv, network or waiting.
+**Feature freeze:** Phases 0–10 implementation is available. Live resilience verification is
+partial. The target is currently **unassessed**. The measured attempt `20261011-014810` injected
+zero faults after auth HTTP 429s blocked readiness and cooldown; smoke failed at admin login.
+Its `stable=true` baseline is error-contaminated. Historical `20261011-011425` stays
+`stable=false`. Synthetic fixture scores 53/17/95 (overall 55, weak) describe examples only.
+See [progress](docs/progress.md), [remaining verification](docs/final-verification.md) and the
+[pending measured sample deliverable](examples/sample-run/README.md).
+
+```mermaid
+flowchart TD
+    CLI[chaosai CLI] --> MAP[Compose mapper + overrides]
+    MAP --> BASE[Threaded load + scoped telemetry + baseline]
+    BASE --> PLAN[Gemini planner / heuristic fallback]
+    PLAN --> GATE[Validate + clamp + decision trace]
+    GATE --> APPROVE[Human approval + S9 precheck]
+    APPROVE --> INJECT[Deterministic injector + durable undo journal]
+    INJECT --> TARGET[Scoped local Compose target]
+    TARGET --> OBSERVE[Load + Watchdog + independent timer + KILL]
+    OBSERVE --> UNDO[Exact rollback + measured recovery + cooldown]
+    UNDO --> APPROVE
+    UNDO --> SCORE[Deterministic scorer]
+    SCORE --> ANALYZE[Gemini analyzer / templated fallback]
+    ANALYZE --> REPORT[Escaped HTML + Markdown + cache-only replay]
+```
+
+## Prerequisites and deployment
+
+macOS with Docker Desktop and Docker Compose v2, Git, Python >=3.11, and a local isolated
+sandbox. POSIX locks also work on Linux; Windows is not verified. Bootstrap needs package
+index access. Live target builds need image/npm access and sufficient RAM/ports for ten
+containers. The frontend defaults to localhost:3000, auth:3004, product:3002, order:3003;
+source deployment details are in [target notes](docs/target-notes.md).
+
+Target: [andrelima28439/ecommerce-microservices](https://github.com/andrelima28439/ecommerce-microservices),
+a public MIT-licensed third-party repository. Source observations are pinned to revision
+`bae94402773bc7fd7d05dadd4062dffe2d1c2057`. Keep its source read-only. `--clone` below checks
+out that revision under `chaos-ai/.chaosai/target-source`; it never overwrites the sibling.
+The target's service entrypoints perform schema pushes, so Compose bring-up is not a data reset.
+Volumes and previous evidence are retained. Fixed container names/ports prevent parallel
+copies of this target; use one configured sandbox at a time.
+
+Run from the `chaos-ai` directory:
 
 ```sh
-cd chaos-ai
 bash scripts/bootstrap.sh
 source .venv/bin/activate
+python -m chaosai run --offline --yes
+python -m chaosai run --offline --dry-run
+```
+
+Bootstrap creates `.venv` and installs the project with development tools. Use
+`PYTHON=/path/to/python3.11 bash scripts/bootstrap.sh` to select an interpreter. Offline
+needs no target or credentials: no Docker, HTTP, dotenv read, real model or wait occurs.
+It writes **synthetic** artifacts under `runs/<UTC-run-id>/` and prints the report path.
+
+For live reproduction, configure `chaos-ai/.env` yourself using the variable names below
+(or export them). Keep keys/passwords private. Existing admin/load accounts need their current
+`ADMIN_PASSWORD`/`SEED_PASSWORD`; seed verifies them and never resets them. `LLM_PROVIDER=none`
+uses heuristics/fallbacks; doctor still checks key and dotenv presence, as documented below.
+
+```sh
+# Reuse TARGET_DIR from process configuration / local .env / the sibling default:
+bash scripts/clean_run.sh
+# Alternative on a machine without the target checkout (destination must not exist):
+bash scripts/clean_run.sh --clone
+```
+
+These are **human-only live commands**. They bootstrap, reject KILL/pending undo/active
+injectors before bring-up, use scoped `chaosai up` (Compose up -d --build), doctor, seed, smoke,
+`run --yes --max-experiments 4`, validate evidence and run final smoke. No prune, volume
+removal, destructive reset or automatic KILL clear. Script failure retains journals and
+reports. A zero exit requires a clean baseline and at least four completed, recovered measured
+experiments across three fault types; safety demonstrations and visual review remain separate.
+The auth budget and sparse recovery may prevent this even on a running app. See the full
+[verification checklist](docs/final-verification.md) before running it; do not run live load
+commands concurrently. Waiting alone does not prove readiness.
+
+No payment patch exists: the inspected placeholder Stripe path already bypasses payment.
+Live checkout creates a **pending order**, not payment completion; configured real keys may
+activate target-owned external calls. Resend/Cloudinary/Stripe are never injectable. If a
+confirmed target defect needs a patch, store it under `patches/`, document provenance and an
+`apply_patches.sh`/`revert_patches.sh` flow, and apply only to the owned clone. Clean-run refuses
+patches on an existing source checkout and refuses patch files without that documented helper.
+No patch is justified by the observed auth rate limiting.
+
+## Command reference
+
+Use `chaosai --help` and `chaosai <command> --help`. The console command and
+`python -m chaosai` are equivalent after activation. Paths/IDs below are placeholders to
+replace with the path actually printed by the CLI.
+
+| Command | Behavior / available options |
+|---|---|
+| `chaosai doctor [--llm]` | Scoped state/ports/public GETs, Python/key/dotenv presence. `--llm` explicitly probes validated JSON. |
+| `chaosai up` | Scoped Compose build/start; refuses KILL/pending undo/active injectors and holds locks through bring-up. Startup is not readiness. |
+| `chaosai status` | Only configured project containers, state/health/ports. |
+| `chaosai seed [--users N]` | Idempotent accounts/admin/catalog; scoped credential and DB checks. |
+| `chaosai smoke` | Browse/login/create/retrieve; best-effort queue/consumer evidence. Creates an order. |
+| `chaosai map [--mermaid] [--offline] [--run-dir PATH]` | Compose/overrides or packaged graph; no Docker/network/dotenv. `--run-dir` needs an existing directory in runs/. |
+| `chaosai load [--users N] [--duration SECONDS]` | Threaded real HTTP requests; creates orders. |
+| `chaosai baseline [--quick] [--duration SECONDS]` | Full 30s warm-up/120s measurement; quick 10s/40s. Saves run/latest evidence. |
+| `chaosai plan [--offline]` | Reasons and requested/final/clamp trace; live uses a saved baseline and may call Gemini, no injection/load. |
+| `chaosai fault apply FAULT TARGET [--duration SECONDS] [--yes]` | Low-level kill/stop/pause (CPU default intensity subject to exact restore); no load/metric Watchdog. Traffic requires measured run. |
+| `chaosai fault undo FAULT TARGET` | Replay matching scoped container undo records. |
+| `chaosai inject FAULT TARGET [--duration SECONDS] [--abort-error-rate RATE] [--yes]` | One measured kill/stop/pause with saved baseline, S9, Watchdog and recovery. |
+| `chaosai run [--offline] [--yes] [--dry-run] [--max-experiments N] [--reuse-baseline]` | Ranked sequential plan, 1–8 selected entries. Reuse needs stable baseline <1h old. Live dry-run may generate baseline load. |
+| `chaosai rollback [--clear-kill]` | Replay all journals; explicit clear only after successful undo and injector exit. |
+| `chaosai kill` | Persist KILL then directly replay journals; use another terminal during an active fault. |
+| `chaosai report PATH_OR_ID` | Regenerate HTML/Markdown from saved data, no LLM/target. |
+| `chaosai replay PATH_OR_ID` | Recompute analysis using exact validated response caches; misses use fallback; no network/target/dotenv. |
+
+Execution defaults to `[y]es / [n]o skip / [a]ll remaining / [q]uit`, showing the fault,
+hypothesis, abort limits and clamps. Without a TTY and without `--yes`, injection is refused.
+`--max-experiments 4` selects four entries; skips/refusals consume slots and do not count as
+completed experiments. See [experiments](docs/experiments.md) and [safety](docs/safety.md).
+
+## Configuration
+
+`chaosai/config.py` defines defaults. Process variables override local dotenv; offline,
+mapping and replay skip dotenv. Never commit local `.env`, keys, passwords or raw logs.
+
+| Variables | Purpose / defaults |
+|---|---|
+| `TARGET_DIR`, `COMPOSE_PROJECT` | Sibling `../ecommerce-microservices`, project `ecommerce-microservices`; relative paths resolve from chaos-ai. |
+| `LLM_PROVIDER`, `GEMINI_MODEL`, `LLM_TIMEOUT_S` | gemini/mock/none; automatic model resolution unless overridden; 30s requests. Provider auto-selects Gemini when a key exists, otherwise none. |
+| `GEMINI_API_KEY`, `GOOGLE_API_KEY` | Private process/key configuration; presence only is shown. Never printed or saved. |
+| `FRONTEND_URL`, `AUTH_URL`, `PRODUCT_URL`, `ORDER_URL` | Local published bases as listed above; no `/api` prefix. |
+| `RABBITMQ_MANAGEMENT_URL`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`, `RABBITMQ_VHOST` | Management queue observation; configure privately when defaults differ. |
+| `SEED_USERS`, `SEED_PASSWORD`, `ADMIN_PASSWORD` | 20 accounts; existing passwords must match. Unset admin password uses seed password. |
+| `AUTH_TIMEOUT_S`, `REQUEST_TIMEOUT_S` | 4s auth (3–5 permitted), 10s management/setup HTTP. |
+| `LOAD_USERS`, `LOAD_DURATION_S`, `LOAD_TIMEOUT_S` | 10 workers, 30s standalone load, 5s requests (maximum 5). |
+| `CHECKOUT_RPS`, `LOGIN_RATE_CAP`, `TOKEN_REFRESH_S` | Shared caps 1/s and 1/s per generator, token renewal 600s (maximum 600). |
+| `THINK_MIN_S`, `THINK_MAX_S` | 0.2–1.0s worker think time; endpoints constrained to that range. |
+| `WARMUP_S`, `BASELINE_DURATION_S`, `METRICS_INTERVAL_S` | 30s/120s baseline; 5s ordinary telemetry, 1s experiment telemetry. |
+| `NOTIFICATION_INTERVAL_S` | 6s between three best-effort queue/log observations. |
+| `DOCKER_HOST`, `DOCKER_TLS_VERIFY`, `DOCKER_CERT_PATH` | SDK environment; otherwise active CLI context, Desktop socket, system socket. |
+
+Ordinary doctor makes no LLM request but requires key/dotenv presence for its complete PASS
+result. Live run's doctor-lite checks target readiness without requiring a key. This historical
+readiness diagnostic distinction is retained. [Load/baseline semantics](docs/load-baseline.md)
+cover request-level samples, low-sample flags and the shared target auth limiter.
+
+## Safety S1–S10
+
+| Rule | Deterministic boundary |
+|---|---|
+| S1 | Graph eligibility and exact `com.docker.compose.project` label checked before access/mutation; external services denied. |
+| S2 | Duration 5–120s; CPU 0.1–0.5; traffic 2–8×, <=150 workers; abort errors 0.05–0.9/p95 2–20×; one fault, <=8 entries. All clamps traced. |
+| S3 | Original identity/state and undo action atomically written and fsynced before mutation. |
+| S4 | Replay on every exit and before new injection. Retain failed undo; never repair unrelated unjournaled failures. |
+| S5 | Independent 1s Watchdog: adaptive 5–20s windows, aggregate for sparse journeys, 5s grace, >=10 samples/two breaches by default; immediate blast-radius stop. |
+| S6 | Measured runner has an independent pre-apply duration timer; bounded in-flight SDK calls can delay actual restoration. |
+| S7 | KILL polled every 0.5s; second-terminal kill persists flag and rolls back directly. Explicit reset only. |
+| S8 | Per-experiment approval on by default; no TTY refuses without --yes. |
+| S9 | <=60s near-baseline precheck with observed samples, stable baseline and p95 <=1.5×. Timeout is a skip. |
+| S10 | No volume removal, prune, destructive Compose reset or host network changes. |
+
+Exact CPU originals with quota 0 or NanoCpus>0 are refused; no normalization/recreation.
+Traffic undo joins extras before acknowledgment; live/unknown owner PIDs can retain pending
+undo. SIGINT/SIGTERM roll back; SIGKILL/power loss requires later journal replay. Retain the
+workspace and journals. Locks coordinate one workspace only.
+
+## Scoring, AI and reproducibility
+
+`score = clamp(100 - E - L - R - B - A, 0, 100)`, rounded to nearest integer (ties to even).
+
+- E = 40 × min(1, max(0, worst during-minus-baseline error rate) / 0.5).
+- L = 20 × min(1, max(0, worst during/baseline p95 - 1) / 4).
+- R = 0 for measured recovery <=10s; 25 if unproven; otherwise 25 × min(1, recovery seconds/60).
+- B = 10 × impacted hypothesis journeys / total baseline journeys, excluding aggregate all.
+- A = 5 for metric/blast-radius Watchdog abort; operator KILL/signals do not add it.
+
+Overall is the mean of scored experiments. Skips/absent during evidence are excluded;
+sparse/inconclusive scores are descriptive. Bands: >=85 resilient, >=70 acceptable, >=50 weak,
+else fragile. Severity: critical below 30 or aborted with >=2 impacted journeys; high below 60,
+medium below 80, low otherwise. Confirmed scores >=80 go under “What held up”. A zero baseline
+p95 and positive during p95 saturates L; zero/zero has no latency penalty.
+
+Planner receives graph/baseline/catalogue and source facts, emits pydantic-validated data,
+and has a heuristic fallback. Analyzer receives bounded quoted evidence (<=3 untrusted log
+excerpts), validates citations and explains results, with templated fallback. Neither has
+Docker tools or controls safety/score/recovery. Model discovery, bounded retries and hash
+caches are described in [LLM planning](docs/llm-planning.md), [analysis](docs/analysis.md) and
+[architecture](docs/architecture.md).
+
+```sh
+chaosai report runs/<printed-run-id>
+open runs/<printed-run-id>/report.html
+# With Wi-Fi off:
+chaosai replay runs/<printed-run-id>
+```
+
+HTML uses inline CSS/SVG, autoescapes untrusted text, labels synthetic versus measured data,
+and shows plan-ordered cards, thresholds, recorded event markers, UTC times, decisions and
+score methodology. Browser visual review is still pending; do it manually. A previous
+Computer Use file:// restriction was respected and must not be circumvented.
+Replay never re-plans/injects; original baseline/plan/results/samples stay unchanged.
+
+## Known limitations and verification
+
+The target auth IP budget is 100 requests/15 minutes, shared across seed/smoke/baselines/runs.
+Serial commands and fresh windows may be needed; a long run can exhaust it again. At
+LOGIN_RATE_CAP=0.5 there is at most roughly one login per two seconds, incompatible with
+three consecutive nonempty 1s login recovery windows; observed missing recovery remains
+unproven, even if containers are healthy. Do not relax that gate to make a demo pass.
+Checkout samples can vanish when authentication is throttled. Latency stability is drift,
+not error-free health. RabbitMQ telemetry is intermittent and queue/consumer observations
+never prove actual Resend delivery. Natural-language causality needs human review. CPU exact
+restore limits and scoped resource cleanup failures can stop a sequence. Network faults,
+netem and re-planning are not implemented in this freeze.
+
+```sh
 ruff check .
 pytest -q -m "not integration"
-python -m chaosai run --offline --yes
+bash -n scripts/clean_run.sh scripts/day1_demo.sh
+python -m chaosai --help
 ```
 
-Bootstrap requires Python >=3.11 and creates `.venv`. To choose an interpreter explicitly,
-use `PYTHON=/path/to/python3.11 bash scripts/bootstrap.sh`.
-
-The CLI prints the generated `runs/<timestamp>/report.html` path. Open it in a browser.
-The HTML has inline CSS and requires no network. Run JSON, plan, decisions, findings, scores,
-summary and per-experiment JSON/JSONL evidence are stored alongside it. `journal.json` is empty
-in offline mode because no faults are applied. Run directories and credentials are git-ignored.
-
-```sh
-python -m chaosai run --offline             # interactive y/n/a/q approval per experiment
-python -m chaosai run --offline --dry-run   # plan + report, no simulated execution or approvals
-python -m chaosai report runs/<timestamp>  # regenerate report from saved artifacts
-python -m chaosai replay runs/<timestamp>  # cache-only analysis; no network or dotenv
-chaosai --help
-```
-
-Without a TTY, execution requires `--yes`. `n` skips, `a` approves the remaining experiments,
-and `q` writes a report for experiments already completed. EOF or Ctrl-C at the approval
-prompt also quits cleanly. Dry runs and entirely skipped plans have no assessed score.
-
-Report regeneration uses saved artifacts. Replay recomputes scores and analysis with exact
-validated cache matches, falling back deterministically when a response is unavailable.
-It never opens an LLM transport, Docker or the target. See [analysis.md](docs/analysis.md).
-Phase 8 implementation is complete; its multi-fault live run/recovery and smoke verification
-remain pending after observed auth HTTP 429s. Waiting-related live checks and the remaining
-Phase 6 checks are explicitly deferred until final verification after Phase 10.
-
-## AI planning (Phase 7)
-
-Put your own `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) in chaos-ai/.env locally. Do not share
-the key in chat. Provider defaults to Gemini when a key is present, otherwise none;
-`LLM_PROVIDER=mock` serves fixtures, and `LLM_PROVIDER=none` uses heuristics.
-Model IDs are discovered at runtime; `GEMINI_MODEL` optionally selects your own model.
-
-```sh
-source .venv/bin/activate
-chaosai doctor --llm              # explicit live JSON probe, resolved model and PASS/FAIL
-chaosai plan                      # saved baseline + mapped target; no injection or load
-chaosai plan --offline             # fixture graph/baseline + heuristics; no network/dotenv
-```
-
-Plans contain up to eight experiments and at least three fault types when the graph permits.
-`plan.json` holds final specs; `decisions.json` records reasons, requested/final values, clamps
-and per-item sources. Invalid AI proposals are dropped and heuristics fill gaps. CPU and
-traffic mechanisms are available with exact-restore and worker-budget safety checks. Netem is stretch
-and not selected. `plan` can inspect an unstable baseline, but S9 still refuses injection.
-See [llm-planning.md](docs/llm-planning.md) for resolution, retries, caching and limits.
-
-## Faults and recovery (Phase 5)
-
-```sh
-chaosai fault apply stop redis --duration 20  # y/n/a/q approval; automatic undo
-chaosai fault apply pause product-service --duration 20
-chaosai fault apply kill order-service --duration 20
-chaosai fault undo stop redis                # pending records for this target/fault
-chaosai rollback                             # replay every pending journal
-chaosai kill                                 # persist KILL and roll back immediately
-chaosai rollback --clear-kill                 # explicit reset after injector exits
-```
-
-`--yes` approves a live fault; without it, no TTY means refuse. Duration is clamped to
-5–120 seconds. Journals are fsynced before Docker mutations, and failures remain pending
-for retry. Normal exit, exceptions, Ctrl-C and SIGTERM restore recorded state. Only graph
-targets with the exact Compose project label are injectable. One active fault is allowed
-per ChaosPilot workspace. `KILL` remains set until explicitly cleared after successful recovery.
-
-These are low-level mechanism tests: they generate no load and attach no metric watchdog.
-Measured `inject` attaches the watchdog and load; see the Phase 6 section below.
-See [safety.md](docs/safety.md) for contracts, recovery limits and exact two-terminal checks.
-
-## Measured experiments (Phase 6)
-
-```sh
-chaosai baseline                              # or reuse the saved stable baseline
-chaosai inject stop redis --duration 30
-chaosai inject stop redis --duration 30 --abort-error-rate 0.05
-chaosai run                                   # ranked sequential plan with y/n/a/q approval
-chaosai run --dry-run                         # live plan/decisions, no faults
-chaosai run --yes --max-experiments 4           # up to four ranked entries
-chaosai run --reuse-baseline                   # reuse only stable baseline younger than 1h
-bash scripts/day1_demo.sh
-```
-
-`inject` requires a saved baseline, prints clamps and asks approval unless `--yes` is passed.
-Each measured experiment starts its own load; avoid running a second load process. S9 waits
-at most 60s for near-baseline evidence and records a skip if readiness is not established.
-The final abort thresholds reach the Watchdog without modifying the saved baseline.
-Artifacts include events, request samples, container state/restarts, redacted logs and result.json.
-Container restoration and application recovery are separate. Recovery requires every journey
-in three nonempty 1s windows; sparse login traffic can prevent a claim despite a healthy app.
-The demo leaves KILL set for explicit inspection/reset, and auth's 100/15-minute IP limiter
-can require waiting between live runs. See [experiments.md](docs/experiments.md) for evaluation
-rules, timing bounds, evidence limits and demo instructions.
-
-## Application graph (Phase 3)
-
-```sh
-chaosai map --mermaid
-chaosai map --run-dir runs/<timestamp>  # update an existing run's graph
-chaosai map --offline                  # packaged graph; no target files
-```
-
-Mapping prints nodes, ports, dependency evidence and flows, writes runs/<timestamp>/graph.json
-and .chaosai/graph.json, and optionally writes docs/graph.mmd. No Docker, HTTP, LLM or dotenv
-read occurs. TARGET_DIR and COMPOSE_PROJECT may be exported in your shell; their defaults
-match this checkout. env_file declarations are parsed without opening their private contents.
-CORS/allowed-origin settings are excluded and recorded in sources.ignored_config. Flows render
-as `touches: a, b, c`, ordered from user entry point to deepest dependencies. Isolated tool
-nodes are non-injectable by default with a reason; explicit node overrides can change that.
-See [docs/overrides.md](docs/overrides.md) for override format/inference rules, and
-[docs/mapper-cross-check.md](docs/mapper-cross-check.md) for every dependency difference from
-the target notes. The shipped overrides define browse, login and checkout participants.
-
-## Load and baseline (Phase 4)
-
-Retain the seeded load users' current password in SEED_PASSWORD. An empty value, absent
-account, mismatch or unavailable DB/bcrypt verification skips that user without sending login.
-Run after starting the target and seeding it:
-
-```sh
-chaosai load --users 10 --duration 30
-chaosai baseline --quick       # 10s discarded warm-up + 40s measurement
-chaosai baseline               # 30s discarded warm-up + 120s measurement
-chaosai baseline --duration 120
-```
-
-These commands create real pending orders and trigger the target's notification consumer.
-CHECKOUT_RPS defaults to 1 globally across workers, including a possible retry after 401.
-HTTP 500 and timeouts never cause an order retry. LOGIN_RATE_CAP defaults to 1 request/s
-and can be set to 0.5–1 to increase login sampling (it replaces AUTH_RPS). Logins retain
-credential preflight and AUTH_TIMEOUT_S=4; other load requests use five seconds. The target
-source still imposes 100 requests/15 minutes per IP, including seed/smoke calls; longer runs
-at these rates can produce HTTP 429 errors. Allow that window to clear between live checks;
-the client does not bypass or change the target limiter. Run one load process at a time.
-Tokens are cached per account and renewed by credential-verified login
-on use after ten minutes, and after 401. No unsafe refresh-token error probe is needed.
-
-The offered journey mix is 10% homepage, 60% browse, 10% login and 20% checkout; caps reduce
-actual admitted login/checkout traffic. Samples describe individual HTTP requests, so browse
-normally contributes three samples. Login uses a four-second timeout; other requests use
-five seconds. Workers pause
-0.2–1.0s between journeys and can be added/removed through LoadGenerator without resetting
-caps or token caches; all worker threads, including retiring ones, are bounded to 150.
-
-Baseline saves runs/<timestamp>/baseline.json and .chaosai/baseline.json. The run also contains
-samples.jsonl, containers.jsonl, queues.jsonl and probes.json. Journeys with fewer than 20 total
-samples are marked low_sample=true and excluded from stability. Eligible journeys need samples
-in both halves and a p95 change of at most 30%; with no eligible journeys stable=false.
-Thresholds include hypothesis +100ms and abort +750ms floors. A latency breach is strictly
-above max(multiple * baseline_p95, baseline_p95 + floor_ms). Smoke and baseline share the
-RabbitMQ reader and REQUEST_TIMEOUT_S; queue failures warn once per run with a status or
-exception type, while polling continues. Inspect error rates
-as well: stable latency alone does not establish health. See [docs/load-baseline.md](docs/load-baseline.md)
-for windowing, threshold derivation and telemetry semantics. Defaults and overrides are in
-.env.example; LOAD_USERS sets baseline workers and BASELINE_DURATION_S sets the full window.
-
-## Live target commands (Phase 2)
-
-Configure `.env` yourself from `.env.example`; it is ignored by Git. Set a Gemini key locally
-for doctor's key-presence check (no model is called). If `admin@test.com` already exists,
-set `ADMIN_PASSWORD` to its existing password; seed does not reset existing accounts.
-Keep `SEED_PASSWORD` set to the existing load users' password. New/default admins use
-SEED_PASSWORD when ADMIN_PASSWORD is unset. The default password is for local test accounts only;
-all generated load users share it.
-
-Run these commands from this directory with `.venv` active:
-
-```sh
-chaosai up
-chaosai status
-chaosai doctor
-chaosai seed
-chaosai seed                  # confirm repeatability: no new accounts/catalog entries
-chaosai smoke
-pytest -q -m integration      # readiness, checkout and quick baseline (creates orders)
-```
-
-`up` runs `docker compose --project-name COMPOSE_PROJECT up -d --build` in `TARGET_DIR`;
-it returns after Compose startup, so wait for services to become ready and re-run `doctor`
-if necessary. Build output is withheld to avoid leaking credentials. It never removes volumes.
-Relative `TARGET_DIR` is resolved against chaos-ai, so commands work from other directories.
-Docker SDK access tries `DOCKER_HOST`, the active CLI context, the Docker Desktop user socket,
-then `/var/run/docker.sock`; every candidate must answer a ping. Container access is filtered
-and checked by the exact Compose project label, including before SQL execution and log reads.
-
-`status` lists scoped service/state/health/host ports and fails for missing, stopped, paused,
-unhealthy or unpublished services. `doctor` prints a PASS/FAIL table with fix hints for Python,
-Docker, all ten target services, host TCP ports, documented catalog GET probes, key presence
-and `.env` existence. It checks every currently published host port and does not invent health
-endpoints. A missing LLM key fails doctor even though seed/smoke require no LLM.
-
-`seed` creates `admin@test.com` and by default `loaduser001@test.com` through `loaduser020@test.com`,
-then promotes admin with the documented PostgreSQL UPDATE and logs in for a new ADMIN token.
-Before each register/login, scoped PostgreSQL queries check that account's existence.
-Existing users are never re-registered. A bounded Node helper in the scoped auth container uses
-its installed Prisma/bcrypt to compare the configured password before any login; a mismatch
-stops locally with an ADMIN_PASSWORD/SEED_PASSWORD hint. Candidate passwords are supplied as
-transient exec environment values, never embedded in command arguments, files or log text;
-hashes stay inside the auth container and only existence/match booleans are returned.
-No new target file or Python dependency is needed. This avoids the target's HTTP error paths,
-which can hang or crash auth. Auth requests use AUTH_TIMEOUT_S=4 (allowed range 3–5 seconds).
-Dropped/timed-out registration/login responses trigger fresh database checks and credential
-verification; registration may already have committed. No blind retry occurs. A lost registration
-response can be reconciled from verified DB state, with a warning. A lost login response still
-fails with a readiness/rate-limit hint because no usable token was received. Public catalog lists (including pagination) identify existing slugs;
-admin APIs create two categories and four no-image products with stock 100000, string numeric
-fields and `featured: "true"`. Before reporting success, seed verifies all requested account
-identities and admin role directly in ecommerce_auth, and total/seed/high-stock product counts
-in ecommerce_products. The CLI reports these DB verification counts. Re-running adds only
-missing accounts/items. Stock/category
-conflicts stop with a precise reason instead of guessing an undocumented update endpoint.
-Run one seed process at a time. Use `chaosai seed --users 30` or `SEED_USERS` to choose the count.
-The auth service limits each IP to 100 requests per 15 minutes; large seeds or repeated smoke
-runs may hit this limit. Successful registrations remain and will be skipped on the next seed.
-
-`smoke` browses products, verifies admin existence/password via the same scoped DB/auth
-preflight, then logs in as the seeded admin and creates one pending order using the
-frontend's `paymentMethod: "stripe"`, retrieves it and validates owner/items/totals. Each run
-creates an order and can trigger the target's Resend handler. It never retries checkout:
-HTTP 500 can occur after order persistence. It checks the `notifications` queue (routing key
-`order.created`) via management Basic auth, observes consumer count and ready/total messages
-before and at three six-second intervals after checkout, and reads bounded notification logs
-for a matching order ID. Queue identity/consumer/trend problems, unavailable metrics/API/logs
-or absent log receipt produce warnings and do not fail successful checkout. Receipt and stable
-queue counts are evidence only; they do not prove acknowledgement or actual Resend delivery.
-There is no MailHog receipt check. See target-notes section 11 for the vendor contract.
-Docker/PostgreSQL/auth-container access is required for credential preflight; if verification
-is unavailable, smoke refuses to send an unverified login. Queue and notification-log evidence
-remain best-effort after successful checkout.
-
-No payment patch or patch scripts were created: the source already bypasses placeholder
-Stripe keys, and no live failure has demonstrated a need. If checkout fails, retain the
-precise error and investigate DB/broker versus payment before considering a minimal patch.
-The target working tree stays unchanged by this implementation.
-
-Configuration defaults are in `chaosai/config.py`, with variable names in `.env.example`.
-`LLM_PROVIDER=mock` serves validated fixtures; `none` uses deterministic fixture fallbacks.
-`--offline` forces `none` and skips dotenv loading. Normal runs load configuration through
-python-dotenv, defaulting to Gemini when an API key is present, otherwise `none`; Gemini is
-unavailable until Phase 7 and safely falls back. No credentials are needed for Phase 1.
-
-Tests use mock providers or the offline fallback, block network and dotenv reads, and keep
-temporary files under `tests/.tmp/`. Docker/live HTTP integration tests are marked `integration` and run only by the human.
-
-See `docs/target-notes.md` for source evidence and `docs/progress.md` for phase status.
-
-Phase 8 run controls and restoration limits are documented in [docs/experiments.md](docs/experiments.md).
-Dry-run performs read-only doctor checks and may measure a fresh baseline with normal load;
-`--offline --dry-run` uses only fixtures. Default live run measures a fresh baseline;
-`--reuse-baseline` never bypasses freshness/stability. Every continuation needs successful undo,
-cleanup and measured readiness/recovery plus at least 20s cooldown. Sparse journey evidence may
-stop the sequence. CPU with original quota 0 or NanoCpus is refused because Docker update cannot
-restore those original fields exactly; explicit unlimited quota -1 is supported. Human Phase 6/8
-live checks remain deferred to final verification at the end of Phase 10, not passed.
+Unit tests forbid real sockets, Docker constructors and dotenv reads. Integration checks are
+human-only and create orders. The complete [final human checklist](docs/final-verification.md)
+includes from-scratch reproduction, clean baseline, impact/recovery, strict Watchdog abort,
+active KILL, Ctrl-C, Day-1, four experiments/three fault types, smoke, report/replay and sample
+provenance. Implementation completion does not mark those checks passed.

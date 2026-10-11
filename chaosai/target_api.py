@@ -12,6 +12,14 @@ from chaosai.target import TargetError
 T = TypeVar("T")
 
 
+class TargetRequestError(TargetError):
+    """Retain an HTTP status without retaining response bodies or credentials."""
+
+    def __init__(self, message: str, status: int) -> None:
+        super().__init__(message)
+        self.status = status
+
+
 def request_json(
     client: httpx.Client,
     method: str,
@@ -48,7 +56,10 @@ def request_json(
             if response.status_code in (401, 403)
             else ""
         )
-        raise TargetError(f"{stage}: expected HTTP {expected}, got {response.status_code}.{hint}")
+        raise TargetRequestError(
+            f"{stage}: expected HTTP {expected}, got {response.status_code}.{hint}",
+            response.status_code,
+        )
     try:
         return TypeAdapter(shape).validate_python(response.json())
     except (ValueError, ValidationError) as exc:

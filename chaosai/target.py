@@ -12,7 +12,8 @@ import httpx
 from docker.models.containers import Container
 
 from chaosai.config import Settings
-from chaosai.models import ContainerStatus
+from chaosai.models import ContainerStatus, JournalData
+from chaosai.runs import read_json
 
 PROJECT_LABEL = "com.docker.compose.project"
 SERVICE_LABEL = "com.docker.compose.service"
@@ -136,6 +137,31 @@ def http_ready(url: str, timeout: float = 2) -> bool:
 
 def compose_up(settings: Settings) -> None:
     """Bring up only the explicitly named Compose project."""
+    # Local import breaks target/safety's access-helper dependency cycle.
+    from chaosai.safety import file_lock, kill_requested
+
+    with (
+        file_lock(settings.active_lock_path, blocking=False),
+        file_lock(settings.operation_lock_path),
+    ):
+        if kill_requested(settings):
+            raise TargetError("KILL blocks bring-up; review rollback and explicitly clear first.")
+        try:
+            for path in settings.runs_dir.glob("*/journal.json"):
+                raw = read_json(path, object)
+                data = JournalData() if raw == [] else JournalData.model_validate(raw)
+                if any(not record.done for record in data.records):
+                    raise TargetError(
+                        "Pending undo blocks Compose recreation; run chaosai rollback first."
+                    )
+        except (OSError, ValueError) as exc:
+            raise TargetError(
+                "Unreadable undo journal blocks bring-up; inspect retained journals locally."
+            ) from exc
+        _compose_up(settings)
+
+
+def _compose_up(settings: Settings) -> None:
     target_dir = settings.resolved_target_dir
     if not (target_dir / "docker-compose.yml").is_file():
         raise TargetError("TARGET_DIR has no docker-compose.yml; correct TARGET_DIR.")

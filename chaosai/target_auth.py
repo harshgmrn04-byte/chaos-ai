@@ -8,7 +8,7 @@ from pydantic import SecretStr, ValidationError
 from chaosai.config import Settings
 from chaosai.models import AuthResponse, CredentialCheck
 from chaosai.target import TargetError, require_scope, service_container
-from chaosai.target_api import register_body, request_json
+from chaosai.target_api import TargetRequestError, register_body, request_json
 from chaosai.target_db import database_user
 
 # Reuse the target's installed comparison implementation. Never emit hashes/passwords,
@@ -160,9 +160,11 @@ def safe_admin_login(
         # Re-evaluate after a disconnect, timeout, or unexpected response; existence alone
         # cannot distinguish bad credentials from service/network failure.
         require_credentials(docker_client, postgres, settings, email, password, request_sent=True)
+        status = f" Observed HTTP {exc.status}." if isinstance(exc, TargetRequestError) else ""
         raise TargetError(
             f"Login admin failed; database recheck confirms {email} exists and credentials match. "
-            "Check auth restart/readiness/rate limit, then rerun; no automatic login retry."
+            "Check auth restart/readiness/rate limit, then rerun; "
+            f"no automatic login retry.{status}"
         ) from exc
     if auth.user.email != email:
         raise TargetError("Login returned a different account identity.")

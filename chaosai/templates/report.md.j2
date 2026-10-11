@@ -4,7 +4,7 @@
 {% else %}Measured evidence; container rollback does not establish HTTP recovery.
 {% endif %}
 
-Project: {{ meta.target_project }}. Planner: {{ meta.planner_source }}. Analyzer: {{ meta.analyzer_source }}.
+Started: {{ meta.started_at|readable_time }}. Project: {{ meta.target_project }}. Planner: {{ meta.planner_source }}. Analyzer: {{ meta.analyzer_source }}.
 
 {% if scores %}Overall: {{ '%.1f'|format(summary.overall_score) }}/100 ({{ summary.band }}).
 {% else %}No resilience score assessed.
@@ -26,12 +26,21 @@ Stop reason: {{ meta.stop_reason or 'none' }}.
 
 ## Baseline
 
-Created {{ baseline.created_at }}. Stable={{ baseline.stable }} (drift, not absence of errors).
+Created {{ baseline.created_at|readable_time }}. Stable={{ baseline.stable }} (drift, not absence of errors).
 
 {% for name,s in baseline.journeys.items() %}- {{ name }}: n={{ s.n }}, errors={{ s.error_rate }}, p95={{ s.p95_ms }}ms, rps={{ s.rps }}.
 {% endfor %}
 
-Thresholds: {{ baseline.thresholds.model_dump_json() }}
+| Threshold | Hypothesis | Abort |
+|---|---|---|
+| Error rate | {{ baseline.thresholds.hypothesis.max_error_rate }} | {{ baseline.thresholds.abort.max_error_rate }} |
+| p95 multiple | {{ baseline.thresholds.hypothesis.p95_multiple }} | {{ baseline.thresholds.abort.p95_multiple }} |
+| p95 increment (ms) | {{ baseline.thresholds.hypothesis.p95_floor_ms }} | {{ baseline.thresholds.abort.p95_floor_ms }} |
+| Non-target containers leaving running | — | > {{ baseline.thresholds.abort.max_unhealthy_containers }} |
+| Minimum samples / consecutive breaches | 20 baseline and during per journey for verdict | {{ baseline.thresholds.abort.min_samples }} / {{ baseline.thresholds.abort.consecutive_breaches }} |
+
+Latency breach exceeds max(multiple * baseline p95, baseline p95 + increment).
+S9/recovery use 1.5x baseline p95 without a floor; final card specs supply experiment limits.
 
 ## Experiments (plan rank order)
 
@@ -47,7 +56,7 @@ Recovered={{ c.result.recovered }}; seconds={{ c.result.recovery_time_s }}; roll
 {% else %}Unscored: no injected-fault measurement.
 {% endif %}
 
-{% for e in c.result.events %}- {{ e.phase }} at {{ e.t }}: {{ e.note }}
+{% for e in c.result.events %}- {{ e.phase }} at {{ e.t|readable_time }}: {{ e.note }}
 {% endfor %}
 
 {% for limit in c.result.evidence_limits %}- Evidence limit: {{ limit }}
