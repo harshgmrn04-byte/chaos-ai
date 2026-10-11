@@ -1,0 +1,536 @@
+{
+  "campaignId": "20261011-035048",
+  "latestId": "20261011-041633",
+  "baselineCreated": "2026-10-11T03:53:24.429932Z",
+  "unitCount": 657,
+  "integrationCount": 3,
+  "testCountSource": "chaos-ai/docs/progress.md (required by AGENTS.md)",
+  "inputHashes": {
+    "BUILD_PLAN.md": "7bd06d985228930ce690e0598ad561095b5baba9a56c7485c2d91383b2f9b86f",
+    "chaos-ai/docs/target-notes.md": "4499db94b50101747a141f55e166d06a671498ecad758bac54c72a26449d5dee",
+    "chaos-ai/docs/architecture.md": "8d47439178ab5e0c8aadbedd0fc0e07c3bdce3b840c6b4d0b455790013b96b99",
+    "chaos-ai/docs/graph.mmd": "4c8a2b92085f402622a39899e19e887626827c8f07f107bf89da6cc8e3662577",
+    "chaos-ai/README.md": "f83623c8146bb0f5ca92b2022085e34717c582ef5d99ba323614cb08097830c2",
+    "chaos-ai/docs/progress.md": "c0310d2f3b2aa1e71484700739a004600c461769d0b8500308b3192e9efe7c8a",
+    "chaos-ai/.chaosai/baseline.json": "d6e6e84bdbf9cc5743c75f6ea9f50d9e78c8920875f3157fd40ffb08c371591c",
+    "chaos-ai/examples/sample-run/README.md": "7dd5abdba24b2bc573006a13041a53a2d566c65dc61436aea86b946dd0e22c58",
+    "chaos-ai/examples/sample-run/provenance.json": "98bdf586a50bb56c915534af2f62cb115ee9309089c28163bb37de6943daac9e",
+    "chaos-ai/examples/sample-run/report.md": "20bc973f138d7934e037442e3fdd22afb131dab9fad0e47dd6de7bba691d5943",
+    "chaos-ai/examples/sample-run/report.html": "59b2b32f24ac7d23f8a2bdbce9097a043a7dff20813a5852df5c7e7ee3afcb0c",
+    "chaos-ai/examples/sample-run/baseline.json": "d6e6e84bdbf9cc5743c75f6ea9f50d9e78c8920875f3157fd40ffb08c371591c",
+    "chaos-ai/examples/sample-run/graph.json": "11610cff6d1c9a184a1084de24d0d957f6abcbb3aba51787757a643876e55b69",
+    "chaos-ai/examples/sample-run/decisions.json": "e876c14b42ae8533ebad6e6d9f2c1e7b77476343c1e92506434b028200044bb2",
+    "chaos-ai/runs/20261011-041633/run.json": "b7c5f3fdf53ee5debd4767a4eb1372c943733a84269769e5270a699cf85215c8",
+    "chaos-ai/runs/20261011-041633/decisions.json": "2a8823f636be61538196818d6ddd9e6c479c93778f59559db1b08cd1eb0c764d",
+    "chaos-ai/runs/20261011-041633/scores.json": "72720893dc8d53312572968b469858ecd6445f4eb905ed22aae00cbe01786a8c",
+    "chaos-ai/runs/20261011-041633/findings.json": "db0dee7894e4b191fca52fd51f7af7a7b9b59c168734e08589574c09741789d3",
+    "chaos-ai/runs/20261011-041633/summary.json": "db465d7bf7918fdb6bde005847a613517267da297e889a5db646bb948abfef63",
+    "chaos-ai/runs/20261011-041633/report.md": "3589f16b55fac0b2c8d9474e636b0d91a3eed3fe58600244e30d3b2a238a7e81",
+    "chaos-ai/runs/20261011-041633/report.html": "b6ccbf47157b38c04b2c9ee07253f3a274c2b7f37715ca35ba343b3fcd211f02",
+    "chaos-ai/runs/20261011-035048/run.json": "f100465b9ab029d83c12699c96e65da73a683fd10eaae7b667917722538a250e",
+    "chaos-ai/runs/20261011-035048/plan.json": "d71ac0ed0a9eeee8a606d09e6577704b75b5d002ab301c684f1e5d7968f4dd4e",
+    "chaos-ai/runs/20261011-035048/scores.json": "c0ef09a3f10a9d69128c5f0d2c8243dd70019484804722a5aa4dc97acaf78c27",
+    "chaos-ai/runs/20261011-035048/findings.json": "412ace3fd032fbee6e1adf52d63c9e0c3e1f384a810442915259fa9bac452352",
+    "chaos-ai/runs/20261011-035048/summary.json": "70e934f0af28136295afd1b563cb1cff84b12c200ce8ab912a44568dac00deac"
+  },
+  "graphEdges": [
+    [
+      "auth-service",
+      "postgres",
+      "sql / unknown"
+    ],
+    [
+      "frontend",
+      "auth-service",
+      "http / unknown"
+    ],
+    [
+      "frontend",
+      "order-service",
+      "http / unknown"
+    ],
+    [
+      "frontend",
+      "product-service",
+      "http / unknown"
+    ],
+    [
+      "notification-service",
+      "mongodb",
+      "nosql / unknown"
+    ],
+    [
+      "notification-service",
+      "rabbitmq",
+      "amqp / unknown"
+    ],
+    [
+      "notification-service",
+      "resend",
+      "unknown / unknown"
+    ],
+    [
+      "order-service",
+      "postgres",
+      "sql / unknown"
+    ],
+    [
+      "order-service",
+      "rabbitmq",
+      "amqp / unknown"
+    ],
+    [
+      "order-service",
+      "stripe",
+      "unknown / unknown"
+    ],
+    [
+      "product-service",
+      "cloudinary",
+      "unknown / unknown"
+    ],
+    [
+      "product-service",
+      "mongodb",
+      "nosql / unknown"
+    ],
+    [
+      "product-service",
+      "postgres",
+      "sql / unknown"
+    ],
+    [
+      "product-service",
+      "redis",
+      "cache / unknown"
+    ]
+  ],
+  "rounding": "Latency table: one decimal ms; scores are saved integers; overall is the saved mean.",
+  "fills": [
+    "[[FILL: approval prompt screenshot]]"
+  ],
+  "slides": [
+    {
+      "number": 1,
+      "title": "ChaosPilot",
+      "sources": [
+        "AGENTS.md",
+        "chaos-ai/README.md"
+      ],
+      "texts": [
+        "01",
+        "ChaosPilot",
+        "AI-Driven Chaos Engineering\nfor Cloud-Native Resilience",
+        "Bosch hackathon   /   Harsh"
+      ],
+      "notes": "I am Harsh, presenting ChaosPilot for the Bosch hackathon. The system measures how a local cloud-native application behaves under controlled failures, then reports evidence and recommended fixes. This talk uses saved measured runs, with the completed campaign and later safety checks labelled separately."
+    },
+    {
+      "number": 2,
+      "title": "Problem and goal",
+      "sources": [
+        "BUILD_PLAN.md §3",
+        "chaos-ai/docs/architecture.md",
+        "chaos-ai/README.md"
+      ],
+      "texts": [
+        "Problem and goal",
+        "02",
+        "Problem",
+        "Dependency failures break\ncustomer journeys",
+        "Goal",
+        "Measure faults safely.\nProve recovery.\nExplain weaknesses."
+      ],
+      "notes": "A dependency failure can break customer journeys even when other containers remain running. ChaosPilot maps the app and measures actual request behavior before and during controlled faults. The goal is a safe, reproducible report of impact, recovery and recommended fixes."
+    },
+    {
+      "number": 3,
+      "title": "Target environment",
+      "sources": [
+        "chaos-ai/docs/target-notes.md §1",
+        "chaos-ai/README.md",
+        "chaos-ai/examples/sample-run/provenance.json"
+      ],
+      "texts": [
+        "Target environment",
+        "03",
+        "Next.js frontend",
+        "Auth",
+        "Product",
+        "Order",
+        "Notification",
+        "Express services",
+        "Data services",
+        "Tool",
+        "PostgreSQL  MongoDB  Redis  RabbitMQ",
+        "MailHog",
+        "10 containers   /   MIT target   /   Local Compose sandbox"
+      ],
+      "notes": "The target is the public MIT ecommerce-microservices checkout, pinned in the project documentation. It has a Next.js frontend, four Express services and five infrastructure/tool containers on local Docker Compose. Measurements use an owned auth image with a bounded demo limiter, while the original target source remains unchanged. Stripe, Cloudinary and Resend are external and never injectable."
+    },
+    {
+      "number": 4,
+      "title": "Architecture",
+      "sources": [
+        "BUILD_PLAN.md §3",
+        "chaos-ai/docs/architecture.md",
+        "chaos-ai/README.md"
+      ],
+      "texts": [
+        "Architecture",
+        "04",
+        "CLI",
+        "Runner",
+        "Mapper",
+        "Load + baseline",
+        "Planner\n+ fallback",
+        "Policy + journal\n+ injector",
+        "Watchdog\n+ KILL",
+        "Target app",
+        "Analyzer + fallback",
+        "Scorer + report"
+      ],
+      "notes": "The CLI delegates to a deterministic runner, which coordinates mapping, baseline measurement, experiments and reporting. Planner and analyzer calls return validated data and each has a deterministic fallback. The policy gate, injector, journal and watchdog own the Docker safety boundary. This diagram follows BUILD_PLAN section 3 and the frozen implementation contracts."
+    },
+    {
+      "number": 5,
+      "title": "Experiment workflow",
+      "sources": [
+        "BUILD_PLAN.md §3",
+        "chaos-ai/docs/architecture.md",
+        "chaos-ai/README.md"
+      ],
+      "texts": [
+        "Experiment workflow",
+        "05",
+        "Map",
+        "Baseline",
+        "Plan",
+        "Approve",
+        "Precheck",
+        "Inject",
+        "Observe",
+        "Undo",
+        "Recover",
+        "Analyze",
+        "Report",
+        "One fault at a time. Recovery precedes the next experiment."
+      ],
+      "notes": "Mapping and baseline establish the input to the plan. Each selected experiment passes approval and readiness checks before injection, and the runner measures impact before undo and HTTP recovery. The next experiment starts only after recovery and cooldown, and analysis/reporting follow safety cleanup."
+    },
+    {
+      "number": 6,
+      "title": "Application mapping",
+      "sources": [
+        "chaos-ai/docs/graph.mmd",
+        "chaos-ai/docs/architecture.md",
+        "chaos-ai/docs/target-notes.md"
+      ],
+      "texts": [
+        "Application mapping",
+        "06",
+        "frontend",
+        "auth-service",
+        "product-service",
+        "order-service",
+        "notification-service",
+        "postgres",
+        "redis",
+        "mongodb",
+        "rabbitmq",
+        "cloudinary",
+        "stripe",
+        "resend",
+        "mailhog",
+        "notification-service",
+        "order-service",
+        "product-service",
+        "Compose + overrides. External services excluded. Flows are touch-sets."
+      ],
+      "notes": "The graph comes from Compose declarations and explicit overrides, with evidence attached to each dependency. This reconstruction preserves all dependency nodes and edges in docs/graph.mmd, and external services plus the isolated MailHog tool remain excluded from injection. Browse, checkout and login flows are touch-sets rather than ordered call chains. Unknown criticality is a declaration limit, not a measured health verdict."
+    },
+    {
+      "number": 7,
+      "title": "Monitoring baseline",
+      "sources": [
+        "chaos-ai/.chaosai/baseline.json",
+        "chaos-ai/examples/sample-run/report.md",
+        "chaos-ai/README.md"
+      ],
+      "texts": [
+        "Monitoring baseline",
+        "07",
+        "Journey",
+        "p95 ms",
+        "Hypothesis ms",
+        "Abort ms",
+        "browse",
+        "6.5",
+        "106.5",
+        "756.5",
+        "checkout",
+        "26.1",
+        "126.1",
+        "776.1",
+        "homepage",
+        "13.7",
+        "113.7",
+        "763.7",
+        "login",
+        "272.6",
+        "545.2",
+        "2725.9",
+        "120s stable baseline   /   0% errors",
+        "Hypothesis: max(2×p95,p95+100ms)   Errors>2%",
+        "Abort: max(10×p95,p95+750ms)   Errors>50%"
+      ],
+      "notes": "The saved 120-second baseline is stable and every measured journey has zero request errors. Each displayed latency is rounded from baseline.json, and the limits derive as max(multiplier × baseline p95, baseline p95 + absolute floor). Hypothesis uses 2× and +100ms, while the default watchdog uses 10× and +750ms, with error-rate limits of 2% and 50%. Readiness/recovery instead use max(1.5× p95, p95 + 100ms), and experiment overrides can tighten abort limits."
+    },
+    {
+      "number": 8,
+      "title": "Fault catalogue and experiments",
+      "sources": [
+        "BUILD_PLAN.md §6 and D14",
+        "chaos-ai/README.md",
+        "chaos-ai/runs/20261011-035048/plan.json",
+        "chaos-ai/runs/20261011-041633/report.md"
+      ],
+      "texts": [
+        "Fault catalogue and experiments",
+        "08",
+        "Fault",
+        "Target",
+        "Coverage",
+        "Kill",
+        "Auth",
+        "Measured",
+        "Traffic spike",
+        "Browse",
+        "Measured",
+        "Pause",
+        "Postgres",
+        "Measured",
+        "Stop",
+        "Postgres / Redis",
+        "Measured",
+        "CPU limit",
+        "App / DB",
+        "Conditional",
+        "Netem",
+        "Network",
+        "Deferred",
+        "Full disk intentionally skipped for host safety"
+      ],
+      "notes": "The completed campaign applied kill, traffic spike, pause and stop, while the latest measured safety run stopped Redis. CPU limiting remains conditional on exact restoration, and unsupported quota metadata causes refusal rather than a claimed experiment. Network/netem remains deferred, and full disk is intentionally skipped because it can harm the host laptop."
+    },
+    {
+      "number": 9,
+      "title": "AI planner",
+      "sources": [
+        "BUILD_PLAN.md §8",
+        "chaos-ai/docs/architecture.md",
+        "chaos-ai/examples/sample-run/decisions.json",
+        "chaos-ai/examples/sample-run/README.md",
+        "chaos-ai/docs/progress.md"
+      ],
+      "texts": [
+        "AI planner",
+        "09",
+        "Graph, baseline, catalogue, source facts",
+        "Rank",
+        "Experiment",
+        "Reason",
+        "1",
+        "Auth kill",
+        "Dependency handling",
+        "2",
+        "Browse spike",
+        "Overload capacity",
+        "3",
+        "Postgres pause",
+        "Shared database",
+        "4",
+        "Postgres stop",
+        "Shared database",
+        "Decision trace: specs, clamps, reasons",
+        "Campaign fallback: transport failure"
+      ],
+      "notes": "The planner receives quoted graph, baseline, catalogue and curated target facts, then proposes ranked experiments with short reasons. Policy validation retains requested/final specs and every correction in decisions.json, including grounded reason changes. The completed campaign used heuristic fallback after Gemini transport failure, so these displayed ranks are the executed campaign plan rather than a claim of live AI success. A separate successful Gemini plan is recorded in progress.md, and neither planner path can call Docker."
+    },
+    {
+      "number": 10,
+      "title": "Safety and recovery",
+      "sources": [
+        "BUILD_PLAN.md §5",
+        "chaos-ai/docs/architecture.md",
+        "chaos-ai/README.md"
+      ],
+      "texts": [
+        "Safety and recovery",
+        "10",
+        "The LLM never touches Docker",
+        "Scope guard",
+        "Policy gate",
+        "Approval gate",
+        "Undo journal",
+        "Watchdog + KILL",
+        "Rollback",
+        "Journal before mutation. Recovery requires HTTP evidence."
+      ],
+      "notes": "Scope checks require both graph eligibility and the exact Compose project label, while policy limits and human approval constrain every experiment. The fsynced undo journal precedes mutation, and independent watchdog, timer and KILL paths trigger deterministic rollback. The watchdog evaluates every second, KILL is polled every half-second, and HTTP recovery needs three healthy nonempty windows across all journeys. The LLM never touches Docker, controls cleanup, or decides safety."
+    },
+    {
+      "number": 11,
+      "title": "Analysis and scoring",
+      "sources": [
+        "BUILD_PLAN.md §7",
+        "chaos-ai/README.md",
+        "chaos-ai/examples/sample-run/report.md"
+      ],
+      "texts": [
+        "Analysis and scoring",
+        "11",
+        "Score = clamp(100−E−L−R−B−A, 0, 100)",
+        "Term",
+        "Penalty",
+        "Max",
+        "E",
+        "Errors",
+        "40",
+        "L",
+        "Latency",
+        "20",
+        "R",
+        "Recovery",
+        "25",
+        "B",
+        "Blast radius",
+        "10",
+        "A",
+        "Watchdog",
+        "5",
+        "Analyzer\nValidated explanations\nTemplated fallback",
+        "Critical: <30 or abort\nwith ≥2 impacted journeys",
+        "High <60   Medium <80   Low ≥80"
+      ],
+      "notes": "The analyzer explains bounded, quoted evidence and validates citations, with a templated fallback for failed calls. Deterministic score is clamp(100−E−L−R−B−A,0,100), where E=40×min(1,max(0,worst error delta)/0.5), L=20×min(1,max(0,worst p95 ratio−1)/4), R=0 for recovery within 10s or 25 if unproven or 25×min(1,recovery/60), B=10×impacted/total baseline journeys excluding all, and A=5 only for a watchdog abort. Overall averages scored experiments, skips lack scores, and critical severity means score below 30 or aborted with at least two impacted journeys, followed by high below 60, medium below 80 and low otherwise. Confirmed scores at least 80 appear under What held up, while sparse/inconclusive scores remain descriptive and AI cannot change scores or severity."
+    },
+    {
+      "number": 12,
+      "title": "Results",
+      "sources": [
+        "chaos-ai/runs/20261011-035048/scores.json",
+        "chaos-ai/examples/sample-run/report.md",
+        "chaos-ai/runs/20261011-041633/report.md",
+        "chaos-ai/docs/progress.md"
+      ],
+      "texts": [
+        "Results",
+        "12",
+        "55/100",
+        "Weak",
+        "Completed campaign",
+        "Latest Redis: 52\nInterrupted, recovery unproven",
+        "Recorded: 657 unit tests   3 integration tests"
+      ],
+      "notes": "The completed measured campaign applied four fault types, verified every undo, established HTTP recovery in 10, 6, 10 and 14 seconds, and passed final smoke. Its scores are 49, 99, 28 and 44, with a recorded mean of 55/100 weak, and the browse spike confirmed its hypothesis while the other three experiments watchdog-aborted. The latest run is a separate Redis stop interrupted by a signal, scored 52 with successful rollback but unproven HTTP recovery and sparse evidence. The recorded engineering checks are 657 unit tests and three live integration tests in progress.md, distinct from application measurements."
+    },
+    {
+      "number": 13,
+      "title": "Key findings and recommended fixes",
+      "sources": [
+        "chaos-ai/runs/20261011-035048/findings.json",
+        "chaos-ai/runs/20261011-041633/findings.json",
+        "chaos-ai/examples/sample-run/report.md"
+      ],
+      "texts": [
+        "Key findings and recommended fixes",
+        "13",
+        "Severity / observation",
+        "Recommended fix",
+        "Critical: Postgres pause",
+        "Deadlines, circuit breaker",
+        "Critical: Postgres stop",
+        "Deadlines, backoff",
+        "High: Auth kill",
+        "Healthchecks, redundancy",
+        "High: Redis interruption",
+        "Cache deadlines, DB fallback",
+        "Causality unproven. Sparse statistics remain descriptive."
+      ],
+      "notes": "Postgres pause and stop are critical recorded findings, with deadline/circuit-breaker and bounded-backoff fixes respectively. Auth kill is high severity with healthcheck/redundancy recommendations, and the latest interrupted Redis stop has a high-severity cache deadline/database fallback recommendation. These are report recommendations rather than implemented fixes, and the reports retain unproven causality and sparse-statistic limits."
+    },
+    {
+      "number": 14,
+      "title": "Demo walkthrough",
+      "sources": [
+        "chaos-ai/examples/sample-run/report.html",
+        "chaos-ai/runs/20261011-035048/report.md",
+        "chaos-ai/README.md"
+      ],
+      "texts": [
+        "Demo walkthrough",
+        "14",
+        "1  Approval",
+        "[[FILL: approval prompt screenshot]]",
+        "2  Watchdog abort",
+        "3  Findings report",
+        "Saved report evidence from the completed measured campaign"
+      ],
+      "notes": "Show the real approval prompt with the target, fault, duration, hypothesis and abort limits before accepting an experiment. Then show the saved auth-kill UNDO event where login error rate exceeded 0.5, and the completed campaign report with its score and findings. The two report images are captures of saved HTML, while the approval panel explicitly marks the missing screenshot. Rehearse the live sequence separately because saved screenshots do not demonstrate a new live injection."
+    },
+    {
+      "number": 15,
+      "title": "Engineering quality",
+      "sources": [
+        "chaos-ai/docs/progress.md final follow-up",
+        "BUILD_PLAN.md Phase 10",
+        "chaos-ai/README.md",
+        "chaos-ai/docs/architecture.md"
+      ],
+      "texts": [
+        "Engineering quality",
+        "15",
+        "Recorded verification",
+        "657 unit tests   3 integration tests",
+        "Offline fixtures\nCache-only replay\nClean-run script",
+        "Runtime model resolution\nValidated JSON\nDeterministic fallbacks"
+      ],
+      "notes": "Progress records 657 unit tests passing after the final severity regression and three live integration tests passing in the authorized follow-up. Offline fixture mode makes no target or model calls, and cache-only replay regenerates analysis without transport. The clean-run script validates setup, measured experiment completion, restoration, recovery and final smoke, while model discovery/probing, validated JSON and deterministic fallbacks keep model failure separate from safety. The original BUILD_PLAN checkpoint contains older counts, so the newer progress record is cited explicitly."
+    },
+    {
+      "number": 16,
+      "title": "Limitations and next steps",
+      "sources": [
+        "chaos-ai/README.md",
+        "chaos-ai/docs/architecture.md",
+        "BUILD_PLAN.md Phase 11",
+        "chaos-ai/examples/sample-run/README.md"
+      ],
+      "texts": [
+        "Limitations and next steps",
+        "16",
+        "Limitations",
+        "Sparse samples\nIntermittent queue metrics\nCPU restoration constraints\nLocal Compose scope",
+        "Next steps",
+        "Validate proposed fixes\nExpand measured coverage\nConsider netem and replanning"
+      ],
+      "notes": "These runs assess one owned local Compose sandbox and cannot establish exhaustive application or production resilience. Sparse observations remain descriptive, queue telemetry can be intermittent, and some CPU configurations cannot be restored exactly. Next steps are to validate report-recommended fixes, broaden measured coverage and consider the optional netem and replanning work listed in BUILD_PLAN. Full-disk injection remains intentionally excluded for host safety."
+    },
+    {
+      "number": 17,
+      "title": "Thank you",
+      "sources": [
+        "chaos-ai git remote origin",
+        "chaos-ai/README.md"
+      ],
+      "texts": [
+        "17",
+        "Thank you",
+        "Harsh",
+        "https://github.com/harshgmrn04-byte/chaos-ai"
+      ],
+      "notes": "Thank the judges and engineers for their time. The GitHub repository contains the project, deployment steps, safety documentation and the measured sample report. Invite questions about the deterministic safety boundary and the evidence behind the findings."
+    }
+  ]
+}
