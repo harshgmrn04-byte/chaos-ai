@@ -1,6 +1,9 @@
 # Deterministic safety — Phases 5 and 6
 
 All live fault and measured experiment operations are deterministic; none call an LLM.
+Phase 7 `run` obtains an AI/heuristic plan before entering this lifecycle. Planning emits
+data only: proposals are checked against graph/catalogue, bounded by policy and traced.
+Approval, S9, the scope guard, journal, timers, Watchdog and KILL remain deterministic.
 `fault apply` runs a low-level mechanism test. `inject` and live `run` attach load, one-second
 container polling, the S5 Watchdog, S9 precheck and measured recovery. `run --offline` retains
 synthetic fixtures. See [experiments.md](experiments.md) for the full Phase 6 lifecycle and

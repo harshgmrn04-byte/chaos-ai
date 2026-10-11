@@ -168,6 +168,49 @@ class ExperimentSpec(Model):
     rank: int
 
 
+class ExperimentProposal(Model):
+    """Flat LLM contract; semantic validation drops unsupported individual proposals."""
+
+    fault: str
+    target: str
+    duration_s: int
+    intensity: float | None
+    journey: str
+    max_error_rate: float
+    max_p95_multiple: float
+    statement: str
+    abort_max_error_rate: float
+    abort_max_p95_multiple: float
+    reason: str
+    rank: int
+
+
+class PlannerOutput(Model):
+    experiments: list[ExperimentProposal]
+
+
+class LLMProbe(Model):
+    ok: bool
+
+
+class ResolvedModel(Model):
+    model: str = Field(min_length=1, pattern=r"^\S+$")
+
+
+class FaultDefinition(Model):
+    fault: FaultType
+    node_kinds: list[NodeKind]
+    target_kind: Literal["node", "journey"] = "node"
+    min_duration_s: int = 5
+    max_duration_s: int = 120
+    default_duration_s: int = 30
+    min_intensity: float | None = None
+    max_intensity: float | None = None
+    default_intensity: float | None = None
+    implemented: bool = False
+    plannable: bool = True
+
+
 class Clamp(Model):
     field: str
     requested: str | int | float | bool | None
@@ -182,6 +225,7 @@ class PolicyDecision(Model):
     clamps: list[Clamp]
     allowed: bool
     deny_reason: str | None
+    source: LLMSource = "heuristic"
 
 
 class OriginalContainerState(Model):

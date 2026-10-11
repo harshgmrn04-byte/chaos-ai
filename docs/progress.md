@@ -7,7 +7,7 @@
 - [x] Phase 4 — Load generator, metrics, baseline
 - [x] Phase 5 — Faults, safety layer, watchdog, kill switch
 - [x] Phase 6 — Experiment runner and Day-1 demo
-- [ ] Phase 7 — LLM layer and AI planner
+- [x] Phase 7 — LLM layer and AI planner
 - [ ] Phase 8 — Extended faults and automatic run
 - [ ] Phase 9 — Analyzer, scoring, report
 - [ ] Phase 10 — Freeze and polish
@@ -690,3 +690,99 @@ phases (AI, extended faults, automatic multiple experiments and real scoring) we
 Run from chaos-ai with the target already up and seeded; activate .venv and run doctor first.
 Create a baseline with chaosai baseline if none is saved. The demo leaves KILL set; after the
 injector exits and rollback is reviewed, explicitly run chaosai rollback --clear-kill.
+
+## Phase 7 — 2026-10-11
+
+Implemented synchronous Gemini/mock/none transport with the installed official google-genai
+SDK API inspected locally. Runtime discovery filters generateContent models, excludes non-text
+families and ranks stable/versioned flash, flash-lite and pro models. Human GEMINI_MODEL
+selection is supported; up to four candidates are probed, permission/not-found failures try
+the next, a winner is persisted in .chaosai/llm.json and a later 404 re-resolves once. Explicit
+2/4/8-second 429/503 retries use bounded requests with SDK automatic retries disabled. JSON
+schema output is pydantic-validated, rejected schemas use prompted JSON mode, and invalid
+JSON retries once before LLMUnavailable. Run-local hash caches retain validated and malformed
+responses and resolution probes. Errors expose safe hints, never raw SDK payloads or keys.
+Keys are obtained only from environment through config.py; no credentials enter artifacts.
+
+Added flat ExperimentProposal/PlannerOutput and catalogue/probe/model-cache contracts in
+models.py, catalogue metadata for all six fault types, and packaged prompts/planner.md.
+Graph/baseline/catalogue inputs are JSON quoted as untrusted data. Semantic validation drops
+unknown/external/non-injectable/containerless/ambiguous targets, incompatible kinds/faults,
+unmapped journeys, invalid ranks and empty hypotheses/reasons. Duplicate fault/target pairs
+are removed; deterministic top-ups reserve diversity even after eight same-type proposals.
+Heuristic priority uses fan-in, unknown criticality, node kind and journey impact, with short
+templated reasons. Final ranks 1..N order estimated blast radius from lower to higher.
+All accepted specs pass the existing policy gate; hypothesis bounds/inapplicable intensity
+also produce clamps. Final plan and complete requested/final/clamp/reason/source decision
+trace are persisted; heuristic top-ups retain their own source. Baseline data is unchanged.
+
+Added doctor --llm with explicit resolved-model/JSON PASS/FAIL and safe hints, and plan
+[--offline] with ranked reasons, sources and clamp output. Live plan uses a saved baseline,
+with no Docker, load or HTTP measurement. Offline plan uses fixture graph/baseline and
+heuristics without target/dotenv access. Live run now uses the planner but still executes
+at most one supported kill/stop/pause experiment through the unchanged Phase 6 lifecycle.
+CPU and traffic entries are planning only, netem remains unselected stretch, and no Phase 8
+mechanisms/multi-experiment live run or Phase 9 analysis/scoring were implemented. The
+original three-example synthetic offline run is preserved, including IDs/order and mock
+fixture caches; even direct offline pipeline calls with Gemini settings cannot open a real
+Gemini provider. Updated README, experiments.md, safety.md and added llm-planning.md.
+
+**Explicit Phase 6 deferral (human authorization):** the user authorized Phase 7 despite the
+checkpoint requiring live verification. Human doctor and smoke passed. Run 20261011-005504
+was blocked by an existing KILL flag. After explicit rollback --clear-kill, 20261011-005640
+skipped injection because the saved baseline has stable=false. Original baseline
+20261010-235955 contained 51 login requests, all HTTP 429; latest precheck requests succeeded.
+Neither attempt applied a fault. Impact, application recovery, Watchdog abort, active-fault
+KILL, Ctrl-C recovery and the completed Day-1 walkthrough remain **pending, not passed**.
+No baseline data, readiness condition, threshold or auth limiter was altered to bypass this
+gap. The Phase 6 checkbox records implementation completion only, not live verification.
+
+Actual agent verification, using the existing .venv:
+- ruff check .: passed.
+- pytest -q -m "not integration": 407 passed, three integration tests deselected. One
+  installed google-genai/Python 3.14 deprecation warning; no test failures. Unit tests block
+  Docker, sockets, subprocess network operations and dotenv reads.
+- python -m chaosai run --offline --yes: passed; synthetic report at
+  runs/20261011-010827/report.html. No injected faults or target observations.
+- python -m chaosai plan --offline: passed; eight ranked heuristic specs and policy trace at
+  runs/20261011-010828/{plan,decisions}.json. No load, injection, HTTP or LLM calls.
+- git diff --check: passed; read-only target git status clean.
+
+Tests cover valid mock output, individual invalid target/fault/kind/rank/journey rejection,
+deduplication, type top-up, diversity reservation, numeric clamps/request preservation,
+worker-budget denial, unavailable/malformed retry fallback, immutable unstable baseline,
+empty/restricted graphs, quoted prompt constraints, SDK model ranking/filtering, four-probe
+limit, permission/not-found candidate fallback, explicit override, cached model reuse,
+one re-resolution, exact backoff, schema rejection fallback, output retry/validation/cache,
+cache-resolution failure, environment provider selection, client timeout/cleanup, doctor
+flag/results, offline CLI isolation and planner integration with one supported measured fault.
+No real LLM, Docker/live HTTP, integration test, .env read or key inspection was performed
+by the coding agent. Pre-existing .DS_Store and untracked =, checkout, login, retrieve remain
+untouched and excluded from this commit. Local commit: feat: llm layer and ai planner.
+Nothing pushed; Phase 8 not started.
+
+Open issues: real Gemini model/key availability and schema support require the human probe;
+existing auth rate limiting can still contaminate baselines or prevent S9 readiness. Saved
+stable=false remains authoritative. Sparse journey recovery, RabbitMQ queue-depth visibility,
+in-flight SDK rollback timing and the pending Phase 5/6 live evidence remain as documented.
+The heuristic returns fewer than three fault types with an explicit warning if the graph/
+worker budget cannot support them. Replay CLI and real analysis/scoring remain later work.
+
+**Phase 7 "You verify" (copied from BUILD_PLAN.md):** put GEMINI_API_KEY in chaos-ai/.env
+yourself; chaosai doctor --llm is green; chaosai plan prints ranked experiments with reasons;
+chaosai plan --offline also works.
+
+```sh
+cd "/Users/harsh/Desktop/Bosch Hackathon Optimised/chaos-ai"
+source .venv/bin/activate
+# Set your own GEMINI_API_KEY in .env locally; do not paste it into chat.
+chaosai doctor --llm
+chaosai plan
+chaosai plan --offline
+```
+
+These commands do not inject faults. Non-offline plan requires the saved baseline (it may
+inspect an unstable one); doctor also runs the existing read-only target checks. Phase 6's
+live verification commands remain listed in its section above, with active-fault KILL and
+Ctrl-C verification in safety.md. Do not interpret a successful plan/probe as live fault
+verification or clear KILL implicitly.

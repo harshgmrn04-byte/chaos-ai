@@ -22,7 +22,7 @@ chaosai = "chaosai.cli:app"
 include = ["chaosai*"]
 
 [tool.setuptools.package-data]
-chaosai = ["fixtures/*.json"]
+chaosai = ["fixtures/*.json", "prompts/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

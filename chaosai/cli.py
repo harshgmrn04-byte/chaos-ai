@@ -11,12 +11,21 @@ from pydantic import ValidationError
 
 from chaosai.approval import ApprovalRequired, Approver
 from chaosai.baseline import measure_baseline, run_load
+from chaosai.catalogue import definition
 from chaosai.config import PROJECT_ROOT, Settings, load_config
-from chaosai.doctor import doctor_checks, status_checks, target_status
+from chaosai.doctor import doctor_checks, llm_check, status_checks, target_status
 from chaosai.faults import get_fault
 from chaosai.faults.base import FaultContext, hold_fault
 from chaosai.mapper import MapperError, map_target, mermaid, save_graph
-from chaosai.models import AbortRule, Baseline, ExperimentResult, ExperimentSpec, Hypothesis
+from chaosai.models import (
+    AbortRule,
+    Baseline,
+    ExperimentResult,
+    ExperimentSpec,
+    Hypothesis,
+    PolicyDecision,
+)
+from chaosai.planner import plan_experiments
 from chaosai.report import render_report
 from chaosai.runner import demo_spec, execute_experiment, run_pipeline
 from chaosai.runs import create_run, read_json, write_json
@@ -48,11 +57,11 @@ def run(
     yes: bool = typer.Option(False, "--yes", help="Approve experiments."),
     dry_run: bool = typer.Option(False, help="Write a plan/report without executing experiments."),
 ) -> None:
-    """Run one measured Redis experiment, or the offline fixture pipeline."""
+    """Plan experiments and run one supported measured fault, or offline fixtures."""
     typer.echo(
         "Offline fixture simulation."
         if offline
-        else "One measured Redis stop; analysis/scoring remain Phase 9."
+        else "AI/heuristic plan; one supported measured fault; analysis/scoring remain Phase 9."
     )
     approver = Approver(yes=yes, is_tty=sys.stdin.isatty(), ask=input, simulation=offline)
     try:
@@ -180,9 +189,14 @@ def target_failure(exc: Exception) -> None:
 
 
 @app.command()
-def doctor() -> None:
+def doctor(
+    llm: bool = typer.Option(False, help="Also probe the configured LLM with JSON."),
+) -> None:
     """Check Python, Docker, target readiness and configuration presence."""
-    checks = doctor_checks(target_config())
+    settings = target_config()
+    checks = doctor_checks(settings)
+    if llm:
+        checks.append(llm_check(settings))
     typer.echo("RESULT | CHECK | DETAIL / FIX HINT")
     for check in checks:
         outcome = "PASS" if check.passed else "FAIL"
@@ -190,6 +204,51 @@ def doctor() -> None:
         typer.echo(f"{outcome} | {check.name} | {check.detail}{hint}")
     if any(not check.passed for check in checks):
         raise typer.Exit(1)
+
+
+@app.command("plan")
+def plan_command(
+    offline: bool = typer.Option(False, help="Use graph/baseline fixtures and heuristics only."),
+) -> None:
+    """Save a ranked plan and policy decision trace without load or Docker access."""
+    try:
+        settings = load_config(offline=offline)
+        graph = map_target(settings, offline=offline)
+        latest = settings.safety_dir / "baseline.json"
+        if offline:
+            from chaosai.fixture_data import fixture
+
+            baseline = fixture("baseline", Baseline)
+        elif latest.exists():
+            baseline = read_json(latest, Baseline)
+        else:
+            raise SafetyError("No saved baseline; run chaosai baseline or use plan --offline.")
+        run_dir = create_run(settings.runs_dir)
+        save_graph(graph, settings, run_dir)
+        write_json(run_dir / "baseline.json", baseline)
+        plan, source = plan_experiments(
+            graph,
+            baseline,
+            provider="none" if offline else settings.llm_provider,
+            cache_dir=run_dir / "llm",
+            settings=settings,
+        )
+        decisions = read_json(run_dir / "decisions.json", list[PolicyDecision])
+    except (ValidationError, MapperError, TargetError, OSError) as exc:
+        target_failure(exc)
+    typer.echo(f"Planner: {source}; baseline stable: {baseline.stable}")
+    typer.echo("RANK | FAULT | TARGET | DURATION | SOURCE | REASON")
+    for spec, decision in zip(plan.root, decisions, strict=True):
+        entry = definition(spec.fault)
+        pending = " [planning only]" if entry and not entry.implemented else ""
+        typer.echo(
+            f"{spec.rank} | {spec.fault}{pending} | {spec.target} | {spec.duration_s}s | "
+            f"{decision.source} | {spec.reason}"
+        )
+        for clamp in decision.clamps:
+            typer.echo(f"  {clamp.field}: {clamp.requested} -> {clamp.final}; {clamp.reason}")
+    typer.echo(f"Plan: {run_dir / 'plan.json'}")
+    typer.echo(f"Decision trace: {run_dir / 'decisions.json'}")
 
 
 @app.command()
@@ -478,10 +537,7 @@ def kill_command() -> None:
             client.close()
 
 
-for command_name in (
-    "plan",
-    "replay",
-):
+for command_name in ("replay",):
     app.command(
         name=command_name,
         context_settings={"allow_extra_args": True, "ignore_unknown_options": True},

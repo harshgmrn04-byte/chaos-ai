@@ -418,7 +418,7 @@ def test_failed_rollback_retains_journal_and_reports_false(harness: Harness) -> 
     assert harness.client.close.call_count == 1
 
 
-def test_live_pipeline_single_measured_result_without_llm(
+def test_live_pipeline_plans_but_executes_only_one_supported_fault(
     harness: Harness,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -426,6 +426,8 @@ def test_live_pipeline_single_measured_result_without_llm(
     h.settings.target_dir = Path(__file__).parent / "fixtures"
     write_json(h.settings.safety_dir / "baseline.json", h.baseline)
     monkeypatch.setattr(runner, "get_docker_client", lambda: h.client)
+    monkeypatch.setattr(experiment, "get_fault", get_fault)
+    monkeypatch.setattr(runner, "map_target", lambda *args, **kwargs: h.graph)
     original = runner.execute_experiment
 
     def execute(decision: object, run_dir: Path, **kwargs: object) -> ExperimentResult:
@@ -433,11 +435,16 @@ def test_live_pipeline_single_measured_result_without_llm(
         return original(decision, run_dir, **kwargs)
 
     monkeypatch.setattr(runner, "execute_experiment", execute)
-    for stage in ("plan_experiments", "analyze_results", "score_results", "measure_baseline"):
+    for stage in ("analyze_results", "score_results", "measure_baseline"):
         monkeypatch.setattr(runner, stage, Mock(side_effect=AssertionError(stage)))
     directory = runner.run_pipeline(h.settings, Approver(yes=True, is_tty=False, ask=input))
     assert len(list((directory / "experiments").glob("*/result.json"))) == 1
-    assert len(read_json(directory / "plan.json", Plan).root) == 1
+    plan = read_json(directory / "plan.json", Plan)
+    assert len(plan.root) == 8
+    assert len({spec.fault for spec in plan.root}) >= 3
+    result = read_json(next((directory / "experiments").glob("*/result.json")), ExperimentResult)
+    assert result.spec.fault in {"kill", "stop", "pause"}
+    assert read_json(directory / "run.json", RunMeta).planner_source == "mock"
     assert not read_json(directory / "run.json", RunMeta).offline
     html = (directory / "report.html").read_text()
     assert "Measured Phase 6" in html and "fixture data only" not in html

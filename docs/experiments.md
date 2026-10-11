@@ -1,10 +1,11 @@
 # Measured experiments — Phase 6
 
 The measured runner is exported by `chaosai/runner.py`; `chaosai/experiment.py` owns the
-single-experiment lifecycle and `evaluate.py` contains pure evidence functions. No live
-Phase 6 path calls a planner, analyzer or LLM. Only kill, stop and pause are implemented.
-Automatic experiment selection, extended faults and multiple live experiments remain later
-phases. `fault apply` remains a low-level mechanism test without load or a metric watchdog.
+single-experiment lifecycle and `evaluate.py` contains pure evidence functions. Phase 7
+integrates AI/heuristic planning into `run`; the experiment lifecycle itself remains
+deterministic. Only kill, stop and pause are implemented. Extended fault mechanisms and
+multiple live experiments remain Phase 8. `fault apply` remains a low-level mechanism test
+without load or a metric watchdog. See [llm-planning.md](llm-planning.md).
 
 ## Run one experiment
 
@@ -27,7 +28,8 @@ and may cause the sample app to send notifications through its existing Resend c
 Use the correct previously seeded credentials in configuration; never test incorrect passwords.
 
 `chaosai run` reuses the saved baseline (or measures one when absent), reconciles journals and
-runs one deterministic Redis stop. It generates a measured evidence report with **no live
+ranks a policy-gated AI/heuristic plan and runs at most one supported kill/stop/pause spec.
+Planned CPU/traffic faults are not executed. It generates a measured evidence report with **no live
 scores or findings**, because analysis/scoring remain Phase 9. `run --dry-run` creates a plan
 and report without approval or injection; as before, a missing live baseline may be measured.
 `run --offline --yes` and `run --offline --dry-run` retain the fully synthetic fixture pipeline

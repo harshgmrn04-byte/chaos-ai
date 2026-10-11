@@ -20,6 +20,7 @@ class Settings(BaseModel):
     state_dir: Path = Path(".chaosai")
     llm_provider: Literal["gemini", "mock", "none"] = "none"
     gemini_model: str | None = None
+    llm_timeout_s: float = Field(default=30, gt=0)
 
     frontend_url: str = "http://localhost:3000"
     load_duration_s: float = Field(default=30, gt=0)
@@ -113,6 +114,15 @@ class Settings(BaseModel):
         return bool(os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
 
     @property
+    def llm_key(self) -> SecretStr | None:
+        value = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        return SecretStr(value) if value else None
+
+    @property
+    def llm_model_path(self) -> Path:
+        return self.safety_dir / "llm.json"
+
+    @property
     def runs_dir(self) -> Path:
         return self.project_root / "runs"
 
@@ -136,8 +146,13 @@ class Settings(BaseModel):
         return run_dir / "journal.json"
 
 
-def load_config(*, offline: bool = False, project_root: Path = PROJECT_ROOT) -> Settings:
-    if not offline:
+def load_config(
+    *,
+    offline: bool = False,
+    project_root: Path = PROJECT_ROOT,
+    dotenv: bool = True,
+) -> Settings:
+    if not offline and dotenv:
         load_dotenv(project_root / ".env", override=False)
     provider = os.getenv("LLM_PROVIDER") or (
         "gemini" if os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") else "none"
@@ -169,6 +184,7 @@ def load_config(*, offline: bool = False, project_root: Path = PROJECT_ROOT) -> 
         ("auth_timeout_s", "AUTH_TIMEOUT_S"),
         ("request_timeout_s", "REQUEST_TIMEOUT_S"),
         ("notification_interval_s", "NOTIFICATION_INTERVAL_S"),
+        ("llm_timeout_s", "LLM_TIMEOUT_S"),
     ):
         value = os.getenv(variable)
         if value is not None and (value or field == "seed_password"):

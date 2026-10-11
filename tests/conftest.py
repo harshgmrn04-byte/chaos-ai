@@ -31,6 +31,7 @@ def isolated(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest) ->
         "GOOGLE_API_KEY",
         "GEMINI_MODEL",
         "LLM_PROVIDER",
+        "LLM_TIMEOUT_S",
         "TARGET_DIR",
         "COMPOSE_PROJECT",
         "DOCKER_HOST",

@@ -7,8 +7,10 @@ Phase 3 maps Compose deterministically, with manual overrides and Mermaid output
 Phase 4 adds live threaded load, scoped telemetry and measured baselines.
 Phase 5 adds deterministic faults, scope/policy checks, durable undo, watchdog and kill switch.
 Phase 6 runs one measured experiment with load, one-second telemetry, watchdog, durable rollback
-and recovery evidence. `inject` supports kill/stop/pause; live `run` performs one deterministic
-Redis stop. `--offline` retains synthetic fixtures without target access. Live analysis/scoring
+and recovery evidence. Phase 7 adds Gemini/mock/none providers and graph-based AI/heuristic
+planning with policy traces. `inject` supports kill/stop/pause; live `run` executes at most
+one supported experiment from the ranked plan. `--offline` retains synthetic fixtures without
+target access. Live analysis/scoring
 and automatic multiple-experiment mode remain later phases.
 
 ```sh
@@ -40,7 +42,28 @@ and `q` writes a report for experiments already completed. EOF or Ctrl-C at the 
 prompt also quits cleanly. Dry runs and entirely skipped plans have no assessed score.
 
 Commands deferred to later phases print `not implemented yet` and exit 2:
-`plan`, `replay`.
+`replay`.
+
+## AI planning (Phase 7)
+
+Put your own `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) in chaos-ai/.env locally. Do not share
+the key in chat. Provider defaults to Gemini when a key is present, otherwise none;
+`LLM_PROVIDER=mock` serves fixtures, and `LLM_PROVIDER=none` uses heuristics.
+Model IDs are discovered at runtime; `GEMINI_MODEL` optionally selects your own model.
+
+```sh
+source .venv/bin/activate
+chaosai doctor --llm              # explicit live JSON probe, resolved model and PASS/FAIL
+chaosai plan                      # saved baseline + mapped target; no injection or load
+chaosai plan --offline             # fixture graph/baseline + heuristics; no network/dotenv
+```
+
+Plans contain up to eight experiments and at least three fault types when the graph permits.
+`plan.json` holds final specs; `decisions.json` records reasons, requested/final values, clamps
+and per-item sources. Invalid AI proposals are dropped and heuristics fill gaps. CPU and
+traffic faults are labeled planning only; their mechanisms remain Phase 8. Netem is stretch
+and not selected. `plan` can inspect an unstable baseline, but S9 still refuses injection.
+See [llm-planning.md](docs/llm-planning.md) for resolution, retries, caching and limits.
 
 ## Faults and recovery (Phase 5)
 
@@ -70,7 +93,7 @@ See [safety.md](docs/safety.md) for contracts, recovery limits and exact two-ter
 chaosai baseline                              # or reuse the saved stable baseline
 chaosai inject stop redis --duration 30
 chaosai inject stop redis --duration 30 --abort-error-rate 0.05
-chaosai run                                   # one measured Redis stop
+chaosai run                                   # ranked plan, at most one supported measured fault
 chaosai run --dry-run                         # plan/report without injection
 bash scripts/day1_demo.sh
 ```

@@ -189,7 +189,6 @@ def test_dry_run_cli(cli_workspace: Path) -> None:
 @pytest.mark.parametrize(
     "command",
     [
-        "plan",
         "replay",
     ],
 )
@@ -209,3 +208,22 @@ def test_report_escapes_untrusted_text(settings: Settings) -> None:
     html = render_report(run_dir).read_text()
     assert "<script>" not in html
     assert "&lt;script&gt;" in html
+
+
+def test_direct_offline_run_cannot_call_gemini(
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from chaosai import llm
+
+    settings.llm_provider = "gemini"
+    monkeypatch.setenv("GEMINI_API_KEY", "fake-unit-key")
+    monkeypatch.setattr(llm.genai, "Client", lambda **kw: pytest.fail("Offline Gemini call"))
+    directory = runner.run_pipeline(
+        settings,
+        Approver(yes=True, is_tty=False, ask=input),
+        offline=True,
+    )
+    meta = read_json(directory / "run.json", RunMeta)
+    assert meta.planner_source == meta.analyzer_source == "heuristic"
+    assert not list((directory / "llm").iterdir())

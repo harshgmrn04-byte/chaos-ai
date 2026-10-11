@@ -6,6 +6,7 @@ from pathlib import Path
 from chaosai.analyzer import analyze_results
 from chaosai.approval import Approver
 from chaosai.baseline import measure_baseline
+from chaosai.catalogue import definition
 from chaosai.config import Settings
 from chaosai.experiment import execute_experiment
 from chaosai.fixture_data import fixture
@@ -15,7 +16,6 @@ from chaosai.models import (
     Baseline,
     ExperimentResult,
     ExperimentSpec,
-    Plan,
     PolicyDecision,
     RunMeta,
     Sample,
@@ -24,7 +24,7 @@ from chaosai.models import (
 from chaosai.planner import plan_experiments
 from chaosai.report import render_report
 from chaosai.runs import append_jsonl, create_run, read_json, write_json
-from chaosai.safety import file_lock, policy_gate, replay_journals
+from chaosai.safety import file_lock, replay_journals
 from chaosai.scoring import score_results
 from chaosai.target import get_docker_client
 
@@ -87,19 +87,28 @@ def run_pipeline(
         else measure_baseline(graph, settings, run_dir, offline=offline)
     )
     write_json(run_dir / "baseline.json", baseline)
-    if offline:
-        plan, meta.planner_source = plan_experiments(
-            graph, baseline, provider=settings.llm_provider, cache_dir=run_dir / "llm"
-        )
-    else:
-        plan = Plan(root=[demo_spec(baseline)])
+    provider = (
+        ("mock" if settings.llm_provider == "mock" else "none")
+        if offline
+        else settings.llm_provider
+    )
+    plan, meta.planner_source = plan_experiments(
+        graph,
+        baseline,
+        provider=provider,
+        cache_dir=run_dir / "llm",
+        settings=settings,
+        simulation=offline,
+    )
     write_json(run_dir / "plan.json", plan)
-    decisions = [fixture_decision(spec) if offline else policy_gate(spec) for spec in plan.root]
-    write_json(run_dir / "decisions.json", decisions)
+    decisions = read_json(run_dir / "decisions.json", list[PolicyDecision])
     results: list[ExperimentResult] = []
     if not dry_run:
         for decision in decisions:
             if not offline:
+                entry = definition(decision.final.fault)
+                if entry is None or not entry.implemented or not decision.allowed:
+                    continue
                 result = execute_experiment(
                     decision,
                     run_dir,
@@ -126,7 +135,7 @@ def run_pipeline(
                 results.append(execute_fixture(decision, run_dir))
     if offline:
         findings, meta.analyzer_source = analyze_results(
-            results, provider=settings.llm_provider, cache_dir=run_dir / "llm"
+            results, provider=provider, cache_dir=run_dir / "llm"
         )
     else:
         findings = []
@@ -164,7 +173,7 @@ def demo_spec(
     duration: int = 30,
     abort_error_rate: float | None = None,
 ) -> ExperimentSpec:
-    """One deterministic experiment; automatic planning belongs to later phases."""
+    """Explicit single-experiment spec for inject and the Day-1 demo."""
     from chaosai.models import AbortRule, Hypothesis
 
     return ExperimentSpec(

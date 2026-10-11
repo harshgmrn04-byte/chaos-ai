@@ -5,7 +5,8 @@ import sys
 import docker
 
 from chaosai.config import Settings
-from chaosai.models import CheckResult, ContainerStatus
+from chaosai.llm import LLM, LLMUnavailable
+from chaosai.models import CheckResult, ContainerStatus, LLMProbe
 from chaosai.target import (
     TargetError,
     container_status,
@@ -14,6 +15,29 @@ from chaosai.target import (
     list_target_containers,
     tcp_ready,
 )
+
+
+def llm_check(settings: Settings) -> CheckResult:
+    """Explicit live probe, never part of ordinary doctor or offline planning."""
+    session = LLM(settings)
+    try:
+        probe = session.complete_json("probe", "Return only JSON.", 'Return {"ok":true}.', LLMProbe)
+        model = session.model or session.provider
+        return CheckResult(
+            name="LLM JSON probe",
+            passed=probe.ok,
+            detail=f"Resolved model: {model}; JSON validated",
+            hint="Check GEMINI_MODEL and key permissions.",
+        )
+    except LLMUnavailable as exc:
+        return CheckResult(
+            name="LLM JSON probe",
+            passed=False,
+            detail=f"Resolved model: {session.model or 'unavailable'}",
+            hint=str(exc),
+        )
+    finally:
+        session.close()
 
 
 def target_status(settings: Settings) -> list[ContainerStatus]:
