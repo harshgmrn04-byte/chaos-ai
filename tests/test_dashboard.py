@@ -58,6 +58,32 @@ def test_findings_are_ranked_by_severity_without_changing_saved_evidence(setting
     assert path.read_bytes() == original
 
 
+def test_dependency_overlay_handles_cycles_and_keeps_inferred_and_observed_separate(
+    settings, fixture_run
+):
+    from chaosai.models import Edge
+
+    snapshot = ArtifactStore(settings).snapshot(fixture_run.name)
+    experiment = snapshot.experiments[0]
+    experiment.spec.target = "postgres"
+    experiment.result.impacted_journeys = ["login"]
+    experiment.events = [Event(t=1, phase="OBSERVE", note="Applied")]
+    graph = snapshot.graph
+    graph.edges = [
+        Edge(source="auth-service", target="postgres", kind="sql", evidence="source"),
+        Edge(source="frontend", target="auth-service", kind="http", evidence="source"),
+        Edge(source="postgres", target="frontend", kind="unknown", evidence="cycle"),
+        Edge(source="stripe", target="postgres", kind="unknown", evidence="external"),
+    ]
+    impact = dashboard.dependency_impact(graph, experiment)
+    assert impact.potential_dependents == ["auth-service", "frontend"]
+    assert impact.observed_journeys == ["login"] and impact.injected
+    experiment.events = []
+    experiment.result = None
+    preview = dashboard.dependency_impact(graph, experiment)
+    assert not preview.injected and preview.observed_journeys == []
+
+
 @pytest.mark.parametrize("name", ["..", "../.env", "/tmp", "a/b", ""])
 def test_store_path_traversal(settings, name):
     with pytest.raises(ValueError):

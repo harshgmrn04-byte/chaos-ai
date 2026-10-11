@@ -18,7 +18,10 @@ separate Node process or additional dependencies are required.
    hypothesis, reason, during metrics, verdict and recovery evidence.
 3. Findings: show ranked weaknesses, evidence-based explanations, recommended fixes and the
    analyzer source. Gemini is optional; deterministic fallback remains clearly labelled.
-4. Service map: show application/dependency flows. External nodes are protected.
+4. Service map: use Topology only for dependencies, then select a fault overlay. Red marks
+   the injected target; amber reverse dependency paths show potential propagation. The table
+   presents actual impacted journeys and per-journey counts/errors/p95, with sparse samples
+   labelled. These mapped paths do not prove every service failed. External nodes are protected.
 5. Open report: inspect the self-contained report and its deterministic scoring breakdown.
 
 The display refreshes every two seconds. A running experiment's HTTP samples, events,

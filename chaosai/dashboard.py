@@ -26,6 +26,7 @@ from chaosai.models import (
     DashboardRequest,
     DashboardRun,
     DashboardSnapshot,
+    DependencyImpact,
     Event,
     ExperimentResult,
     Finding,
@@ -180,7 +181,36 @@ class ArtifactStore:
         snapshot.queues = sorted(queues, key=lambda q: q.t)[-100:]
         levels = {"critical": 0, "high": 1, "medium": 2, "low": 3}
         snapshot.findings.sort(key=lambda f: (levels[f.severity], f.experiment_id))
+        if snapshot.graph:
+            snapshot.dependency_impacts = [
+                dependency_impact(snapshot.graph, experiment)
+                for experiment in snapshot.experiments
+                if experiment.spec and experiment.spec.fault != "traffic_spike"
+            ]
         return snapshot
+
+
+def dependency_impact(graph: Graph, experiment: DashboardExperiment) -> DependencyImpact:
+    """Reverse dependencies are possible propagation paths, not measured service failures."""
+    target = experiment.spec.target
+    local = {node.id for node in graph.nodes if node.kind != "external"}
+    reached = {target}
+    frontier = {target}
+    while frontier:
+        next_nodes = {
+            edge.source
+            for edge in graph.edges
+            if edge.target in frontier and edge.source in local and edge.source not in reached
+        }
+        reached.update(next_nodes)
+        frontier = next_nodes
+    return DependencyImpact(
+        experiment_id=experiment.id,
+        target=target,
+        injected=any(event.phase == "OBSERVE" for event in experiment.events),
+        potential_dependents=sorted(reached - {target}),
+        observed_journeys=experiment.result.impacted_journeys if experiment.result else [],
+    )
 
 
 def bucket_samples(samples: list[Sample]) -> dict[str, list[DashboardPoint]]:

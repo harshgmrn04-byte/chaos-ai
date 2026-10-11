@@ -53,6 +53,7 @@ def test_every_contract_round_trips() -> None:
         ),
         models.DashboardPoint(t=1, n=1, error_rate=0, p95_ms=10),
         models.DashboardExperiment(id="e"),
+        models.DependencyImpact(experiment_id="e", target="redis", injected=False),
         models.DashboardSnapshot(run_id="run"),
         models.DashboardRequest(action="baseline"),
         models.DashboardJob(action="baseline", state="running", started_at=1),

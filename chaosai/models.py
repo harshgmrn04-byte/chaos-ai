@@ -551,6 +551,14 @@ class DashboardExperiment(Model):
     series: dict[str, list[DashboardPoint]] = Field(default_factory=dict)
 
 
+class DependencyImpact(Model):
+    experiment_id: str
+    target: str
+    injected: bool
+    potential_dependents: list[str] = Field(default_factory=list)
+    observed_journeys: list[str] = Field(default_factory=list)
+
+
 class DashboardSnapshot(Model):
     run_id: str
     meta: RunMeta | None = None
@@ -558,6 +566,7 @@ class DashboardSnapshot(Model):
     graph: Graph | None = None
     plan: list[ExperimentSpec] = Field(default_factory=list)
     experiments: list[DashboardExperiment] = Field(default_factory=list)
+    dependency_impacts: list[DependencyImpact] = Field(default_factory=list)
     findings: list[Finding] = Field(default_factory=list)
     summary: Summary | None = None
     series: dict[str, list[DashboardPoint]] = Field(default_factory=dict)

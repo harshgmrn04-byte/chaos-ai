@@ -1279,3 +1279,21 @@ Final checks after severity ranking: **657 unit tests passed, 3 integration dese
 ruff, script syntax, whitespace and target clean status passed. Final doctor and smoke
 passed after Ctrl-C. KILL is clear; no active lease or pending undo. Local dashboard left
 running at http://127.0.0.1:8765 with measured run 035048 selected.
+
+
+### Judge follow-up: dependency graph and cascading impact
+
+Added a service-map fault selector, injected-target and potential upstream dependency
+highlights, and measured journey impact table including sample counts/errors/p95, undo
+and HTTP recovery. Reverse graph traversal is cycle-safe and excludes external nodes.
+Mapped propagation and measured HTTP effects are explicitly distinguished. No injection
+or historical measurement changes. Demo script includes the measured PostgreSQL cascade
+and sparse-sample limits. Unit regressions cover cycles, scope, preview versus applied
+fault, and preserving recorded findings. Original Phase 10 You verify: run
+scripts/clean_run.sh from scratch, start to finish (already completed); the human should
+now review this graph view and practice the narration. No live fault needed for this UI change.
+
+Cascade follow-up checks: ruff and whitespace checks passed; **658 unit tests passed,
+3 integration deselected**. Browser verified actual PostgreSQL highlight, dependency
+paths, impacted journey counts/errors/p95 and 10s recovery; no console errors.
+No new faults were run. Local dashboard left on the measured cascade view.
