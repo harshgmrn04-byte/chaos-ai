@@ -1,5 +1,6 @@
 """CLI for fixture runs and Phase 2 target operations."""
 
+import errno
 import sys
 import threading
 from datetime import UTC, datetime
@@ -732,10 +733,40 @@ def dashboard(
 
     try:
         settings = load_config()
+    except (OSError, ValueError) as exc:
+        typer.echo(
+            "Dashboard could not load configuration. Check configuration file access, "
+            "DASHBOARD_HOST (127.0.0.1 or localhost) and DASHBOARD_PORT (1024–65535).",
+            err=True,
+        )
+        raise typer.Exit(1) from exc
+    try:
         host = host or settings.dashboard_host
         server = make_server(settings, host, port or settings.dashboard_port)
-    except (OSError, ValueError) as exc:
-        typer.echo(f"Dashboard could not start ({type(exc).__name__}).", err=True)
+    except OSError as exc:
+        address = f"http://{host}:{port or settings.dashboard_port}"
+        if exc.errno == errno.EADDRINUSE:
+            hint = (
+                f"Port {port or settings.dashboard_port} is already in use. "
+                f"If ChaosPilot is already running, open {address}. "
+                "Otherwise choose a free port: chaosai dashboard --port 8766."
+            )
+        elif exc.errno in {errno.EACCES, errno.EPERM}:
+            hint = (
+                "Permission denied when opening the local dashboard socket. "
+                "Run chaosai dashboard in your regular terminal, or allow this "
+                "command to run outside the agent sandbox."
+            )
+        else:
+            hint = f"Could not bind {address} (OS error {exc.errno}). Check the host and port."
+        typer.echo(f"Dashboard could not start. {hint}", err=True)
+        raise typer.Exit(1) from exc
+    except ValueError as exc:
+        typer.echo(
+            "Dashboard could not start. Check DASHBOARD_HOST (127.0.0.1 or localhost) "
+            "and DASHBOARD_PORT (1024–65535).",
+            err=True,
+        )
         raise typer.Exit(1) from exc
     typer.echo(f"ChaosPilot dashboard: http://{host}:{server.server_port}")
     try:

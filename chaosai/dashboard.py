@@ -122,6 +122,10 @@ class ArtifactStore:
             ("summary", "summary.json", Summary),
         ):
             setattr(snapshot, field, self.read(directory, filename, model))
+        if snapshot.meta and snapshot.meta.stop_reason:
+            snapshot.warnings.append(
+                f"Run stopped: {redact_line(snapshot.meta.stop_reason, self.settings)}"
+            )
         decisions = directory / "decisions.json"
         if decisions.is_file() and decisions.resolve().parent == directory.resolve():
             try:
@@ -165,7 +169,8 @@ class ArtifactStore:
                     id=child.name,
                     spec=spec,
                     result=result,
-                    events=self.lines(child / "events.jsonl", Event),
+                    events=self.lines(child / "events.jsonl", Event)
+                    or (result.events if result else []),
                     series=bucket_samples(self.lines(child / "samples.jsonl", Sample)),
                 )
             )
@@ -272,6 +277,10 @@ class JobManager:
         command = command_for(request)
         if request.action in {"kill", "rollback", "resume"}:
             raise ValueError("Safety controls use the control endpoint.")
+        if self.settings.kill_path.exists() and request.action in {
+            "run", "inject", "sandbox", "baseline", "seed",
+        }:
+            raise ValueError("KILL is set. Review rollback and explicitly resume first.")
         with self.lock:
             if self.job and self.job.state == "running":
                 raise ValueError("A job is already running; use KILL for an active fault.")

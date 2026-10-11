@@ -1,10 +1,12 @@
 """Dashboard boundaries use mock transport and real private artifact parsing."""
 
+import errno
 import io
 import json
 from types import SimpleNamespace
 
 import pytest
+from typer.testing import CliRunner
 
 from chaosai import dashboard
 from chaosai.approval import Approver
@@ -142,6 +144,43 @@ def test_job_serialization(settings):
         manager.control(DashboardRequest(action="resume", approved=True))
 
 
+@pytest.mark.parametrize("action", ["run", "inject", "sandbox", "baseline", "seed"])
+def test_dashboard_refuses_live_job_while_kill_is_set(settings, action):
+    settings.kill_path.parent.mkdir(parents=True)
+    settings.kill_path.touch()
+    manager = JobManager(settings)
+    with pytest.raises(ValueError, match="KILL is set"):
+        manager.start(DashboardRequest(action=action, approved=True))
+    assert manager.status() is None
+
+
+def test_dashboard_retains_saved_stop_reason(settings, fixture_run):
+    path = fixture_run / "run.json"
+    meta = json.loads(path.read_text())
+    meta["stop_reason"] = "KILL flag present; explicitly clear it after reviewing rollback."
+    path.write_text(json.dumps(meta))
+    snapshot = ArtifactStore(settings).snapshot(fixture_run.name)
+    assert any("Run stopped: KILL flag present" in warning for warning in snapshot.warnings)
+
+
+def test_dashboard_uses_result_events_when_stream_is_missing(settings, fixture_run):
+    snapshot = ArtifactStore(settings).snapshot(fixture_run.name)
+    experiment = snapshot.experiments[0]
+    stream = fixture_run / "experiments" / experiment.id / "events.jsonl"
+    stream.unlink(missing_ok=True)
+    assert ArtifactStore(settings).snapshot(fixture_run.name).experiments[0].events == (
+        experiment.result.events
+    )
+
+
+def test_dashboard_prefers_live_stream_over_saved_result(settings, fixture_run):
+    experiment = ArtifactStore(settings).snapshot(fixture_run.name).experiments[0]
+    event = Event(t=1, phase="RECOVER", note="Recorded event")
+    stream = fixture_run / "experiments" / experiment.id / "events.jsonl"
+    stream.write_text(event.model_dump_json() + "\n")
+    assert ArtifactStore(settings).snapshot(fixture_run.name).experiments[0].events == [event]
+
+
 def test_job_output_redacts_known_secrets(settings, monkeypatch):
     secret = settings.seed_password.get_secret_value()
     fake = SimpleNamespace(
@@ -223,3 +262,41 @@ def test_browser_unapproved_fault_refused(handler):
 def test_no_public_bind(settings):
     with pytest.raises(ValueError, match="loopback"):
         dashboard.make_server(settings, "0.0.0.0", 8765)
+
+
+@pytest.mark.parametrize(
+    ("code", "hint"),
+    [
+        (errno.EADDRINUSE, "already in use"),
+        (errno.EPERM, "regular terminal"),
+        (errno.EACCES, "regular terminal"),
+        (errno.EADDRNOTAVAIL, "Check the host and port"),
+    ],
+)
+def test_dashboard_startup_explains_os_failure(cli_workspace, monkeypatch, code, hint):
+    def fail(*args):
+        raise OSError(code, "unsafe detail must not appear")
+
+    monkeypatch.setattr(dashboard, "make_server", fail)
+    from chaosai.cli import app
+
+    result = CliRunner().invoke(app, ["dashboard", "--port", "9876"])
+    assert result.exit_code == 1 and hint in result.output
+    assert "unsafe detail" not in result.output
+    if code == errno.EADDRINUSE:
+        assert "http://127.0.0.1:9876" in result.output
+        assert "--port 8766" in result.output
+
+
+@pytest.mark.parametrize("error", [ValueError("secret setting"), OSError("secret setting")])
+def test_dashboard_invalid_config_has_safe_hint(cli_workspace, monkeypatch, error):
+    from chaosai import cli
+
+    def fail():
+        raise error
+
+    monkeypatch.setattr(cli, "load_config", fail)
+    result = CliRunner().invoke(cli.app, ["dashboard"])
+    assert result.exit_code == 1
+    assert "DASHBOARD_HOST" in result.output and "DASHBOARD_PORT" in result.output
+    assert "secret setting" not in result.output
