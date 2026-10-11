@@ -55,18 +55,27 @@ app = typer.Typer(
 def run(
     offline: bool = typer.Option(False, help="Disable LLM calls; use deterministic fixtures."),
     yes: bool = typer.Option(False, "--yes", help="Approve experiments."),
-    dry_run: bool = typer.Option(False, help="Write a plan/report without executing experiments."),
+    dry_run: bool = typer.Option(False, help="Print plan/decisions without applying faults."),
+    max_experiments: int = typer.Option(8, min=1, max=8, help="Maximum ranked experiments."),
+    reuse_baseline: bool = typer.Option(
+        False, help="Reuse only a stable baseline younger than 1h."
+    ),
 ) -> None:
-    """Plan experiments and run one supported measured fault, or offline fixtures."""
+    """Plan and run sequential measured experiments, or isolated offline fixtures."""
     typer.echo(
         "Offline fixture simulation."
         if offline
-        else "AI/heuristic plan; one supported measured fault; analysis/scoring remain Phase 9."
+        else "AI/heuristic plan; sequential measured faults; analysis/scoring remain Phase 9."
     )
     approver = Approver(yes=yes, is_tty=sys.stdin.isatty(), ask=input, simulation=offline)
     try:
         run_dir = run_pipeline(
-            load_config(offline=offline), approver, dry_run=dry_run, offline=offline
+            load_config(offline=offline),
+            approver,
+            dry_run=dry_run,
+            offline=offline,
+            max_experiments=max_experiments,
+            reuse_baseline=reuse_baseline,
         )
     except (
         ApprovalRequired,
@@ -85,7 +94,37 @@ def run(
         )
         typer.echo(message, err=True)
         raise typer.Exit(2) from exc
+    decisions_path = run_dir / "decisions.json"
+    decisions = read_json(decisions_path, list[PolicyDecision]) if decisions_path.exists() else []
+    for decision in sorted(decisions, key=lambda d: d.final.rank):
+        spec = decision.final
+        would_run = spec.rank <= max_experiments and decision.allowed
+        action = (
+            "would run"
+            if dry_run and would_run
+            else ("outside selected limit" if not would_run else "planned")
+        )
+        typer.echo(
+            f"{spec.rank}. {spec.fault} on {spec.target} ({spec.duration_s}s, "
+            f"intensity={spec.intensity}); source={decision.source}; "
+            f"{action}"
+        )
+        typer.echo(f"Reason: {spec.reason}")
+        for clamp in decision.clamps:
+            typer.echo(f"Clamp {clamp.field}: {clamp.requested} -> {clamp.final} ({clamp.reason})")
+        if not decision.allowed:
+            typer.echo(f"Denied: {decision.deny_reason}")
+    from chaosai.models import RunMeta
+
+    meta = read_json(run_dir / "run.json", RunMeta)
     exit_code = 0
+    if meta.stop_reason:
+        typer.echo(f"Stopped: {meta.stop_reason}")
+        exit_code = (
+            130
+            if meta.stop_reason.startswith("Interrupted")
+            else (0 if meta.stop_reason == "Approval: quit." else 2)
+        )
     if not offline and not dry_run:
         for path in (run_dir / "experiments").glob("*/result.json"):
             result = read_json(path, ExperimentResult)
@@ -94,7 +133,10 @@ def run(
                 exit_code = 2
             if result.abort_reason and result.abort_reason.startswith("Interrupted"):
                 exit_code = 130
-    typer.echo(f"Report: {run_dir / 'report.html'}")
+    if (run_dir / "report.html").exists():
+        typer.echo(f"Report: {run_dir / 'report.html'}")
+    else:
+        typer.echo(f"Run evidence: {run_dir}")
     if exit_code:
         raise typer.Exit(exit_code)
 

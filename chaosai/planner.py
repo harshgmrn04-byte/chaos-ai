@@ -94,7 +94,7 @@ def heuristic_candidates(graph: Graph, baseline: Baseline) -> list[ExperimentSpe
                 )
             )
     result: list[ExperimentSpec] = []
-    # Three implemented types come first; extended catalogue entries are planning only.
+    # Round-robin selection reserves fault diversity.
     while any(choices.values()):
         for entries in choices.values():
             if entries:

@@ -1,4 +1,4 @@
-# Deterministic safety — Phases 5 and 6
+# Deterministic safety — Phases 5–8
 
 All live fault and measured experiment operations are deterministic; none call an LLM.
 Phase 7 `run` obtains an AI/heuristic plan before entering this lifecycle. Planning emits
@@ -22,7 +22,8 @@ injectable local kind. MailHog remains non-injectable in the default graph.
 5–120 seconds (CLI default 30), CPU 0.1–0.5, traffic multiplier 2–8 and at most 150 total
 workers, abort error 0.05–0.9 and abort p95 multiplier 2–20. Caller-provided active fault and
 completed experiment counters deny concurrent faults and a ninth experiment. Traffic is
-denied if its minimum multiplier cannot fit. CPU/traffic injection comes in Phase 8.
+denied if its minimum multiplier cannot fit. Phase 8 implements CPU/traffic subject to the
+additional restoration/worker checks below.
 
 `FaultContext` connects the spec, graph, SDK client from target.py, Settings and UndoJournal.
 `Fault.apply` holds the process-shared operation lock across scope validation, writing the
@@ -184,3 +185,44 @@ The command reports observed self-heal true/false before undo. It does not assum
 Compose restart policy will restart a manually killed container. Verify running state and
 HTTP readiness independently; stopping Redis is already sufficient for Phase 5's required
 human checks. Do not delete journals or manually change container IDs before recovery.
+
+## Phase 8 exact CPU and traffic restoration
+
+The installed Docker SDK source was inspected without opening a Docker client. Container.update
+forwards keyword arguments to APIClient.update_container, whose signature has no nano_cpus and
+whose request construction omits zero cpu_period/cpu_quota. The Engine also updates CPU fields
+only when nonzero and rejects CFS period/quota updates on an existing NanoCpus configuration:
+[Docker Engine update source](https://github.com/moby/moby/blob/master/daemon/container/container_unix.go).
+These are SDK/source facts, not verification of the running Docker version.
+
+CPU faults refuse an original CpuQuota=0 or NanoCpus>0 before mutation, since exact metadata
+restoration is unavailable through this interface. Explicit unlimited CpuQuota=-1 is supported;
+a zero CpuPeriod is preserved throughout. Originals are durable before update; restoration
+sends only changed, supported nonzero values and verifies period/quota/NanoCpus exactly.
+Legacy non-restorable records stay pending; replay never passes an unsupported nano_cpus
+argument or marks an ignored zero update complete. No container recreation or unjournaled
+normalization is used. The default target declares no resource limits; do not assume its live
+CPU configuration or claim that a denied CPU spec ran. Other supported faults remain usable.
+
+JournalData version 1 accepts the existing container records and a distinct LoadUndoRecord
+(resource=load, project, owner_pid, original_workers, stop_requested, done/done_at). Empty
+legacy lists remain harmless, malformed data remains a denial. A traffic record contains no
+invented container/original CPU state. Owner undo joins extras before marking done. Another
+process persists stop_requested and leaves the live owner's undo pending. The runner notices
+this at its half-second control boundary and restores using its actual generator; the request
+time is not used as the measured restoration timestamp. A dead PID proves its workers died;
+a live/inaccessible/reused PID is conservatively unresolved. No signal is sent to another PID.
+
+Live automatic run holds the existing lease for its full duration. Startup reconciliation
+restores only scoped journaled state and requires all configured services running/unpaused;
+missing or unjournaled stopped/paused state is a denial, never repaired. Dry-run validates
+journals and refuses unresolved undo without replay. Doctor-lite remains read-only. Every
+runner keeps S9, S5, independent duration timer, half-second KILL, operation lock, journal,
+signal cleanup and measured recovery. Explicit cleanup_ok/interrupted result flags prevent
+continuation after failed component cleanup or a signal even when container rollback succeeds.
+The signal handler ignores repeat signals immediately while unwinding preparation/cleanup.
+
+Continuation additionally requires journal reconciliation, fresh measured readiness/recovery
+and >=20s cooldown, then the next runner's own S9 check. Prior recovery evidence is never
+rewritten. Human Phase 6/8 Docker verification and a fresh baseline are explicitly deferred
+until final verification at the end of Phase 10; these remain pending, not passed.

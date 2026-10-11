@@ -81,8 +81,8 @@ source; the run records the LLM source only if a validated LLM item survives.
 
 If the graph/budget cannot provide three distinct types, the smaller plan is returned with
 an explicit warning. An empty injectable graph yields an empty plan. `netem_delay` is
-catalogued but not plannable (Phase 11 stretch). `cpu_limit` and `traffic_spike` are planning
-only; their mechanisms remain Phase 8.
+catalogued but not plannable (Phase 11 stretch). `cpu_limit` and `traffic_spike` have Phase 8 mechanisms; CPU execution may be refused
+when the current CPU configuration cannot be restored exactly (see safety.md).
 
 ## CLI and phase boundary
 
@@ -101,9 +101,10 @@ run's graph, baseline, plan and decisions and prints ranked reasons, sources and
 Offline plan uses the packaged graph/baseline and heuristics, skipping target and dotenv.
 Planning against stable=false is allowed for inspection; it never changes readiness status.
 
-Live run uses the new planner but executes at most the first supported kill/stop/pause spec
-through the unchanged Phase 6 lifecycle. Planned extended faults are skipped. Dry-run writes
-plan/report without executing. Offline run preserves the original three synthetic evidence
+Phase 8 live run uses the grounded planner and executes selected supported specs in rank order
+through the measured runner, requiring cleanup and measured cooldown readiness between entries.
+The complete plan/decisions and a source-facts snapshot are retained; run metadata records all
+planner sources and approvals. Dry-run prints plan/decisions without fault execution. Offline run preserves the original three synthetic evidence
 examples and their IDs/order; its mock/none providers cannot open a real Gemini client, even
 when passed Gemini settings directly. Live analysis and scoring remain Phase 9.
 

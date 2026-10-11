@@ -9,7 +9,8 @@ import docker
 from docker.models.containers import Container
 
 from chaosai.config import Settings
-from chaosai.models import ExperimentSpec, Graph, UndoRecord
+from chaosai.load import LoadGenerator
+from chaosai.models import ExperimentSpec, Graph, LoadUndoRecord, UndoRecord
 from chaosai.safety import SafetyError, UndoJournal, file_lock, kill_requested, scope_guard
 from chaosai.target import require_scope
 
@@ -21,9 +22,10 @@ class FaultContext:
     client: docker.DockerClient
     settings: Settings
     journal: UndoJournal
-    record: UndoRecord | None = None
+    record: UndoRecord | LoadUndoRecord | None = None
     self_healed: bool | None = None
     cancel_event: threading.Event | None = None
+    generator: LoadGenerator | None = None
 
 
 class Fault(ABC):
@@ -58,10 +60,17 @@ class Fault(ABC):
             if container.status != "running" or container.attrs.get("State", {}).get("Paused"):
                 raise SafetyError("Injection requires a running, unpaused container.")
             self._check_cancelled(ctx)
+            self.check_original(container)
             ctx.record = ctx.journal.record(container, self.name)
             require_scope(container, ctx.settings.compose_project)
             self._check_cancelled(ctx)
-            self._apply(container)
+            self.apply_container(container, ctx)
+
+    def check_original(self, container: Container) -> None:
+        """Reject states which the mechanism cannot restore exactly."""
+
+    def apply_container(self, container: Container, ctx: FaultContext) -> None:
+        self._apply(container)
 
     @abstractmethod
     def _apply(self, container: Container) -> None:

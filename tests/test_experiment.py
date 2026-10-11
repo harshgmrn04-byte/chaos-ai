@@ -20,8 +20,6 @@ from chaosai.models import (
     ExperimentResult,
     Graph,
     JournalData,
-    Plan,
-    RunMeta,
 )
 from chaosai.runs import create_run, read_json, read_jsonl, write_json
 from chaosai.safety import UndoJournal, create_kill_flag, file_lock, policy_gate
@@ -85,14 +83,21 @@ class Harness:
                 self.samples = samples
                 self.failed = threading.Event()
                 self.stopped = False
+                self.worker_count = 0
+                self.worker_counts = []
                 harness.load = self
 
             def prepare(self, users: int) -> None:
                 if harness.mode == "prepare_exception":
                     raise RuntimeError("password=must never be persisted")
 
-            def set_workers(self, users: int) -> None:
-                pass
+            def set_workers(self, users: int, *, journey: str | None = None) -> None:
+                self.worker_count = users
+                self.worker_counts.append(users)
+
+            def restore_workers(self, users: int) -> None:
+                self.worker_count = users
+                self.worker_counts.append(users)
 
             def stop(self) -> None:
                 self.stopped = True
@@ -418,40 +423,6 @@ def test_failed_rollback_retains_journal_and_reports_false(harness: Harness) -> 
     assert harness.client.close.call_count == 1
 
 
-def test_live_pipeline_plans_but_executes_only_one_supported_fault(
-    harness: Harness,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    h = harness
-    h.settings.target_dir = Path(__file__).parent / "fixtures"
-    write_json(h.settings.safety_dir / "baseline.json", h.baseline)
-    monkeypatch.setattr(runner, "get_docker_client", lambda: h.client)
-    monkeypatch.setattr(experiment, "get_fault", get_fault)
-    monkeypatch.setattr(runner, "map_target", lambda *args, **kwargs: h.graph)
-    original = runner.execute_experiment
-
-    def execute(decision: object, run_dir: Path, **kwargs: object) -> ExperimentResult:
-        h.run_dir = run_dir
-        return original(decision, run_dir, **kwargs)
-
-    monkeypatch.setattr(runner, "execute_experiment", execute)
-    for stage in ("analyze_results", "score_results", "measure_baseline"):
-        monkeypatch.setattr(runner, stage, Mock(side_effect=AssertionError(stage)))
-    directory = runner.run_pipeline(h.settings, Approver(yes=True, is_tty=False, ask=input))
-    assert len(list((directory / "experiments").glob("*/result.json"))) == 1
-    plan = read_json(directory / "plan.json", Plan)
-    assert len(plan.root) == 8
-    assert len({spec.fault for spec in plan.root}) >= 3
-    result = read_json(next((directory / "experiments").glob("*/result.json")), ExperimentResult)
-    assert result.spec.fault in {"kill", "stop", "pause"}
-    assert read_json(directory / "run.json", RunMeta).planner_source == "mock"
-    assert not read_json(directory / "run.json", RunMeta).offline
-    html = (directory / "report.html").read_text()
-    assert "Measured Phase 6" in html and "fixture data only" not in html
-    assert read_json(directory / "scores.json", list) == []
-    assert read_json(directory / "findings.json", list) == []
-
-
 def test_cli_inject_refuses_without_tty(cli_workspace: Path) -> None:
     result = CliRunner().invoke(cli.app, ["inject", "stop", "redis"])
     assert result.exit_code == 2 and "No TTY" in result.output
@@ -616,3 +587,40 @@ def test_cancellation_during_scope_reload_prevents_mutation(harness: Harness) ->
         if (h.run_dir / "journal.json").exists()
         else True
     )
+
+
+@pytest.mark.parametrize("fault,target", [("cpu_limit", "order-service"), ("traffic_spike", "all")])
+@pytest.mark.parametrize("mode", ["normal", "KILL", "SIGINT", "SIGTERM", "external"])
+def test_extended_measured_runner_cleanup_on_every_exit(
+    harness: Harness,
+    fault: str,
+    target: str,
+    mode: str,
+) -> None:
+    harness.fault = get_fault(fault)
+    harness.target = target
+    harness.mode = mode
+    original = harness.container.attrs["HostConfig"].copy()
+    result = harness.run()
+    assert_clean(harness, result)
+    if fault == "cpu_limit":
+        assert harness.container.attrs["HostConfig"] == original
+    else:
+        assert max(harness.load.worker_counts) == 20
+        assert harness.load.worker_counts[-1] == 10
+    if mode in {"SIGINT", "SIGTERM"}:
+        assert result.interrupted
+    if mode == "KILL":
+        assert harness.settings.kill_path.exists()
+
+
+def test_cpu_zero_denial_never_claims_measured_fault(harness: Harness) -> None:
+    harness.fault = get_fault("cpu_limit")
+    harness.target = "order-service"
+    harness.container.attrs["HostConfig"].update(CpuPeriod=0, CpuQuota=0)
+    result = harness.run()
+    assert result.aborted and result.rollback_ok
+    assert not harness.container.calls
+    assert result.during == result.after == {} and not result.recovered
+    assert "zero CpuQuota" in result.abort_reason
+    assert any("No fault applied" in note for note in result.evidence_limits)

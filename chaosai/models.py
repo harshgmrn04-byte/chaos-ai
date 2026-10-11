@@ -253,9 +253,21 @@ class UndoRecord(Model):
     done_at: float | None = Field(default=None, ge=0)
 
 
+class LoadUndoRecord(Model):
+    resource: Literal["load"] = "load"
+    id: str
+    project: str
+    fault: Literal["traffic_spike"] = "traffic_spike"
+    original_workers: int = Field(ge=1, le=75)
+    owner_pid: int = Field(gt=0)
+    stop_requested: bool = False
+    done: bool = False
+    done_at: float | None = Field(default=None, ge=0)
+
+
 class JournalData(Model):
     version: Literal[1] = 1
-    records: list[UndoRecord] = Field(default_factory=list)
+    records: list[UndoRecord | LoadUndoRecord] = Field(default_factory=list)
 
 
 class WatchdogWindow(Model):
@@ -307,6 +319,8 @@ class ExperimentResult(Model):
     skipped: bool = False
     skip_reason: str | None = None
     evidence_limits: list[str] = Field(default_factory=list)
+    cleanup_ok: bool = True
+    interrupted: bool = False
     approval_decision: Literal["yes", "skip", "all", "quit"] = "yes"
 
 
@@ -357,6 +371,9 @@ class RunMeta(Model):
     target_project: str
     approvals: list[Approval]
     offline: bool = True
+    planner_sources: list[str] = Field(default_factory=list)
+    stop_reason: str | None = None
+    baseline_source: str | None = None
 
 
 class Plan(RootModel[list[ExperimentSpec]]):

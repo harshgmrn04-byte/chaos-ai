@@ -77,11 +77,17 @@ class FakeContainer:
         self.attrs["State"]["Paused"] = False
         self.status = "running"
 
-    def update(self, *, cpu_period: int, cpu_quota: int, nano_cpus: int) -> None:
-        self.calls.append(("update", cpu_period, cpu_quota, nano_cpus))
-        self.attrs["HostConfig"].update(
-            CpuPeriod=cpu_period, CpuQuota=cpu_quota, NanoCpus=nano_cpus
-        )
+    def update(self, *, cpu_period: int | None = None, cpu_quota: int | None = None) -> None:
+        self.before_apply()
+        host = self.attrs["HostConfig"]
+        # Match the installed SDK/Engine: omitted or zero means unchanged.
+        if host.get("NanoCpus", 0) and (cpu_period or cpu_quota):
+            raise docker.errors.APIError("Conflicting NanoCpus")
+        if cpu_period:
+            host["CpuPeriod"] = cpu_period
+        if cpu_quota:
+            host["CpuQuota"] = cpu_quota
+        self.calls.append(("update", host["CpuPeriod"], host["CpuQuota"], host["NanoCpus"]))
 
 
 def spec_for(fault: str = "stop", target: str = "redis", **changes: object) -> ExperimentSpec:

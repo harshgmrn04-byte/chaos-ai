@@ -173,7 +173,7 @@ def test_dry_run_never_prompts_or_executes(
     monkeypatch.setattr(runner, "execute_fixture", fail)
     monkeypatch.setattr(runner, "execute_experiment", fail)
     run_dir = runner.run_pipeline(
-        settings, Approver(yes=False, is_tty=False, ask=fail), dry_run=True
+        settings, Approver(yes=False, is_tty=False, ask=fail), dry_run=True, offline=True
     )
     assert not list((run_dir / "experiments").iterdir())
     assert read_json(run_dir / "run.json", RunMeta).approvals == []

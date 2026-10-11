@@ -6,9 +6,8 @@ from pathlib import Path
 from chaosai.analyzer import analyze_results
 from chaosai.approval import Approver
 from chaosai.baseline import measure_baseline
-from chaosai.catalogue import definition
 from chaosai.config import Settings
-from chaosai.experiment import execute_experiment
+from chaosai.experiment import execute_experiment as execute_experiment
 from chaosai.fixture_data import fixture
 from chaosai.mapper import map_target, save_graph
 from chaosai.models import (
@@ -19,14 +18,11 @@ from chaosai.models import (
     PolicyDecision,
     RunMeta,
     Sample,
-    Summary,
 )
 from chaosai.planner import plan_experiments
 from chaosai.report import render_report
 from chaosai.runs import append_jsonl, create_run, read_json, write_json
-from chaosai.safety import file_lock, replay_journals
 from chaosai.scoring import score_results
-from chaosai.target import get_docker_client
 
 
 def fixture_decision(spec: ExperimentSpec) -> PolicyDecision:
@@ -54,8 +50,26 @@ def execute_fixture(decision: PolicyDecision, run_dir: Path) -> ExperimentResult
 
 
 def run_pipeline(
-    settings: Settings, approver: Approver, *, dry_run: bool = False, offline: bool = False
+    settings: Settings,
+    approver: Approver,
+    *,
+    dry_run: bool = False,
+    offline: bool = False,
+    max_experiments: int = 8,
+    reuse_baseline: bool = False,
 ) -> Path:
+    if not 1 <= max_experiments <= 8:
+        raise ValueError("max-experiments must be between 1 and 8.")
+    if not offline:
+        from chaosai.orchestrator import run_automatic
+
+        return run_automatic(
+            settings,
+            approver,
+            dry_run=dry_run,
+            max_experiments=max_experiments,
+            reuse_baseline=reuse_baseline,
+        )
     if not dry_run:
         approver.ensure_interactive()
     run_dir = create_run(settings.runs_dir)
@@ -71,61 +85,25 @@ def run_pipeline(
     write_json(run_dir / "run.json", meta)
     # Legacy empty journal is upgraded durably by the first real fault.
     write_json(run_dir / "journal.json", [])
-    if not offline and not dry_run:
-        client = get_docker_client()
-        try:
-            with file_lock(settings.active_lock_path, blocking=False):
-                replay_journals(client, settings)
-        finally:
-            client.close()
-    graph = map_target(settings, offline=offline)
+    graph = map_target(settings, offline=True)
     save_graph(graph, settings, run_dir)
-    latest = settings.safety_dir / "baseline.json"
-    baseline = (
-        read_json(latest, Baseline)
-        if not offline and latest.exists()
-        else measure_baseline(graph, settings, run_dir, offline=offline)
-    )
+    baseline = measure_baseline(graph, settings, run_dir, offline=True)
     write_json(run_dir / "baseline.json", baseline)
-    provider = (
-        ("mock" if settings.llm_provider == "mock" else "none")
-        if offline
-        else settings.llm_provider
-    )
+    provider = "mock" if settings.llm_provider == "mock" else "none"
     plan, meta.planner_source = plan_experiments(
         graph,
         baseline,
         provider=provider,
         cache_dir=run_dir / "llm",
         settings=settings,
-        simulation=offline,
+        simulation=True,
     )
     write_json(run_dir / "plan.json", plan)
     decisions = read_json(run_dir / "decisions.json", list[PolicyDecision])
+    meta.planner_sources = list(dict.fromkeys(d.source for d in decisions))
     results: list[ExperimentResult] = []
     if not dry_run:
-        for decision in decisions:
-            if not offline:
-                entry = definition(decision.final.fault)
-                if entry is None or not entry.implemented or not decision.allowed:
-                    continue
-                result = execute_experiment(
-                    decision,
-                    run_dir,
-                    settings=settings,
-                    graph=graph,
-                    baseline=baseline,
-                    approver=approver,
-                )
-                results.append(result)
-                meta.approvals.append(
-                    Approval(
-                        experiment_id=decision.experiment_id,
-                        decision=result.approval_decision,
-                    )
-                )
-                write_json(run_dir / "run.json", meta)
-                break
+        for decision in decisions[:max_experiments]:
             choice = approver.decide(decision)
             meta.approvals.append(Approval(experiment_id=decision.experiment_id, decision=choice))
             write_json(run_dir / "run.json", meta)
@@ -133,31 +111,11 @@ def run_pipeline(
                 break
             if choice != "skip":
                 results.append(execute_fixture(decision, run_dir))
-    if offline:
-        findings, meta.analyzer_source = analyze_results(
-            results, provider=provider, cache_dir=run_dir / "llm"
-        )
-    else:
-        findings = []
-    write_json(run_dir / "findings.json", findings)
-    scores, summary = (
-        score_results(results)
-        if offline
-        else (
-            [],
-            Summary(
-                overall_score=0,
-                band="not assessed",
-                ranked_weaknesses=[],
-                top_fixes=[],
-                narrative=(
-                    "Measured experiment evidence is available; analysis/scoring arrive in Phase 9."
-                    if results
-                    else "Plan only; no experiment executed. Analysis/scoring pending."
-                ),
-            ),
-        )
+    findings, meta.analyzer_source = analyze_results(
+        results, provider=provider, cache_dir=run_dir / "llm"
     )
+    write_json(run_dir / "findings.json", findings)
+    scores, summary = score_results(results)
     write_json(run_dir / "scores.json", scores)
     write_json(run_dir / "summary.json", summary)
     write_json(run_dir / "run.json", meta)

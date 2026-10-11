@@ -2,16 +2,18 @@
 
 import threading
 import time
+from contextlib import nullcontext
 from datetime import UTC, datetime
 from pathlib import Path
 
-from chaosai.approval import Approver
+from chaosai.approval import Approver, Choice
 from chaosai.config import Settings
 from chaosai.evaluate import compute_during_after, find_recovery, impacted_journeys, near_baseline
 from chaosai.evaluate import verdict as evaluate_verdict
 from chaosai.evidence import collect_logs, container_events
 from chaosai.faults import get_fault
 from chaosai.faults.base import FaultContext
+from chaosai.faults.traffic_spike import TrafficSpikeFault
 from chaosai.load import LoadGenerator, SampleBuffer
 from chaosai.metrics import ContainerStatsPoller
 from chaosai.models import Baseline, Event, ExperimentResult, Graph, PolicyDecision
@@ -46,6 +48,8 @@ def execute_experiment(
     graph: Graph,
     baseline: Baseline,
     approver: Approver,
+    approval_choice: Choice | None = None,
+    lease_held: bool = False,
 ) -> ExperimentResult:
     """Approve, precheck, inject, observe, undo, recover and persist even on failure."""
     approver.ensure_interactive()
@@ -81,11 +85,12 @@ def execute_experiment(
     thresholds.hypothesis.max_error_rate = spec.hypothesis.max_error_rate
     thresholds.hypothesis.p95_multiple = spec.hypothesis.max_p95_multiple
     event("APPROVE", "Policy-clamped experiment awaiting approval.")
-    choice = approver.decide(decision)
+    choice = approval_choice if approval_choice is not None else approver.decide(decision)
     skipped, skip_reason = choice in {"skip", "quit"}, None
     if skipped:
         skip_reason = f"Approval: {choice}."
     aborted, reason, rollback_ok = False, None, False
+    cleanup_ok, interrupted = True, False
     recovered, recovery_time = False, None
     t_inject = t_undo = None
     client = generator = poller = watchdog = timer = observer = control = preparer = ctx = None
@@ -130,6 +135,8 @@ def execute_experiment(
                     control_reason = "Kill switch requested."
                 elif ctx and ctx.record and not cap.is_set():
                     done, done_at = ctx.journal.completion(ctx.record.id)
+                    if ctx.journal.stop_requested(ctx.record.id):
+                        control_reason = "Rolled back from another terminal."
                     if done:
                         control_reason = "Rolled back from another terminal."
                         t_undo = done_at or time.time()
@@ -162,7 +169,7 @@ def execute_experiment(
             prepare_done.set()
 
     def cleanup() -> None:
-        nonlocal cleaned, logs, aborted, reason
+        nonlocal cleaned, logs, aborted, reason, cleanup_ok
         if cleaned:
             return
         cleaned = True
@@ -178,6 +185,7 @@ def execute_experiment(
                 try:
                     component.stop()
                 except Exception as exc:
+                    cleanup_ok = False
                     aborted, reason = True, f"Cleanup failed ({type(exc).__name__})."
         for thread in (observer, control, preparer):
             if thread is not None:
@@ -189,19 +197,29 @@ def execute_experiment(
                 try:
                     client.close()
                 except Exception:
+                    cleanup_ok = False
                     aborted, reason = True, "Docker client cleanup failed."
 
     try:
         if not skipped:
             client = get_docker_client()
-            with file_lock(settings.active_lock_path, blocking=False):
+            with (
+                nullcontext()
+                if lease_held
+                else file_lock(settings.active_lock_path, blocking=False)
+            ):
                 lease_acquired = True
                 # Signals stay ignored during ALL cleanup, including thread/client closure.
                 with rollback_signals(cleanup, abort):
                     replay_journals(client, settings)
                     if kill_requested(settings):
                         raise SafetyError("KILL flag present; explicitly clear it after rollback.")
-                    container = scope_guard(spec.target, graph, client, settings.compose_project)
+                    traffic = isinstance(fault, TrafficSpikeFault)
+                    container = (
+                        None
+                        if traffic
+                        else scope_guard(spec.target, graph, client, settings.compose_project)
+                    )
                     ctx = FaultContext(
                         spec,
                         graph,
@@ -219,6 +237,7 @@ def execute_experiment(
                         directory / "containers.jsonl",
                     )
                     generator = LoadGenerator(settings, client, samples)
+                    ctx.generator = generator
                     event("PRECHECK", "Reconciling journals; measuring S9 readiness (up to 60s).")
                     deadline = time.monotonic() + settings.precheck_timeout_s
                     preparer = threading.Thread(target=prepare_load, daemon=True)
@@ -251,13 +270,19 @@ def execute_experiment(
                             time.time() - settings.load_timeout_s,
                         )
                         if healthy:
-                            container = scope_guard(
-                                spec.target, graph, client, settings.compose_project
+                            container = (
+                                None
+                                if traffic
+                                else scope_guard(
+                                    spec.target, graph, client, settings.compose_project
+                                )
                             )
-                            if (
-                                prepare_done.is_set()
-                                and container.status == "running"
-                                and not container.attrs.get("State", {}).get("Paused")
+                            if prepare_done.is_set() and (
+                                traffic
+                                or (
+                                    container.status == "running"
+                                    and not container.attrs.get("State", {}).get("Paused")
+                                )
                             ):
                                 break
                             healthy, precheck_reason = False, "Target is not running/unpaused."
@@ -282,7 +307,7 @@ def execute_experiment(
                             baseline,
                             thresholds,
                             abort,
-                            target_containers={container.name},
+                            target_containers=set() if traffic else {container.name},
                             started_at=t_inject,
                         )
                         watchdog.start()
@@ -312,9 +337,10 @@ def execute_experiment(
                                 break
                             if ctx.record:
                                 done, done_at = ctx.journal.completion(ctx.record.id)
-                                if done:
+                                if done or ctx.journal.stop_requested(ctx.record.id):
                                     aborted, reason = True, "Rolled back from another terminal."
-                                    t_undo = done_at or time.time()
+                                    if done:
+                                        t_undo = done_at or time.time()
                                     break
                             wait_tick(0.5)
                     event("UNDO", reason or "Duration complete; restoring containers.")
@@ -354,6 +380,7 @@ def execute_experiment(
         skipped, skip_reason = True, f"S9 timeout: {exc}"
         event("PRECHECK", skip_reason)
     except (Exception, KeyboardInterrupt) as exc:
+        interrupted = isinstance(exc, (SafetyInterrupted, KeyboardInterrupt))
         aborted, reason = (
             True,
             (
@@ -364,6 +391,9 @@ def execute_experiment(
                 else f"Experiment failed ({type(exc).__name__}); rollback requested."
             ),
         )
+        if ctx is not None and ctx.record is None:
+            # Write-before-apply guarantees that no mutation began without a record.
+            t_inject = None
         event("UNDO", reason)
     finally:
         cleanup()
@@ -416,6 +446,8 @@ def execute_experiment(
         skip_reason=skip_reason,
         evidence_limits=limits,
         approval_decision=choice,
+        cleanup_ok=cleanup_ok,
+        interrupted=interrupted,
     )
     write_json(directory / "result.json", result)
     return result

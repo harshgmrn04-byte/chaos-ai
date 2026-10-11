@@ -299,7 +299,7 @@ def test_runtime_worker_add_remove_and_cleanup(settings: Settings, tmp_path: Pat
     gen = generator(settings, tmp_path)
     started = threading.Event()
 
-    def worker(stop: threading.Event) -> None:
+    def worker(stop: threading.Event, journey: str | None = None) -> None:
         started.set()
         stop.wait()
 

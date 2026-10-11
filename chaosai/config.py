@@ -37,6 +37,8 @@ class Settings(BaseModel):
     quick_duration_s: float = Field(default=40, gt=0)
     precheck_timeout_s: float = Field(default=60, gt=0, le=60)
     recovery_timeout_s: float = Field(default=120, gt=0, le=120)
+    cooldown_s: float = Field(default=20, ge=20)
+    baseline_max_age_s: float = Field(default=3600, gt=0, le=3600)
     experiment_log_line_chars: int = Field(default=300, ge=1, le=1000)
     metrics_interval_s: float = Field(default=5, gt=0)
 

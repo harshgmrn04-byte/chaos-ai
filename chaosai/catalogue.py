@@ -12,6 +12,7 @@ CATALOGUE = (
     ),
     FaultDefinition(
         fault="cpu_limit",
+        implemented=True,
         node_kinds=["app", "database"],
         min_intensity=0.1,
         max_intensity=0.5,
@@ -19,6 +20,7 @@ CATALOGUE = (
     ),
     FaultDefinition(
         fault="traffic_spike",
+        implemented=True,
         node_kinds=[],
         target_kind="journey",
         min_intensity=2,

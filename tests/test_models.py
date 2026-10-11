@@ -63,6 +63,7 @@ def test_every_contract_round_trips() -> None:
                 )
             ]
         ),
+        models.LoadUndoRecord(id="load", project="target", original_workers=10, owner_pid=1),
         models.WatchdogWindow(elapsed_s=5, journeys={}),
         models.WatchdogState(target_containers={"test"}),
         models.ContainerObservation(

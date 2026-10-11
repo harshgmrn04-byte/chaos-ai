@@ -6,12 +6,11 @@ Phase 2 provides live target bring-up, diagnostics, seeding and checkout verific
 Phase 3 maps Compose deterministically, with manual overrides and Mermaid output.
 Phase 4 adds live threaded load, scoped telemetry and measured baselines.
 Phase 5 adds deterministic faults, scope/policy checks, durable undo, watchdog and kill switch.
-Phase 6 runs one measured experiment with load, one-second telemetry, watchdog, durable rollback
-and recovery evidence. Phase 7 adds Gemini/mock/none providers and graph-based AI/heuristic
-planning with policy traces. `inject` supports kill/stop/pause; live `run` executes at most
-one supported experiment from the ranked plan. `--offline` retains synthetic fixtures without
-target access. Live analysis/scoring
-and automatic multiple-experiment mode remain later phases.
+Phase 8 runs grounded AI/heuristic plans sequentially with approval, measured load/telemetry,
+watchdog, durable rollback and recovery/cooldown gates. CPU and traffic faults extend kill,
+stop and pause; CPU settings that cannot be restored exactly are refused before mutation.
+Live analysis/scoring remain Phase 9. `--offline` retains synthetic fixtures without
+Docker, target access, dotenv, network or waiting.
 
 ```sh
 cd chaos-ai
@@ -61,7 +60,7 @@ chaosai plan --offline             # fixture graph/baseline + heuristics; no net
 Plans contain up to eight experiments and at least three fault types when the graph permits.
 `plan.json` holds final specs; `decisions.json` records reasons, requested/final values, clamps
 and per-item sources. Invalid AI proposals are dropped and heuristics fill gaps. CPU and
-traffic faults are labeled planning only; their mechanisms remain Phase 8. Netem is stretch
+traffic mechanisms are available with exact-restore and worker-budget safety checks. Netem is stretch
 and not selected. `plan` can inspect an unstable baseline, but S9 still refuses injection.
 See [llm-planning.md](docs/llm-planning.md) for resolution, retries, caching and limits.
 
@@ -93,8 +92,10 @@ See [safety.md](docs/safety.md) for contracts, recovery limits and exact two-ter
 chaosai baseline                              # or reuse the saved stable baseline
 chaosai inject stop redis --duration 30
 chaosai inject stop redis --duration 30 --abort-error-rate 0.05
-chaosai run                                   # ranked plan, at most one supported measured fault
-chaosai run --dry-run                         # plan/report without injection
+chaosai run                                   # ranked sequential plan with y/n/a/q approval
+chaosai run --dry-run                         # live plan/decisions, no faults
+chaosai run --yes --max-experiments 4           # up to four ranked entries
+chaosai run --reuse-baseline                   # reuse only stable baseline younger than 1h
 bash scripts/day1_demo.sh
 ```
 
@@ -260,3 +261,12 @@ Tests use mock providers or the offline fallback, block network and dotenv reads
 temporary files under `tests/.tmp/`. Docker/live HTTP integration tests are marked `integration` and run only by the human.
 
 See `docs/target-notes.md` for source evidence and `docs/progress.md` for phase status.
+
+Phase 8 run controls and restoration limits are documented in [docs/experiments.md](docs/experiments.md).
+Dry-run performs read-only doctor checks and may measure a fresh baseline with normal load;
+`--offline --dry-run` uses only fixtures. Default live run measures a fresh baseline;
+`--reuse-baseline` never bypasses freshness/stability. Every continuation needs successful undo,
+cleanup and measured readiness/recovery plus at least 20s cooldown. Sparse journey evidence may
+stop the sequence. CPU with original quota 0 or NanoCpus is refused because Docker update cannot
+restore those original fields exactly; explicit unlimited quota -1 is supported. Human Phase 6/8
+live checks remain deferred to final verification at the end of Phase 10, not passed.

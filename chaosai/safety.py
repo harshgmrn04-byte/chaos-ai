@@ -12,6 +12,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from types import FrameType
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import docker
@@ -23,12 +24,16 @@ from chaosai.models import (
     ExperimentSpec,
     Graph,
     JournalData,
+    LoadUndoRecord,
     OriginalContainerState,
     PolicyDecision,
     UndoRecord,
 )
 from chaosai.runs import write_json
 from chaosai.target import TargetError, require_scope
+
+if TYPE_CHECKING:
+    from chaosai.load import LoadGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +168,7 @@ class UndoJournal:
 
     def __init__(self, path: Path, client: docker.DockerClient, settings: Settings) -> None:
         self.path, self.client, self.settings = path, client, settings
+        self._loads: dict[str, LoadGenerator] = {}
 
     def _load(self) -> JournalData:
         if not self.path.exists():
@@ -200,6 +206,47 @@ class UndoJournal:
         self._save(data)
         return record
 
+    def record_load(self, generator: "LoadGenerator") -> LoadUndoRecord:
+        record = LoadUndoRecord(
+            id=uuid4().hex,
+            project=self.settings.compose_project,
+            original_workers=generator.worker_count,
+            owner_pid=os.getpid(),
+        )
+        data = self._load()
+        data.records.append(record)
+        # Keep cleanup ownership even if a directory fsync fails after the rename.
+        self._loads[record.id] = generator
+        self._save(data)
+        return record
+
+    def stop_requested(self, record_id: str) -> bool:
+        return any(
+            isinstance(r, LoadUndoRecord) and r.id == record_id and r.stop_requested
+            for r in self._load().records
+        )
+
+    def _restore_load(self, record: LoadUndoRecord, data: JournalData) -> None:
+        if record.project != self.settings.compose_project:
+            raise SafetyError("Journal project differs from COMPOSE_PROJECT.")
+        generator = self._loads.get(record.id)
+        if generator is not None:
+            generator.restore_workers(record.original_workers)
+            if generator.worker_count != record.original_workers:
+                raise SafetyError("Extra load workers remain; undo stays pending.")
+            return
+        # Threads cannot outlive their owning process. A live/unknown owner must ACK
+        # its own stop after joining workers; another terminal cannot pretend to undo it.
+        try:
+            os.kill(record.owner_pid, 0)
+        except ProcessLookupError:
+            return
+        except PermissionError:
+            pass
+        record.stop_requested = True
+        self._save(data)
+        raise SafetyError("Live load owner must join extra workers; undo remains pending.")
+
     def _restore(self, record: UndoRecord) -> None:
         if record.project != self.settings.compose_project:
             raise SafetyError("Journal project differs from COMPOSE_PROJECT.")
@@ -218,11 +265,20 @@ class UndoJournal:
             container.reload()
         if record.fault == "cpu_limit":
             original = record.original
-            container.update(
-                cpu_period=original.cpu_period,
-                cpu_quota=original.cpu_quota,
-                nano_cpus=original.nano_cpus,
-            )
+            host = container.attrs.get("HostConfig", {})
+            if host.get("NanoCpus", 0) != original.nano_cpus:
+                raise SafetyError("NanoCpus changed; SDK cannot restore it; undo remains pending.")
+            options = {}
+            for key, field, value in (
+                ("CpuPeriod", "cpu_period", original.cpu_period),
+                ("CpuQuota", "cpu_quota", original.cpu_quota),
+            ):
+                if host.get(key, 0) != value:
+                    if value == 0:
+                        raise SafetyError("Docker cannot reset CPU metadata to zero; undo pending.")
+                    options[field] = value
+            if options:
+                container.update(**options)
         container.reload()
         require_scope(container, self.settings.compose_project)
         if record.original.running and container.status != "running":
@@ -259,19 +315,24 @@ class UndoJournal:
         failed = False
         data = self._load()
         for record in reversed(data.records):
-            if container is not None and record.container != container:
+            if container is not None and (
+                isinstance(record, LoadUndoRecord) or record.container != container
+            ):
                 continue
             if fault is not None and record.fault != fault:
                 continue
             if record.done:
                 continue
             try:
-                self._restore(record)
+                if isinstance(record, LoadUndoRecord):
+                    self._restore_load(record, data)
+                else:
+                    self._restore(record)
                 record.done = True
                 record.done_at = time.time()
                 self._save(data)
                 restored += 1
-            except (TargetError, docker.errors.DockerException, OSError, ValueError):
+            except Exception:
                 failed = True
                 logger.error("Undo remains pending for record %s.", record.id)
         if failed:
@@ -333,6 +394,8 @@ def rollback_signals(rollback: Callable[[], object], abort: threading.Event) -> 
 
     def handler(signum: int, frame: FrameType | None) -> None:
         abort.set()
+        for sig in previous:
+            signal.signal(sig, signal.SIG_IGN)
         raise SafetyInterrupted(f"Signal {signum}: rollback requested.")
 
     try:

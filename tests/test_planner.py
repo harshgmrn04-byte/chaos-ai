@@ -218,7 +218,13 @@ def test_all_fault_types_have_catalogue_metadata() -> None:
         "traffic_spike",
         "netem_delay",
     }
-    assert {entry.fault for entry in CATALOGUE if entry.implemented} == {"kill", "stop", "pause"}
+    assert {entry.fault for entry in CATALOGUE if entry.implemented} == {
+        "kill",
+        "stop",
+        "pause",
+        "cpu_limit",
+        "traffic_spike",
+    }
 
 
 def test_prompt_quotes_untrusted_data_and_constrains_planning(

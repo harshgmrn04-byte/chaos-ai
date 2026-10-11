@@ -8,7 +8,7 @@
 - [x] Phase 5 — Faults, safety layer, watchdog, kill switch
 - [x] Phase 6 — Experiment runner and Day-1 demo
 - [x] Phase 7 — LLM layer and AI planner
-- [ ] Phase 8 — Extended faults and automatic run
+- [x] Phase 8 — Extended faults and automatic run
 - [ ] Phase 9 — Analyzer, scoring, report
 - [ ] Phase 10 — Freeze and polish
 - [ ] Phase 11 — Optional stretch
@@ -856,3 +856,122 @@ the specific observed claims independently of prompt compliance. RabbitMQ teleme
 pending live resilience evidence remain unresolved. Phase 8 was not started. Pre-existing
 .DS_Store and untracked =, checkout, login, retrieve are untouched and excluded. Follow-up local
 commit message: fix: ground planner explanations in target facts. Nothing pushed.
+
+## Phase 8 — 2026-10-11
+
+Implemented extended faults and automatic sequential run only. No Phase 9 analyzer/scoring,
+Phase 10 polish workflow or netem was started. Existing offline fixture analysis/scoring
+remains unchanged and synthetic; live reports contain no assessed scores or findings.
+
+CPU mechanism uses the installed Docker SDK Container.update for CFS limits, with original
+period/quota/NanoCpus journaled and fsynced before mutation. Restoration sends supported values
+and verifies exact original fields; explicit unlimited quota -1 and an unchanged implicit
+period 0 are supported. Installed SDK inspection and Docker Engine source established that
+zero update fields are omitted/ignored and nano_cpus is not an accepted update keyword.
+Consequently original CpuQuota=0 and NanoCpus>0 are refused before mutation, preserving exact
+restoration instead of normalizing metadata or recreating containers. Legacy non-restorable
+CPU records remain pending. This is a documented mechanism limitation, not a successful live
+CPU demonstration or a change to the target. SDK-shaped mock tests enforce these semantics.
+
+Traffic spikes increase prepared load workers by the policy-clamped multiplier, maximum 150
+including retiring workers. Extras target a mapped journey or the normal weighted mix; shared
+checkout/auth admission, credential checks and request timeouts remain intact. LoadUndoRecord
+records project, owner PID and original workers durably before starting extras; undo removes
+and joins workers before completion. A second-terminal replay requests live-owner cleanup and
+retains pending undo until acknowledged. A dead process proves its worker threads died; an
+unknown/live/reused PID remains pending conservatively. Existing version-1 container journals
+and empty legacy fixture journals remain readable. Failed writes/starts/joins and unsupported
+restoration cannot silently become successful undo.
+
+New orchestrator.py performs scoped reconciliation → doctor-lite → map → baseline → grounded
+planner → ranked approval/runner/cooldown. It holds the active lease through the complete live
+run. Reconciliation restores journaled state only, requires all expected services running and
+unpaused, and denies unjournaled failures instead of repairing them. Doctor-lite probes scoped
+state/health/ports and documented public GETs without an LLM/key check. Default run measures a
+baseline; --reuse-baseline is opt-in and requires stable=true, age >=0 and strictly <3600s.
+An unsuitable saved baseline causes measurement; a new unstable baseline still fails strict S9.
+
+The measured runner now supports both extended faults while preserving S1–S10, measured
+readiness/recovery, one-second Watchdog, independent pre-apply duration timer, half-second
+KILL/rollback control, operation lock, scope, journals and signal cleanup. Traffic rollback
+requests never supply a premature restoration timestamp. Cleanup_ok/interrupted fields make
+failed resource cleanup/signals explicit. Repeat signals are ignored immediately while
+unwinding cleanup. A rejected CPU configuration records no during/after fault impact.
+
+Each continuation requires successful rollback and cleanup, no unresolved undo, all expected
+services running/unpaused, fresh measured S9 readiness and three complete nonempty one-second
+recovery windows, plus >=20s cooldown. Cooldown has its own sample/readiness artifacts; it
+never overwrites an experiment's unproven recovered=false result. Failure results are recorded
+with safe exception classes and can continue only after these gates. q, KILL, signals, cleanup
+failure, pending undo or failed readiness stop the sequence. KILL is never cleared implicitly.
+
+CLI supports --yes, --dry-run, --max-experiments 1–8, --reuse-baseline and --offline, with
+persistent y/n/a/q approvals and non-TTY refusal before Docker access. The limit selects the
+first N ranked entries including skips; the entire plan/decision trace is retained. Approvals
+are persisted before execution. Dry-run validates pending journals without replay, applies no
+fault, prints sources/reasons/clamps/selected entries, and may measure a live baseline with
+normal load. Offline run/dry-run preserve original synthetic examples without Docker, target
+access, dotenv, network or waiting. run.json records target project, approvals, planner sources,
+baseline source and stop reason. source-facts.json preserves the curated revision/evidence;
+plan.json/decisions.json preserve requested/final reasons and numerical/grounding clamps.
+
+Actual agent checks, using the existing .venv:
+- ruff check .: passed.
+- pytest -q -m "not integration": 494 passed, three integration tests deselected. The existing
+  installed google-genai/Python 3.14 deprecation warning remains; no test failures.
+- python -m chaosai run --offline --yes: passed, synthetic report at
+  runs/20261011-014026/report.html.
+- python -m chaosai run --offline --dry-run: passed, plan-only fixture report at
+  runs/20261011-014027/report.html.
+- git diff --check: passed.
+
+New mock-only coverage includes installed SDK zero/nano behavior, supported exact CPU restore,
+non-restorable original refusal, durable-before-update/start boundaries, failures after journal
+rename/partial mutation, worker cap/join/cleanup, live-owner acknowledgment and dead-owner replay,
+rank ordering, y/n/a/q, non-TTY refusal, maximum selection, dry-run, baseline age/stability,
+recorded failure continuation, recovery gates, unresolved undo, missing scoped services,
+doctor failure, KILL, planning/cooldown signals, failed rollback and outer client cleanup.
+Measured runner tests exercise CPU and traffic normal completion, active KILL, SIGINT/SIGTERM
+and external rollback. Existing tests still block Docker/network/dotenv; no live integration,
+HTTP/load, real LLM, .env/key inspection or target changes were performed by the coding agent.
+Unrelated .DS_Store and untracked =, checkout, login, retrieve remain untouched and excluded.
+Local commit message: feat: extended faults and automatic run. Nothing pushed.
+
+**Explicit human-authorized Phase 6 deferral:** the user authorized Phase 8 implementation
+with all remaining Phase 6 live verification and a fresh baseline deferred until final
+verification at the end of Phase 10. This overrides the historical continuation checkpoint;
+it does not weaken runtime checks or establish live evidence. Impact, application recovery,
+strict Watchdog abort, active-fault KILL, Ctrl-C recovery and the Day-1 walkthrough remain
+**pending, not passed**. Phase 8 human Docker checks are deferred/pending too; none were requested
+from the human during this implementation session.
+
+The latest saved baseline 20261011-011425 remains stable=false despite zero request errors:
+checkout half-window p95 drift was 32.28%, beyond the unchanged 30% bound. Low-sample login
+was excluded. No saved baseline data or stability/readiness rule was edited. RabbitMQ queue-depth
+telemetry remains unavailable. Sparse recovery windows and the target's shared 100-request /
+15-minute auth budget can stop multi-experiment runs; no auth limiter reset/bypass was added.
+Bounded SDK/HTTP calls can delay rollback/worker joins. CPU with original zero quota/NanoCpus
+cannot execute under exact-restoration requirements, and unknown/reused traffic PIDs may need
+manual investigation while retained journals block continuation. These remain open limits.
+
+**Phase 8 "You verify (Docker)" (copied from BUILD_PLAN.md; deferred until end of Phase 10):**
+`chaosai run --dry-run`, then `chaosai run` (approve each) completing at least 4 experiments
+covering >= 3 fault types, and the app healthy afterwards (`chaosai smoke`).
+
+- [ ] chaosai run --dry-run — deferred, not passed.
+- [ ] chaosai run — approve each; actually complete >=4 experiments across >=3 fault types;
+  review measured impact, rollback/cleanup and recovery/cooldown evidence — deferred, not passed.
+- [ ] chaosai smoke — confirm the app healthy afterwards — deferred, not passed.
+
+```sh
+cd "/Users/harsh/Desktop/Bosch Hackathon Optimised/chaos-ai"
+source .venv/bin/activate
+chaosai run --dry-run
+chaosai run
+chaosai smoke
+```
+
+At final verification, first complete the explicitly deferred fresh baseline and Phase 6
+checks listed above and in experiments.md/safety.md. An S9 skip, mechanism denial, successful
+container rollback or synthetic fixture never counts as a completed live experiment/recovery.
+Do not silently clear KILL or repair unjournaled state. Phases 9 and 10 remain unchecked.

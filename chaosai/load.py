@@ -319,13 +319,15 @@ class LoadGenerator:
                         body=order_body(product),
                     )
 
-    def _worker(self, stop: threading.Event) -> None:
+    def _worker(self, stop: threading.Event, journey: str | None = None) -> None:
         try:
             with self.client_factory() as client:
                 http = JourneyClient(client, self.samples, self.settings)
                 while not stop.is_set():
                     self.journey(
-                        random.choices(JOURNEYS, weights=WEIGHTS, k=1)[0], http, cancel=stop
+                        journey or random.choices(JOURNEYS, weights=WEIGHTS, k=1)[0],
+                        http,
+                        cancel=stop,
                     )
                     stop.wait(random.uniform(self.settings.think_min_s, self.settings.think_max_s))
         except Exception:
@@ -338,7 +340,11 @@ class LoadGenerator:
         with self._lock:
             return len(self._workers)
 
-    def set_workers(self, count: int) -> None:
+    def set_workers(self, count: int, *, journey: str | None = None) -> None:
+        if journey is not None and journey not in JOURNEYS:
+            raise ValueError("Unknown load journey")
+        if self._shutdown.is_set() and count:
+            raise ValueError("Load generator has stopped")
         if not 0 <= count <= 150:
             raise ValueError("Worker count must be between 0 and 150")
         with self._lock:
@@ -352,9 +358,21 @@ class LoadGenerator:
                 raise ValueError("Wait for retiring workers before adding more (limit 150)")
             while len(self._workers) < count:
                 stop = threading.Event()
-                thread = threading.Thread(target=self._worker, args=(stop,), daemon=True)
+                thread = threading.Thread(target=self._worker, args=(stop, journey), daemon=True)
                 self._workers.append((thread, stop))
                 thread.start()
+
+    def restore_workers(self, count: int) -> None:
+        """Join every removed worker before acknowledging traffic-fault undo."""
+        self.set_workers(count)
+        with self._lock:
+            retiring = list(self._retiring)
+        for thread, _ in retiring:
+            thread.join()
+        with self._lock:
+            self._retiring = [w for w in self._retiring if w[0].is_alive()]
+            if self._retiring:
+                raise TargetError("Extra load workers did not exit.")
 
     def add_workers(self, count: int) -> None:
         if count < 0:
