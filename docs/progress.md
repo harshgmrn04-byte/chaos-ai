@@ -1100,3 +1100,27 @@ passing smoke, a fresh clean baseline and all deferred Phase 6 impact/applicatio
 Watchdog abort, active-fault KILL, Ctrl-C and Day-1 checks after Phase 10. Allow a clean auth
 window when needed; waiting alone never establishes readiness. Investigate and fix reproducible
 issues then. Phase 10 remains unchecked and unimplemented.
+
+### Phase 10 handoff prepared — 2026-10-11
+
+At the user's explicit request, updated workspace-root BUILD_PLAN.md with the current Phase 10
+continuation checkpoint and a full copy-paste prompt. This is the authorized exception for
+that named root document; all other writes stay inside chaos-ai/. Recorded Phase 8/9 commits,
+584 passing unit tests, actual partial human evidence, pending checks and final-verification
+scheduling. Older Phase 6/8 prompts are historical, not gates against authorized continuation.
+Phase 10 implementation has not started; its checkbox remains unchecked.
+
+The saved-HTML report review confirmed expected scores, sections, three SVGs and no external
+assets, but Computer Use rejected file:// browser access. No rendered visual review occurred
+and no bypass/workaround was attempted. Human visual checks remain pending. Phase 10 polish
+candidates are readable timestamps, labeled charts/recorded phase markers and readable baseline
+thresholds; these are source-review suggestions, not visually confirmed layout defects.
+
+Final verification after Phase 10 implementation must retain all deferred Phase 6/8/9 checks,
+clean baseline/auth window, clean-run reproduction and actual measured sample-report evidence.
+No eligible successful real run is established by the known skipped Phase 8 attempt; never
+relabel a fixture or skip to complete the sample-run deliverable. Waiting alone, successful
+rollback, script exit or selected-spec count cannot prove injection/recovery/diversity.
+No live checks, .env reads, target changes or unrelated-file changes occurred in this handoff.
+Validation: checkpoint/prompt content and diff whitespace checked. Code/tests were unchanged;
+prior Phase 9 checks remain the latest code verification. Handoff committed locally only.
