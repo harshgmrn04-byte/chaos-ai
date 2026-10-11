@@ -165,6 +165,10 @@ def _compose_up(settings: Settings) -> None:
     target_dir = settings.resolved_target_dir
     if not (target_dir / "docker-compose.yml").is_file():
         raise TargetError("TARGET_DIR has no docker-compose.yml; correct TARGET_DIR.")
+    from chaosai.sandbox import sandbox_overlay
+
+    overlay = sandbox_overlay(settings)
+    extra = ["--file", str(overlay)] if overlay else []
     try:
         result = subprocess.run(
             [
@@ -174,6 +178,7 @@ def _compose_up(settings: Settings) -> None:
                 settings.compose_project,
                 "--file",
                 str(target_dir / "docker-compose.yml"),
+                *extra,
                 "up",
                 "-d",
                 "--build",

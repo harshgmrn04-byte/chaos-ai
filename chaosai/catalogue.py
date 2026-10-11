@@ -54,6 +54,7 @@ def applicable(fault: str, target: str, graph: Graph, journeys: set[str]) -> boo
     return (
         len(nodes) == 1
         and nodes[0].injectable
+        and fault not in nodes[0].unsupported_faults
         and bool(nodes[0].container)
         and (nodes[0].kind != "external" and nodes[0].kind in entry.node_kinds)
     )

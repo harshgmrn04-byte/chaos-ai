@@ -99,7 +99,13 @@ def live_window(
         start = max(started_at, now - length)
         if now > start:
             selected = samples if name == "all" else [s for s in samples if s.journey == name]
-            journeys[name] = window_stats(selected, start, now)
+            stats = window_stats(selected, start, now)
+            # Completed timeout requests can arrive after the nominal five-second
+            # window. Keep actual samples visible without lowering the minimum.
+            if stats.n < thresholds.abort.min_samples and length < 20:
+                start = max(started_at, now - 20)
+                stats = window_stats(selected, start, now)
+            journeys[name] = stats
     latest: dict[str, ContainerObservation] = {}
     for observation in observations:
         if observation.t <= now and (

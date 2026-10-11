@@ -81,12 +81,24 @@ are ignored during cleanup. Cleanup joins threads/closes clients. SIGKILL cannot
 restart/replay restores pending actions. In-flight SDK operations may delay restoration.
 Low-level `fault apply` is a mechanism check without measured precheck/metric Watchdog.
 
-S9 requires a stable, nonempty baseline and near-baseline observed samples within 60s.
-Latency stability only measures <=30% half-window p95 drift for eligible >=20-sample journeys.
-Recovery needs all journeys in three consecutive complete nonempty one-second windows within
-120s, p95 <=1.5× baseline and the hypothesis error limit. Cooldown requires fresh readiness,
-measured recovery and >=20s; it cannot rewrite the experiment's recovery result. Sparse login
-or throttling may make these gates impossible to establish in a given run.
+S9 requires a stable, nonempty, error-free baseline and observed readiness within 60s.
+Version-2 stability uses a half-window p95 drift allowance of max(30% of the first half,
+100ms) with at least 20 samples; historical baselines keep their original version/results.
+Readiness needs the original minimum sample count; it may extend its estimated window to
+20s when observed traffic is slower. The latency guard is max(1.5× baseline p95,
+baseline p95 + hypothesis floor). Recovery requires all journeys in three complete nonempty
+healthy windows within 120s, width 1–20s derived from the slowest measured journey's RPS.
+A missing/errorful window resets the streak. Cooldown has independently bounded preparation
+and measurement, plus at least 20s. Actual cleanup and HTTP recovery remain separate.
+
+The loopback dashboard reads typed run artifacts and refreshes every two seconds. It runs
+approved CLI jobs as subprocesses with no shell, retains the CLI's project scope/policy/
+journals/watchdog/lease, and keeps KILL/rollback available during a job. Origin, Host and
+CSRF checks protect mutations. It never serves dotenv, caches or raw container logs.
+An owned auth image patch raises only the local limiter budget. A process-local, bounded
+verified-credential cache keeps Docker verification helpers out of the fault measurement
+path. Generic targets have cache duration zero; the owned sandbox assumes immutable seeded
+passwords during a run. Authentication rejection invalidates proof; transport failures do not.
 
 CPU quota 0 / NanoCpus originals are refused because inspected update semantics cannot restore
 those fields exactly. Traffic undo joins added workers; another process requests owner cleanup
@@ -130,11 +142,13 @@ unscored, and never promoted into measured findings or a successful sample submi
 | Threads and synchronous clients | Bounded worker ownership, direct cleanup | Async orchestration |
 | Exact resource undo | Fail closed on unsupported metadata; CPU coverage limited | Normalize limits or recreate containers |
 | Human approval on by default | Concrete experiment review; --yes explicit for reproduction | Silent unrestricted injection |
-| Measured all-journey recovery | No inference from healthy containers; sparse windows can block demo | Adaptive/aggregate recovery substitute |
+| Measured all-journey recovery | No inference from healthy containers; sparse windows can block demo | Infer health from containers alone |
 | Read-only target plus conditional patches | Reproducible source provenance | Edit third-party source in place |
 | Cached replay + deterministic fallback | Works without venue Wi-Fi | Require live AI for reports |
 | Skip disk/netem/re-planning in freeze | Avoid host risk and new privileged paths | Expand fault catalogue during polish |
 
-[Final verification](final-verification.md) remains pending for measured impacts/safety/recovery,
-run diversity, visual report/replay, reproduction and the representative sample. This document
-describes implemented behavior, not proof that live checks passed.
+The fresh clean reproduction `20261011-035048` completed four applied fault types with
+exact undo and measured recovery, then passed smoke. The selected measured report and
+provenance are in [examples/sample-run](../examples/sample-run/README.md). See
+[final verification](final-verification.md) for actual safety checks and remaining operator
+recording/submission work. Historical failures remain visible in run history.

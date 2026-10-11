@@ -20,7 +20,7 @@ class Settings(BaseModel):
     state_dir: Path = Path(".chaosai")
     llm_provider: Literal["gemini", "mock", "none"] = "none"
     gemini_model: str | None = None
-    llm_timeout_s: float = Field(default=30, gt=0)
+    llm_timeout_s: float = Field(default=60, gt=0)
 
     frontend_url: str = "http://localhost:3000"
     load_duration_s: float = Field(default=30, gt=0)
@@ -29,6 +29,9 @@ class Settings(BaseModel):
     checkout_rps: float = Field(default=1, gt=0)
     login_rate_cap: float = Field(default=1, gt=0)
     token_refresh_s: float = Field(default=600, gt=0, le=600)
+    credential_cache_s: float = Field(default=0, ge=0, le=600)
+    dashboard_host: str = "127.0.0.1"
+    dashboard_port: int = Field(default=8765, ge=1024, le=65535)
     think_min_s: float = Field(default=0.2, ge=0.2, le=1)
     think_max_s: float = Field(default=1, ge=0.2, le=1)
     warmup_s: float = Field(default=30, ge=0)
@@ -171,6 +174,9 @@ def load_config(
         ("checkout_rps", "CHECKOUT_RPS"),
         ("login_rate_cap", "LOGIN_RATE_CAP"),
         ("token_refresh_s", "TOKEN_REFRESH_S"),
+        ("credential_cache_s", "CREDENTIAL_CACHE_S"),
+        ("dashboard_host", "DASHBOARD_HOST"),
+        ("dashboard_port", "DASHBOARD_PORT"),
         ("warmup_s", "WARMUP_S"),
         ("baseline_duration_s", "BASELINE_DURATION_S"),
         ("auth_url", "AUTH_URL"),
@@ -191,6 +197,17 @@ def load_config(
         value = os.getenv(variable)
         if value is not None and (value or field == "seed_password"):
             target_options[field] = value
+    # Public sandbox state opts into bounded credential reuse; generic targets recheck.
+    marker = project_root / ".chaosai" / "sandbox.json"
+    if not offline and marker.exists() and "credential_cache_s" not in target_options:
+        import json
+
+        try:
+            data = json.loads(marker.read_text())
+            if data.get("project") == (os.getenv("COMPOSE_PROJECT") or "ecommerce-microservices"):
+                target_options["credential_cache_s"] = "600"
+        except (OSError, ValueError):
+            pass
     return Settings(
         **target_options,
         project_root=project_root,

@@ -15,7 +15,7 @@ from chaosai.faults import get_fault
 from chaosai.faults.base import FaultContext
 from chaosai.faults.traffic_spike import TrafficSpikeFault
 from chaosai.load import LoadGenerator, SampleBuffer
-from chaosai.metrics import ContainerStatsPoller
+from chaosai.metrics import ContainerStatsPoller, QueueDepthPoller
 from chaosai.models import Baseline, Event, ExperimentResult, Graph, PolicyDecision
 from chaosai.runs import append_jsonl, write_json
 from chaosai.safety import (
@@ -94,6 +94,7 @@ def execute_experiment(
     recovered, recovery_time = False, None
     t_inject = t_undo = None
     client = generator = poller = watchdog = timer = observer = control = preparer = ctx = None
+    queue_poller = None
     abort, cap, stop_observer = threading.Event(), threading.Event(), threading.Event()
     cancel = threading.Event()
     prepare_done = threading.Event()
@@ -180,7 +181,7 @@ def execute_experiment(
         undo()
         if timer is not None:
             timer.join()
-        for component in (watchdog, generator, poller):
+        for component in (watchdog, generator, poller, queue_poller):
             if component is not None:
                 try:
                     component.stop()
@@ -236,6 +237,7 @@ def execute_experiment(
                         settings.model_copy(update={"metrics_interval_s": 1}),
                         directory / "containers.jsonl",
                     )
+                    queue_poller = QueueDepthPoller(settings, directory / "queues.jsonl")
                     generator = LoadGenerator(settings, client, samples)
                     ctx.generator = generator
                     event("PRECHECK", "Reconciling journals; measuring S9 readiness (up to 60s).")
@@ -253,6 +255,7 @@ def execute_experiment(
                     samples.begin_window(time.time())
                     precheck_start = time.time()
                     poller.start()
+                    queue_poller.start()
                     generator.set_workers(settings.load_users)
                     healthy, precheck_reason = False, "Precheck setup exceeded deadline."
                     while time.monotonic() < deadline:
@@ -412,7 +415,7 @@ def execute_experiment(
     if t_undo is not None and rollback_ok:
         recovered, recovery_time = find_recovery(values, baseline, thresholds, t_undo, t_end=ended)
     limits = [
-        "Recovery needs every journey in three nonempty 1s windows; sparse traffic may time out.",
+        "Recovery requires every journey in three healthy windows (1–20s from baseline RPS).",
         "Sparse (<20) journey p95/error rates are descriptive; they cannot confirm a hypothesis.",
         "Container restoration does not establish application/HTTP recovery.",
     ]

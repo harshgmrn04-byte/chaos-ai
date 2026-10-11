@@ -72,6 +72,10 @@ elif sys.argv[1:3] == ['-m', 'chaosai']:
                 result.cleanup_ok = False
             if mode == 'no-observe':
                 result.events = []
+            if mode in {'exception-abort', 'watchdog-abort'}:
+                result.aborted = True
+                result.verdict = 'aborted'
+                result.watchdog_aborted = mode == 'watchdog-abort'
             write_json(run / 'experiments' / str(i) / 'result.json', result)
         (run / 'report.html').write_text('MOCK report only')
         if mode != 'no-report':
@@ -148,6 +152,7 @@ def test_reuse_order_and_measured_completion(shell_workspace: Path) -> None:
     assert calls(shell_workspace) == [
         "bootstrap",
         "up",
+        "sandbox",
         "doctor",
         "seed",
         "smoke",
@@ -168,7 +173,7 @@ def test_owned_pinned_clone(shell_workspace: Path) -> None:
     assert (shell_workspace / "target/docker-compose.yml").read_text() == "services: {}\n"
 
 
-@pytest.mark.parametrize("step", ["up", "doctor", "seed", "smoke", "run"])
+@pytest.mark.parametrize("step", ["up", "sandbox", "doctor", "seed", "smoke", "run"])
 def test_failed_live_step_stops_sequence(
     shell_workspace: Path, monkeypatch: pytest.MonkeyPatch, step: str
 ) -> None:
@@ -191,6 +196,7 @@ def test_failed_live_step_stops_sequence(
         "failed-cleanup",
         "no-observe",
         "no-report",
+        "exception-abort",
     ],
 )
 def test_false_completion_never_passes(
@@ -258,3 +264,9 @@ def test_active_lease_blocks_before_bring_up(shell_workspace: Path) -> None:
     with file_lock(shell_workspace / ".chaosai/active.lock", blocking=False):
         result = execute(shell_workspace)
     assert result.returncode != 0 and calls(shell_workspace) == ["bootstrap"]
+
+
+def test_measured_watchdog_abort_counts_after_proven_recovery(shell_workspace, monkeypatch):
+    monkeypatch.setenv("MOCK_EVIDENCE", "watchdog-abort")
+    result = execute(shell_workspace)
+    assert result.returncode == 0, result.stdout

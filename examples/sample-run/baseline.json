@@ -1,0 +1,134 @@
+{
+  "created_at": "2026-10-11T03:53:24.429932Z",
+  "window_s": 120.0,
+  "stable": true,
+  "journeys": {
+    "browse": {
+      "n": 3597,
+      "error_rate": 0.0,
+      "p50_ms": 2.845958006219007,
+      "p95_ms": 6.463483200059272,
+      "p99_ms": 9.937280000012832,
+      "rps": 29.975,
+      "low_sample": false
+    },
+    "checkout": {
+      "n": 92,
+      "error_rate": 0.0,
+      "p50_ms": 16.52920799824642,
+      "p95_ms": 26.073272950452523,
+      "p99_ms": 31.570966715662546,
+      "rps": 0.7666666666666667,
+      "low_sample": false
+    },
+    "homepage": {
+      "n": 194,
+      "error_rate": 0.0,
+      "p50_ms": 7.225791498058243,
+      "p95_ms": 13.655304401981994,
+      "p99_ms": 15.571676188337726,
+      "rps": 1.6166666666666667,
+      "low_sample": false
+    },
+    "login": {
+      "n": 72,
+      "error_rate": 0.0,
+      "p50_ms": 259.9147285000072,
+      "p95_ms": 272.59426409764274,
+      "p99_ms": 279.05408981467195,
+      "rps": 0.6,
+      "low_sample": false
+    },
+    "all": {
+      "n": 3955,
+      "error_rate": 0.0,
+      "p50_ms": 3.0064589955145493,
+      "p95_ms": 11.158678498031827,
+      "p99_ms": 257.4309148231987,
+      "rps": 32.958333333333336,
+      "low_sample": false
+    }
+  },
+  "containers": {
+    "ecommerce-auth": {
+      "cpu_pct": 15.086035372042572,
+      "mem_mb": 51.05224609375,
+      "restarts": 0,
+      "status": "running"
+    },
+    "ecommerce-frontend": {
+      "cpu_pct": 0.9937805585941576,
+      "mem_mb": 75.8251953125,
+      "restarts": 0,
+      "status": "running"
+    },
+    "ecommerce-orders": {
+      "cpu_pct": 0.9961254350802399,
+      "mem_mb": 135.634765625,
+      "restarts": 0,
+      "status": "running"
+    },
+    "ecommerce-products": {
+      "cpu_pct": 5.391757363811688,
+      "mem_mb": 91.88232421875,
+      "restarts": 1,
+      "status": "running"
+    },
+    "ecommerce-notifications": {
+      "cpu_pct": 1.1603652883093099,
+      "mem_mb": 69.07356770833333,
+      "restarts": 0,
+      "status": "running"
+    },
+    "ecommerce-rabbitmq": {
+      "cpu_pct": 5.703826909135953,
+      "mem_mb": 222.14501953125,
+      "restarts": 0,
+      "status": "running"
+    },
+    "ecommerce-postgres": {
+      "cpu_pct": 0.9497561933950593,
+      "mem_mb": 35.6123046875,
+      "restarts": 0,
+      "status": "running"
+    },
+    "ecommerce-redis": {
+      "cpu_pct": 1.3528417732535472,
+      "mem_mb": 18.609700520833332,
+      "restarts": 0,
+      "status": "running"
+    },
+    "ecommerce-mongodb": {
+      "cpu_pct": 6.307769379122799,
+      "mem_mb": 541.8035481770834,
+      "restarts": 0,
+      "status": "running"
+    },
+    "ecommerce-mailhog": {
+      "cpu_pct": 0.004209981834927841,
+      "mem_mb": 35.711100260416664,
+      "restarts": 0,
+      "status": "running"
+    }
+  },
+  "queues": {
+    "notifications": 0.14285714285714285
+  },
+  "thresholds": {
+    "hypothesis": {
+      "max_error_rate": 0.02,
+      "p95_multiple": 2.0,
+      "p95_floor_ms": 100.0
+    },
+    "abort": {
+      "max_error_rate": 0.5,
+      "p95_multiple": 10.0,
+      "p95_floor_ms": 750.0,
+      "max_unhealthy_containers": 3,
+      "min_samples": 10,
+      "consecutive_breaches": 2
+    }
+  },
+  "measurement_version": "2",
+  "stability_floor_ms": 100.0
+}

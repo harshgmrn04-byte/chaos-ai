@@ -13,7 +13,7 @@ an explicit provider, a Gemini/Google key selects Gemini, otherwise none. Keys a
 only from process environment in code, are wrapped in SecretStr and are never persisted
 or logged. CLI configuration can load the human's dotenv file; offline skips it entirely.
 The transport's standalone entry point reads process configuration without loading dotenv.
-`LLM_TIMEOUT_S` defaults to 30 seconds per SDK request. The SDK's automatic retries are
+`LLM_TIMEOUT_S` defaults to 60 seconds per SDK request. The SDK's automatic retries are
 disabled so our retry budget is explicit.
 
 `GEMINI_MODEL` overrides discovery. Otherwise the provider uses the persisted model in

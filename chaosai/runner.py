@@ -112,6 +112,10 @@ def run_pipeline(
     write_json(run_dir / "run.json", meta)
     analyze_run(run_dir, settings.model_copy(update={"llm_provider": provider}))
     render_report(run_dir)
+    meta = read_json(run_dir / "run.json", RunMeta)
+    meta.phase = "COMPLETE"
+    meta.finished_at = datetime.now(UTC)
+    write_json(run_dir / "run.json", meta)
     return run_dir
 
 

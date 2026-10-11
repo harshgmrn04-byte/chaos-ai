@@ -174,10 +174,25 @@ def test_windows_use_rate_and_exclude_pre_fault_samples(baseline: Baseline) -> N
         ),
     ]
     current = live_window(samples, observations, baseline, baseline.thresholds, 12, 20)
-    assert current.journeys["all"].n == 3  # [15,20), includes sparse login.
+    assert current.journeys["all"].n == 4  # Expands when short; excludes pre-fault requests.
     assert current.journeys["browse"].n == 3  # [12,20), bounded by injection time.
     assert "login" not in current.journeys
     assert current.container_states["c1"] == "running"
+
+
+def test_completed_timeouts_remain_visible_when_recent_window_is_starved(
+    baseline: Baseline,
+) -> None:
+    baseline.journeys["browse"].rps = 30
+    samples = [sample(5 + i / 10, ok=False) for i in range(20)]
+    for item in samples:
+        item.latency_ms = 5000
+    state = WatchdogState()
+    for now in (12, 13):
+        current = live_window(samples, [], baseline, baseline.thresholds, 5, now)
+        assert current.journeys["browse"].n == 20
+        state, reason = step(baseline, current, state)
+    assert reason and "error rate" in reason
 
 
 def test_one_second_spike_in_live_buffer_does_not_trip(baseline: Baseline) -> None:

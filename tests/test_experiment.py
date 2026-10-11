@@ -159,6 +159,7 @@ class Harness:
         monkeypatch.setattr(experiment, "get_docker_client", lambda: self.client)
         monkeypatch.setattr(experiment, "LoadGenerator", Load)
         monkeypatch.setattr(experiment, "ContainerStatsPoller", Poller)
+        monkeypatch.setattr(experiment, "QueueDepthPoller", lambda *args: Mock())
         monkeypatch.setattr(experiment, "Watchdog", Dog)
         monkeypatch.setattr(experiment, "get_fault", lambda _: self.fault)
         monkeypatch.setattr(
@@ -626,3 +627,19 @@ def test_cpu_zero_denial_never_claims_measured_fault(harness: Harness) -> None:
     assert result.during == result.after == {} and not result.recovered
     assert "zero CpuQuota" in result.abort_reason
     assert any("No fault applied" in note for note in result.evidence_limits)
+
+
+def test_cli_quit_stops_shell_walkthrough_without_injection(harness, monkeypatch):
+    h = harness
+    monkeypatch.setattr(cli, "target_config", lambda: h.settings)
+    monkeypatch.setattr(cli, "map_target", lambda _: h.graph)
+    monkeypatch.setattr(
+        cli,
+        "Approver",
+        lambda **kwargs: Approver(**{**kwargs, "is_tty": True, "ask": lambda _: "q"}),
+    )
+    write_json(h.settings.safety_dir / "baseline.json", h.baseline)
+    result = CliRunner().invoke(cli.app, ["inject", "stop", "redis"])
+    assert result.exit_code == 130
+    assert "Approval: quit" in result.output
+    assert h.container.status == "running" and h.load is None

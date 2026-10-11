@@ -1226,3 +1226,56 @@ and Wi-Fi-off replay; three human integration tests; eligible five-file sample p
 Phase 8 dry-run pass is retained. Run serial auth traffic with fresh windows when needed,
 inspect actual evidence and provide sanitized failures for further confirmed fixes within
 this freeze. Phase 11 stays unstarted.
+
+
+## Authorized final follow-up: runtime fixes and live dashboard
+
+The user's request to fix repeated waits, deliver the complete product and add a live
+dashboard supersedes the earlier freeze and human-only live verification schedule.
+All original third-party source and historical measurements remain unchanged.
+
+Built loopback dashboard with real metrics, event timelines, experiments, telemetry,
+service map, severity-ranked findings, reports, explicit approval and safety controls.
+Added owned auth image (6000 local requests/15min, original default 100 retained),
+bounded verified-credential cache, version-2 stability, measured adaptive recovery,
+capability-aware/diverse planning, exclusive load leases, queue polling during faults,
+clear run phases, inspectable planner fallback reasons and 60s LLM timeout.
+Fixed timeout-starved watchdog windows and approval quit continuing shell demos.
+See runtime-fixes.md and dashboard.md for assumptions and details.
+
+Actual checks: ruff passed; 656 unit tests passed, three integration tests deselected
+(before the final severity-ranking regression); all three live integration tests passed.
+Fresh clean reproduction `20261011-035048` exited 0: stable error-free full baseline,
+four applied fault types, exact undo/cleanup, all measured recoveries (10/6/10/14s),
+cooldowns and final smoke. Score 55/100 weak; real dependency weaknesses remain.
+Gemini plan `040607` succeeded after explicit payload/destination approval. The complete
+run used heuristic planner after transport failure and mixed Gemini/fallback analysis.
+
+Day-1 script exited 0: normal Redis impact/recovery `040603`, strict watchdog abort at
+0.05 with 8s recovery `040831`, active-pending-journal KILL `041308`, restored/done
+journal and clean undo. Owner won the replay race (kill command printed zero records);
+the result records Kill switch requested. recovered=false after KILL is retained.
+Dashboard-approved `041508` watchdog-aborted and recovered in 6s; active Ctrl-C
+`041633` exited 130 with done journal and successful rollback/cleanup.
+Real cache-only replay succeeded; no physical network-interface changes were made.
+
+Selected measured report/graph/baseline/decisions exported to examples/sample-run with
+provenance, hashes and secret review. Dashboard/report rendered and inspected in browser.
+Judge walkthrough follows requested app → AI → fault → restoration → ranked report →
+dashboard order; docs/demo-script.md includes seven-minute and <=3-minute video schedules.
+Video recording, final human rehearsal, repository push and submission form remain human
+work. Only local commit; no push. Historical notes above describe earlier checkpoints.
+Unrelated .DS_Store, =, checkout, login, retrieve remain untouched and unstaged.
+
+Open limitations: intermittent RabbitMQ metrics, exact CPU quota-0/NanoCpus refusal,
+sparse statistics remain descriptive, runtime adaptation is deterministic safety and
+readiness rather than AI online replanning; remediation restores faults and recommends
+code fixes. No host-network/disk/netem changes. Target checkout remains read-only.
+
+Original You verify requirements and the actual completed checks are recorded in
+final-verification.md. Phase 11 remains unstarted.
+
+Final checks after severity ranking: **657 unit tests passed, 3 integration deselected**;
+ruff, script syntax, whitespace and target clean status passed. Final doctor and smoke
+passed after Ctrl-C. KILL is clear; no active lease or pending undo. Local dashboard left
+running at http://127.0.0.1:8765 with measured run 035048 selected.

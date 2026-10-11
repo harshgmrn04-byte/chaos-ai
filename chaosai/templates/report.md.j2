@@ -40,7 +40,7 @@ Created {{ baseline.created_at|readable_time }}. Stable={{ baseline.stable }} (d
 | Minimum samples / consecutive breaches | 20 baseline and during per journey for verdict | {{ baseline.thresholds.abort.min_samples }} / {{ baseline.thresholds.abort.consecutive_breaches }} |
 
 Latency breach exceeds max(multiple * baseline p95, baseline p95 + increment).
-S9/recovery use 1.5x baseline p95 without a floor; final card specs supply experiment limits.
+S9/recovery use max(1.5x baseline p95, baseline p95 + hypothesis floor); final card specs supply experiment limits.
 
 ## Experiments (plan rank order)
 

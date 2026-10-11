@@ -112,6 +112,7 @@ class Stages:
         monkeypatch.setattr(orchestrator, "reconcile", reconcile)
         monkeypatch.setattr(orchestrator, "doctor_lite", doctor)
         monkeypatch.setattr(orchestrator, "map_target", mapping)
+        monkeypatch.setattr(orchestrator, "annotate_capabilities", lambda *args: None)
         monkeypatch.setattr(orchestrator, "measure_baseline", baseline)
         monkeypatch.setattr(orchestrator, "plan_experiments", planner)
         monkeypatch.setattr(orchestrator, "execute_experiment", execute)

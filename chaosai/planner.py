@@ -251,6 +251,7 @@ def plan_experiments(
     cache_dir: Path,
     settings: Settings | None = None,
     simulation: bool = False,
+    max_experiments: int = 8,
 ) -> tuple[Plan, str]:
     if simulation:
         # Preserve the Phase 1 synthetic evidence IDs/order; no real provider can enter here.
@@ -271,6 +272,7 @@ def plan_experiments(
         settings = settings or Settings(llm_provider=provider)
         session = LLM(settings.model_copy(update={"llm_provider": provider}), cache_dir=cache_dir)
         source = "heuristic"
+        fallback_reason = None
         proposals: list[ExperimentProposal] = []
         try:
             payload = {
@@ -284,7 +286,7 @@ def plan_experiments(
                 ),
                 "catalogue": [entry.model_dump() for entry in CATALOGUE],
                 "constraints": dict(
-                    max_experiments=8,
+                    max_experiments=max_experiments,
                     min_fault_types=3,
                     max_workers=150,
                     base_workers=settings.load_users,
@@ -299,15 +301,28 @@ def plan_experiments(
                 PlannerOutput,
             )
             proposals, source = output.experiments, session.source
-        except LLMUnavailable:
+        except LLMUnavailable as exc:
+            from chaosai.evidence import redact_line
+
+            fallback_reason = redact_line(str(exc), settings)
             logger.info("LLM planner unavailable; selecting deterministic hypotheses.")
         finally:
             session.close()
         plan, decisions = finalize_plan(
-            proposals, graph, baseline, source=source, base_workers=settings.load_users
+            proposals,
+            graph,
+            baseline,
+            source=source,
+            base_workers=settings.load_users,
+            max_experiments=max_experiments,
         )
         if not any(d.source != "heuristic" for d in decisions):
             source = "heuristic"
+        for decision in decisions:
+            if decision.source == "heuristic":
+                decision.fallback_reason = fallback_reason or (
+                    "Deterministic coverage selected; no eligible AI proposal for this entry."
+                )
     plan = Plan(root=[d.final for d in decisions])
     write_json(cache_dir.parent / "plan.json", plan)
     write_json(cache_dir.parent / "decisions.json", decisions)

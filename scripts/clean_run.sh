@@ -67,17 +67,18 @@ if not (settings.resolved_target_dir / settings.compose_file).is_file():
     raise SystemExit("TARGET_DIR has no Compose file. Configure an existing target or use --clone.")
 print(f"Target: {settings.resolved_target_dir}; Compose project: {settings.compose_project}")
 PY
-# No payment patch is currently required. Never apply patches to the read-only sibling.
-if compgen -G 'patches/*.patch' >/dev/null; then
-  stage=patches
-  if ! "$clone" || [[ ! -f scripts/apply_patches.sh ]]; then
-    echo 'Patch files require --clone and the documented scripts/apply_patches.sh flow; existing source stays read-only.' >&2
+# Sandbox patch is applied to an owned image, never the read-only source.
+for patch in patches/*.patch; do
+  [[ -e "$patch" ]] || continue
+  [[ "$patch" == patches/auth-rate-limit.patch ]] || {
+    echo "Unknown patch requires review before bring-up: $patch" >&2
     exit 1
-  fi
-  bash scripts/apply_patches.sh
-fi
+  }
+done
 stage='scoped Compose bring-up'
 .venv/bin/python -m chaosai up
+stage='local auth sandbox'
+.venv/bin/python -m chaosai sandbox
 stage=doctor
 .venv/bin/python -m chaosai doctor
 stage=seed
@@ -86,7 +87,7 @@ stage=smoke
 .venv/bin/python -m chaosai smoke
 stage='measured run'
 # No extra baseline or live dry-run: both would consume the same auth budget again.
-# A fresh baseline is measured by run. This can still exhaust the target's auth budget.
+# A fresh baseline is measured by run using the bounded local sandbox budget.
 run_log="$(mktemp "$project_root/.chaosai/clean-run.XXXXXX")"
 .venv/bin/python -m chaosai run --yes --max-experiments 4 | tee "$run_log"
 stage='evidence validation'
@@ -120,8 +121,8 @@ complete = [
     r
     for r in results
     if not r.skipped
-    and not r.aborted
-    and r.verdict in {"confirmed", "refuted"}
+    and r.verdict in {"confirmed", "refuted", "aborted"}
+    and (not r.aborted or r.watchdog_aborted)
     and r.rollback_ok
     and r.cleanup_ok
     and r.recovered

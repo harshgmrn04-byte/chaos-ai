@@ -1,33 +1,35 @@
-# Measured sample deliverable — pending
+# Measured sample — verified local sandbox
 
-No eligible completed real run exists in the inspected workspace as of 2026-10-11.
-Do not substitute synthetic fixtures or skipped experiments for a successful measured sample.
+Source UTC run: **20261011-035048**, produced by a successful complete
+`bash scripts/clean_run.sh` execution on 2026-10-11. Setup, doctor, DB-verified seed,
+pre/post-run smoke, four applied experiments, cooldown, rollback and HTTP recovery passed.
+Baseline was stable, all journey samples were nonempty and request errors were zero.
+Every undo record is done; the run has no stop reason. Original private evidence is retained.
 
-Inspection covered every existing runs/*/run.json with offline=false and its result files:
+| Fault / target | Outcome | Measured recovery | Rollback |
+|---|---|---|---|
+| kill / auth-service | Watchdog abort: login errors | 10s | Verified |
+| traffic_spike / browse | Hypothesis confirmed | 6s | Verified |
+| pause / postgres | Watchdog abort: aggregate errors | 10s | Verified |
+| stop / postgres | Watchdog abort: checkout errors | 14s | Verified |
 
-| Run | Provenance / result | Eligibility |
-|---|---|---|
-| 20261011-014504 | Measured dry-run; no result.json files, no faults | Ineligible |
-| 20261011-014810 | Measured; one skipped kill entry, zero during-fault samples, empty undo journal, recovered=false/recovery_time_s=null; failed cooldown | Ineligible |
+A watchdog abort is successful safety behavior, not a healthy application outcome. Its sparse
+journey samples remain descriptive and cannot confirm a resilience hypothesis. Four fault
+types were actually applied and measured. Deterministic score: **55/100, weak**; this is an
+assessment of these experiments only, not exhaustive application coverage.
 
-The latter baseline's stable=true is drift stability; login errors were 21/47, with auth
-HTTP 429s in all 26 precheck and 25 cooldown login samples. Smoke failed at admin login,
-but its response status was not captured. Historical baseline 20261011-011425 remains
-stable=false (32.28% checkout p95 drift vs unchanged 30% bound). None was edited.
-Standalone inject attempts 20261011-005504 and 20261011-005640 also have zero during-fault
-samples and no full run report (the latter is skipped); neither qualifies.
-Synthetic run 20261011-020747 has fixture scores 53/17/95, overall 55 (weak); those are not
-an assessment of the target and are not copied here.
+Planner used heuristics after Gemini transport failure. One experiment received validated
+Gemini analysis; the remaining experiment/summary calls used clearly recorded deterministic
+fallback. The report retains these sources and limitations. The separate AI planner probe
+is documented in progress.md without substituting its proposals for executed faults.
 
-After [final human verification](../../docs/final-verification.md) establishes a representative
-completed measured run, the outstanding submission is report.html, report.md, graph.json,
-baseline.json and decisions.json in this directory. Also include a provenance note naming the
-original UTC run ID, source revision, run/source metadata, checks, copied-file hashes and
-remaining limitations. Inspect/redact any credential-bearing text before publishing; retain
-original private evidence unchanged. No raw samples, logs, .env, keys or caches belong here.
-Keep original results/journals locally for audit. Copy only after actual injection, adequate
-measured evidence, rollback/cleanup, recovery and run-diversity checks are established.
+[HTML findings report](report.html), [Markdown report](report.md), graph.json, baseline.json
+and decisions.json are the five sample artifacts. provenance.json records source/run metadata
+and original/copied SHA-256 hashes. Known-secret and token/credential-URL scans passed.
+No dotenv, credentials, raw samples, raw logs or LLM caches are included.
 
-The five report files and real demo video remain pending, not passed. This status file is the
-truthful Phase 10 deliverable until measured human evidence qualifies; it does not complete
-the final findings-report submission requirement.
+Results assess the **owned local auth sandbox**: configurable limiter at 6000/15min,
+verified credential proof cached in process memory for at most 600s. Third-party source is
+unchanged; the reviewable patch and restoration commands are in ../../patches/README.md.
+Baseline measurement version 2 and the declared absolute latency allowances are retained.
+Historical failed baselines/runs were not rewritten or promoted into this deliverable.

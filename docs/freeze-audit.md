@@ -1,3 +1,8 @@
+> Historical Phase 10 audit. Later user-authorized runtime fixes, dashboard and live
+> verification are recorded in [runtime-fixes.md](runtime-fixes.md) and
+> [final-verification.md](final-verification.md). Earlier pending statements below
+> describe the checkpoint at the time.
+
 # Phase 10 invariant and bug audit
 
 Source inspection on 2026-10-11 covered CLI/doctor/seed/smoke, config/target access,

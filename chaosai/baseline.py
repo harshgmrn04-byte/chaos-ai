@@ -64,8 +64,10 @@ def stability_check(
     t0: float,
     t1: float,
     journeys: tuple[str, ...] = JOURNEYS,
+    *,
+    floor_ms: float = 100,
 ) -> bool:
-    """Judge journeys with >=20 samples; no eligible journey cannot prove stability."""
+    """Require <=30% drift or <=100ms noise, with >=20 observed samples."""
     full = stats_by_journey(samples, t0, t1, journeys)
     eligible = {name for name, stats in full.items() if stats.n >= MIN_BASELINE_SAMPLES}
     if not eligible:
@@ -77,10 +79,7 @@ def stability_check(
         a, b = first.get(name), second.get(name)
         if a is None or b is None or a.n == 0 or b.n == 0:
             return False
-        if a.p95_ms == 0:
-            if b.p95_ms != 0:
-                return False
-        elif abs(b.p95_ms - a.p95_ms) / a.p95_ms > 0.3 + 1e-12:
+        if abs(b.p95_ms - a.p95_ms) > max(0.3 * a.p95_ms, floor_ms) + 1e-12:
             return False
     return True
 
@@ -95,6 +94,8 @@ def build_baseline(samples: list[Sample], t0: float, t1: float) -> Baseline:
         containers={},
         queues={},
         thresholds=derive_thresholds(aggregate),
+        measurement_version="2",
+        stability_floor_ms=100,
     )
 
 

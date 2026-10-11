@@ -47,7 +47,11 @@ from chaosai.target import container_status, get_docker_client, http_ready, list
 def baseline_reusable(baseline: Baseline, now: datetime, max_age_s: float = 3600) -> bool:
     """Future dates, unstable measurements and the one-hour boundary are unsuitable."""
     age = (now - baseline.created_at).total_seconds()
-    return baseline.stable and 0 <= age < min(max_age_s, 3600)
+    return (
+        baseline.stable
+        and all(s.n > 0 and s.error_rate == 0 for s in baseline.journeys.values())
+        and 0 <= age < min(max_age_s, 3600)
+    )
 
 
 def scoped_running(states: list[ContainerStatus], settings: Settings) -> bool:
@@ -133,6 +137,8 @@ def cooldown_ready(
             check_control(settings, abort)
             abort.wait(0.5)
         if done.is_set() and not errors and time.monotonic() < deadline:
+            # Preparation does not consume the independent measurement budget.
+            deadline = time.monotonic() + settings.precheck_timeout_s
             t0 = time.time()
             samples.begin_window(t0)
             generator.set_workers(settings.load_users)
@@ -225,6 +231,19 @@ def failed_result(
     return result
 
 
+def annotate_capabilities(graph: Graph, client: docker.DockerClient, settings: Settings) -> None:
+    """Expose safe refusals as planner data before choosing fault diversity."""
+    for node in graph.nodes:
+        if node.injectable and node.container and node.kind != "external":
+            container = client.containers.get(node.container)
+            container.reload()
+            if container.labels.get("com.docker.compose.project") != settings.compose_project:
+                raise SafetyError("Mapped container lost its project scope.")
+            host = container.attrs.get("HostConfig", {})
+            if host.get("CpuQuota", 0) == 0 or host.get("NanoCpus", 0):
+                node.unsupported_faults = ["cpu_limit"]
+
+
 def run_automatic(
     settings: Settings,
     approver: Approver,
@@ -247,6 +266,10 @@ def run_automatic(
         approvals=[],
         offline=False,
         data_source="measured",
+        target_profile="owned-auth"
+        if (settings.safety_dir / "sandbox.json").exists()
+        else "original",
+        credential_cache_s=settings.credential_cache_s,
     )
     write_json(run_dir / "run.json", meta)
     write_json(run_dir / "journal.json", [])
@@ -271,6 +294,7 @@ def run_automatic(
                     raise SafetyError("Doctor-lite failed; inspect doctor.json before injecting.")
                 check_control(settings, abort)
                 graph = map_target(settings)
+                annotate_capabilities(graph, client, settings)
                 save_graph(graph, settings, run_dir)
                 facts = source_facts(graph)
                 write_json(
@@ -280,6 +304,8 @@ def run_automatic(
                         "facts": [fact.model_dump() for fact in facts],
                     },
                 )
+                meta.phase = "BASELINE"
+                write_json(run_dir / "run.json", meta)
                 latest = settings.safety_dir / "baseline.json"
                 baseline = None
                 if reuse_baseline and latest.exists():
@@ -300,12 +326,19 @@ def run_automatic(
                     meta.baseline_source = "measured"
                 write_json(run_dir / "baseline.json", baseline)
                 check_control(settings, abort)
+                if not baseline_reusable(baseline, datetime.now(UTC), settings.baseline_max_age_s):
+                    raise SafetyError(
+                        "Fresh baseline is unstable or error-contaminated; no faults applied."
+                    )
+                meta.phase = "PLANNING"
+                write_json(run_dir / "run.json", meta)
                 plan, meta.planner_source = plan_experiments(
                     graph,
                     baseline,
                     provider=settings.llm_provider,
                     cache_dir=run_dir / "llm",
                     settings=settings,
+                    max_experiments=max_experiments,
                 )
                 decisions = read_json(run_dir / "decisions.json", list[PolicyDecision])
                 meta.planner_sources = list(dict.fromkeys(d.source for d in decisions))
@@ -317,6 +350,8 @@ def run_automatic(
                         entry = definition(decision.final.fault)
                         if not decision.allowed or entry is None or not entry.implemented:
                             continue
+                        meta.phase = "EXPERIMENTS"
+                        write_json(run_dir / "run.json", meta)
                         choice = approver.decide(decision)
                         meta.approvals.append(
                             Approval(experiment_id=decision.experiment_id, decision=choice)
@@ -368,6 +403,8 @@ def run_automatic(
         meta.stop_reason = (
             str(exc) if isinstance(exc, SafetyError) else f"Run failed ({type(exc).__name__})."
         )
+        meta.phase = "FAILED"
+        meta.finished_at = datetime.now(UTC)
         raise
     finally:
         try:
@@ -377,10 +414,16 @@ def run_automatic(
             meta.stop_reason = "Run client cleanup failed."
         finally:
             write_json(run_dir / "run.json", meta)
+    meta.phase = "ANALYZING"
+    write_json(run_dir / "run.json", meta)
     analyze_run(
         run_dir,
         settings.model_copy(update={"llm_provider": "none"}) if meta.stop_reason else settings,
     )
     if all((run_dir / name).exists() for name in ("graph.json", "baseline.json", "plan.json")):
         render_report(run_dir)
+    meta = read_json(run_dir / "run.json", RunMeta)
+    meta.phase = "STOPPED" if meta.stop_reason else "COMPLETE"
+    meta.finished_at = datetime.now(UTC)
+    write_json(run_dir / "run.json", meta)
     return run_dir

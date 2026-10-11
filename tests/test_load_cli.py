@@ -9,6 +9,7 @@ from chaosai import cli
 from chaosai.config import Settings, load_config
 from chaosai.fixture_data import fixture
 from chaosai.models import Baseline
+from chaosai.safety import file_lock
 from chaosai.target import TargetError
 
 
@@ -46,6 +47,17 @@ def test_cli_target_failure_no_traceback(
     monkeypatch.setattr(cli, "run_load", Mock(side_effect=TargetError("Docker unreachable")))
     result = CliRunner().invoke(cli.app, ["load", "--users", "1", "--duration", "2"])
     assert result.exit_code == 1 and "FAIL: Docker unreachable" in result.output
+
+
+@pytest.mark.parametrize("command", ["load", "baseline"])
+def test_cli_load_rejects_concurrent_live_work(cli_workspace, monkeypatch, command):
+    operation = Mock()
+    monkeypatch.setattr(cli, "run_load", operation)
+    monkeypatch.setattr(cli, "measure_baseline", operation)
+    with file_lock(cli_workspace / ".chaosai/active.lock", blocking=False):
+        result = CliRunner().invoke(cli.app, [command])
+    assert result.exit_code == 1
+    operation.assert_not_called()
 
 
 @pytest.mark.parametrize(

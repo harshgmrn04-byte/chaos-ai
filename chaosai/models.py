@@ -27,6 +27,7 @@ class Node(Model):
     container_ports: list[int]
     injectable: bool
     injectable_reason: str | None = None
+    unsupported_faults: list[FaultType] = Field(default_factory=list)
 
 
 class Edge(Model):
@@ -154,6 +155,8 @@ class Baseline(Model):
     containers: dict[str, ContainerStats]
     queues: dict[str, float]
     thresholds: Thresholds
+    measurement_version: str = "legacy"
+    stability_floor_ms: float = Field(default=0, ge=0)
 
 
 class ExperimentSpec(Model):
@@ -232,6 +235,7 @@ class PolicyDecision(Model):
     allowed: bool
     deny_reason: str | None
     source: LLMSource = "heuristic"
+    fallback_reason: str | None = None
 
 
 class OriginalContainerState(Model):
@@ -377,6 +381,10 @@ class RunMeta(Model):
     baseline_source: str | None = None
     data_source: Literal["fixture", "measured"] = "fixture"
     analyzer_sources: list[str] = Field(default_factory=list)
+    phase: str = "UNKNOWN"
+    finished_at: datetime | None = None
+    target_profile: str = "unrecorded"
+    credential_cache_s: float = Field(default=0, ge=0, le=600)
 
 
 class AnalysisTrace(Model):
@@ -517,3 +525,72 @@ class ProductCounts(Model):
     total: int = Field(ge=0)
     seed: int = Field(ge=0)
     high_stock_seed: int = Field(ge=0)
+
+
+class DashboardRun(Model):
+    id: str
+    source: str
+    phase: str
+    created_at: str
+    experiments: int
+    report_available: bool
+
+
+class DashboardPoint(Model):
+    t: float
+    n: int
+    error_rate: float
+    p95_ms: float
+
+
+class DashboardExperiment(Model):
+    id: str
+    spec: ExperimentSpec | None = None
+    result: ExperimentResult | None = None
+    events: list[Event] = Field(default_factory=list)
+    series: dict[str, list[DashboardPoint]] = Field(default_factory=dict)
+
+
+class DashboardSnapshot(Model):
+    run_id: str
+    meta: RunMeta | None = None
+    baseline: Baseline | None = None
+    graph: Graph | None = None
+    plan: list[ExperimentSpec] = Field(default_factory=list)
+    experiments: list[DashboardExperiment] = Field(default_factory=list)
+    findings: list[Finding] = Field(default_factory=list)
+    summary: Summary | None = None
+    series: dict[str, list[DashboardPoint]] = Field(default_factory=dict)
+    containers: dict[str, ContainerStats] = Field(default_factory=dict)
+    queues: list[QueueObservation] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
+class DashboardRequest(Model):
+    action: Literal[
+        "sandbox",
+        "baseline",
+        "run",
+        "fixture",
+        "smoke",
+        "map",
+        "seed",
+        "inject",
+        "kill",
+        "rollback",
+        "resume",
+    ]
+    approved: bool = False
+    target: str = Field(default="redis", pattern=r"^[a-z][a-z0-9-]{0,63}$")
+    fault: Literal["stop", "pause", "kill"] = "stop"
+    duration_s: int = Field(default=30, ge=5, le=120)
+    max_experiments: int = Field(default=4, ge=1, le=8)
+
+
+class DashboardJob(Model):
+    action: str
+    state: Literal["running", "complete", "failed"]
+    started_at: float
+    ended_at: float | None = None
+    exit_code: int | None = None
+    output: list[str] = Field(default_factory=list)

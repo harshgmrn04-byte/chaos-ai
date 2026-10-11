@@ -112,7 +112,7 @@ def test_recovery_complete_windows_three_streak_and_equality() -> None:
     samples += recovery_samples(13, 15)
     assert find_recovery(samples, baseline, baseline.thresholds, 10, t_end=15) == (True, 5)
     samples[2].ok = True
-    samples[2].latency_ms = 15.001
+    samples[2].latency_ms = 110.001
     assert find_recovery(samples, baseline, baseline.thresholds, 10, t_end=15) == (True, 5)
 
 
@@ -148,7 +148,7 @@ def test_precheck_sparse_requires_a_sample_and_strict_limits() -> None:
     assert not healthy and "login" in reason
     samples.append(sample(10, "login", latency=15))
     assert near_baseline(samples, baseline, baseline.thresholds, 0, 20)[0]
-    samples[-1].latency_ms = 15.001
+    samples[-1].latency_ms = 110.001
     assert not near_baseline(samples, baseline, baseline.thresholds, 0, 20)[0]
     samples[-1].latency_ms = 15
     samples[-1].ok = False

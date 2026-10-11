@@ -6,13 +6,14 @@ asks for approval, injects within a deterministic safety boundary, measures impa
 and produces a reproducible findings report. Gemini explains evidence; Python controls faults
 and computes scores. No agent framework is used.
 
-**Feature freeze:** Phases 0–10 implementation is available. Live resilience verification is
-partial. The target is currently **unassessed**. The measured attempt `20261011-014810` injected
-zero faults after auth HTTP 429s blocked readiness and cooldown; smoke failed at admin login.
-Its `stable=true` baseline is error-contaminated. Historical `20261011-011425` stays
-`stable=false`. Synthetic fixture scores 53/17/95 (overall 55, weak) describe examples only.
-See [progress](docs/progress.md), [remaining verification](docs/final-verification.md) and the
-[pending measured sample deliverable](examples/sample-run/README.md).
+The live dashboard shows experiments, HTTP latency/error charts, container telemetry,
+recovery timelines, findings, recommendations and the dependency map. Start it with
+`chaosai dashboard` and open <http://127.0.0.1:8765>. It refreshes recorded evidence every
+two seconds and supports explicitly approved local experiments, KILL and rollback.
+See [dashboard guide](docs/dashboard.md) and [runtime corrections](docs/runtime-fixes.md).
+The local auth sandbox removes the repeated 15-minute demo bottleneck while retaining a
+bounded limiter; the original third-party source stays unchanged. Historical failures and
+synthetic fixture runs remain labelled and preserved.
 
 ```mermaid
 flowchart TD
@@ -73,23 +74,24 @@ bash scripts/clean_run.sh
 bash scripts/clean_run.sh --clone
 ```
 
-These are **human-only live commands**. They bootstrap, reject KILL/pending undo/active
-injectors before bring-up, use scoped `chaosai up` (Compose up -d --build), doctor, seed, smoke,
+These commands bootstrap, reject KILL/pending undo/active injectors before bring-up, use
+scoped `chaosai up` (Compose up -d --build), prepare the local sandbox, doctor, seed, smoke,
 `run --yes --max-experiments 4`, validate evidence and run final smoke. No prune, volume
 removal, destructive reset or automatic KILL clear. Script failure retains journals and
 reports. A zero exit requires a clean baseline and at least four completed, recovered measured
 experiments across three fault types; safety demonstrations and visual review remain separate.
-The auth budget and sparse recovery may prevent this even on a running app. See the full
+A watchdog-aborted experiment counts only with actual measurement and proven rollback/recovery. See the full
 [verification checklist](docs/final-verification.md) before running it; do not run live load
 commands concurrently. Waiting alone does not prove readiness.
 
 No payment patch exists: the inspected placeholder Stripe path already bypasses payment.
 Live checkout creates a **pending order**, not payment completion; configured real keys may
-activate target-owned external calls. Resend/Cloudinary/Stripe are never injectable. If a
-confirmed target defect needs a patch, store it under `patches/`, document provenance and an
-`apply_patches.sh`/`revert_patches.sh` flow, and apply only to the owned clone. Clean-run refuses
-patches on an existing source checkout and refuses patch files without that documented helper.
-No patch is justified by the observed auth rate limiting.
+activate target-owned external calls. Resend/Cloudinary/Stripe are never injectable. The auth patch is supplied as [a reviewable diff](patches/auth-rate-limit.patch).
+`chaosai sandbox` builds a derived image from the scoped auth container and recreates only
+that service. It stores restoration metadata before recreation. `chaosai sandbox --restore`
+returns to the preserved original image; it refuses active experiments, KILL and pending undo.
+The original 100-request default is preserved in source; the local override is 6000 requests
+per 15 minutes (bounded above at 10000). No external service is patched or injected.
 
 ## Command reference
 
@@ -101,6 +103,8 @@ replace with the path actually printed by the CLI.
 |---|---|
 | `chaosai doctor [--llm]` | Scoped state/ports/public GETs, Python/key/dotenv presence. `--llm` explicitly probes validated JSON. |
 | `chaosai up` | Scoped Compose build/start; refuses KILL/pending undo/active injectors and holds locks through bring-up. Startup is not readiness. |
+| `chaosai dashboard [--host LOOPBACK] [--port PORT]` | Live dashboard, run history, charts, findings, map and approved controls; default localhost:8765. |
+| `chaosai sandbox [--restore]` | Prepare/restore the owned local auth image for sustained demo traffic. |
 | `chaosai status` | Only configured project containers, state/health/ports. |
 | `chaosai seed [--users N]` | Idempotent accounts/admin/catalog; scoped credential and DB checks. |
 | `chaosai smoke` | Browse/login/create/retrieve; best-effort queue/consumer evidence. Creates an order. |
@@ -111,7 +115,7 @@ replace with the path actually printed by the CLI.
 | `chaosai fault apply FAULT TARGET [--duration SECONDS] [--yes]` | Low-level kill/stop/pause (CPU default intensity subject to exact restore); no load/metric Watchdog. Traffic requires measured run. |
 | `chaosai fault undo FAULT TARGET` | Replay matching scoped container undo records. |
 | `chaosai inject FAULT TARGET [--duration SECONDS] [--abort-error-rate RATE] [--yes]` | One measured kill/stop/pause with saved baseline, S9, Watchdog and recovery. |
-| `chaosai run [--offline] [--yes] [--dry-run] [--max-experiments N] [--reuse-baseline]` | Ranked sequential plan, 1–8 selected entries. Reuse needs stable baseline <1h old. Live dry-run may generate baseline load. |
+| `chaosai run [--offline] [--yes] [--dry-run] [--max-experiments N] [--reuse-baseline]` | Ranked sequential plan, 1–8 selected entries. Reuse needs stable, error-free, nonempty baseline <1h old. Live dry-run may generate baseline load. |
 | `chaosai rollback [--clear-kill]` | Replay all journals; explicit clear only after successful undo and injector exit. |
 | `chaosai kill` | Persist KILL then directly replay journals; use another terminal during an active fault. |
 | `chaosai report PATH_OR_ID` | Regenerate HTML/Markdown from saved data, no LLM/target. |
@@ -130,7 +134,7 @@ mapping and replay skip dotenv. Never commit local `.env`, keys, passwords or ra
 | Variables | Purpose / defaults |
 |---|---|
 | `TARGET_DIR`, `COMPOSE_PROJECT` | Sibling `../ecommerce-microservices`, project `ecommerce-microservices`; relative paths resolve from chaos-ai. |
-| `LLM_PROVIDER`, `GEMINI_MODEL`, `LLM_TIMEOUT_S` | gemini/mock/none; automatic model resolution unless overridden; 30s requests. Provider auto-selects Gemini when a key exists, otherwise none. |
+| `LLM_PROVIDER`, `GEMINI_MODEL`, `LLM_TIMEOUT_S` | gemini/mock/none; automatic model resolution unless overridden; 60s requests. Provider auto-selects Gemini when a key exists, otherwise none. |
 | `GEMINI_API_KEY`, `GOOGLE_API_KEY` | Private process/key configuration; presence only is shown. Never printed or saved. |
 | `FRONTEND_URL`, `AUTH_URL`, `PRODUCT_URL`, `ORDER_URL` | Local published bases as listed above; no `/api` prefix. |
 | `RABBITMQ_MANAGEMENT_URL`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD`, `RABBITMQ_VHOST` | Management queue observation; configure privately when defaults differ. |
@@ -138,6 +142,8 @@ mapping and replay skip dotenv. Never commit local `.env`, keys, passwords or ra
 | `AUTH_TIMEOUT_S`, `REQUEST_TIMEOUT_S` | 4s auth (3–5 permitted), 10s management/setup HTTP. |
 | `LOAD_USERS`, `LOAD_DURATION_S`, `LOAD_TIMEOUT_S` | 10 workers, 30s standalone load, 5s requests (maximum 5). |
 | `CHECKOUT_RPS`, `LOGIN_RATE_CAP`, `TOKEN_REFRESH_S` | Shared caps 1/s and 1/s per generator, token renewal 600s (maximum 600). |
+| `CREDENTIAL_CACHE_S` | 0 for generic targets; owned sandbox defaults to 600s verified proof in process memory, invalidated by auth rejection. |
+| `DASHBOARD_HOST`, `DASHBOARD_PORT` | Loopback only, default 127.0.0.1:8765. |
 | `THINK_MIN_S`, `THINK_MAX_S` | 0.2–1.0s worker think time; endpoints constrained to that range. |
 | `WARMUP_S`, `BASELINE_DURATION_S`, `METRICS_INTERVAL_S` | 30s/120s baseline; 5s ordinary telemetry, 1s experiment telemetry. |
 | `NOTIFICATION_INTERVAL_S` | 6s between three best-effort queue/log observations. |
@@ -160,7 +166,7 @@ cover request-level samples, low-sample flags and the shared target auth limiter
 | S6 | Measured runner has an independent pre-apply duration timer; bounded in-flight SDK calls can delay actual restoration. |
 | S7 | KILL polled every 0.5s; second-terminal kill persists flag and rolls back directly. Explicit reset only. |
 | S8 | Per-experiment approval on by default; no TTY refuses without --yes. |
-| S9 | <=60s near-baseline precheck with observed samples, stable baseline and p95 <=1.5×. Timeout is a skip. |
+| S9 | <=60s near-baseline precheck with observed samples, stable baseline and p95 <=max(1.5× baseline, baseline+100ms). Timeout is a skip. |
 | S10 | No volume removal, prune, destructive Compose reset or host network changes. |
 
 Exact CPU originals with quota 0 or NanoCpus>0 are refused; no normalization/recreation.
@@ -200,22 +206,24 @@ chaosai replay runs/<printed-run-id>
 
 HTML uses inline CSS/SVG, autoescapes untrusted text, labels synthetic versus measured data,
 and shows plan-ordered cards, thresholds, recorded event markers, UTC times, decisions and
-score methodology. Browser visual review is still pending; do it manually. A previous
-Computer Use file:// restriction was respected and must not be circumvented.
+score methodology. The dashboard serves saved reports locally for browser review.
 Replay never re-plans/injects; original baseline/plan/results/samples stay unchanged.
 
 ## Known limitations and verification
 
-The target auth IP budget is 100 requests/15 minutes, shared across seed/smoke/baselines/runs.
-Serial commands and fresh windows may be needed; a long run can exhaust it again. At
-LOGIN_RATE_CAP=0.5 there is at most roughly one login per two seconds, incompatible with
-three consecutive nonempty 1s login recovery windows; observed missing recovery remains
-unproven, even if containers are healthy. Do not relax that gate to make a demo pass.
-Checkout samples can vanish when authentication is throttled. Latency stability is drift,
-not error-free health. RabbitMQ telemetry is intermittent and queue/consumer observations
-never prove actual Resend delivery. Natural-language causality needs human review. CPU exact
-restore limits and scoped resource cleanup failures can stop a sequence. Network faults,
-netem and re-planning are not implemented in this freeze.
+The original target auth budget is 100 requests/15 minutes. Prepare the owned sandbox for
+sustained demonstration traffic. Its verified load credentials are cached in process memory
+for at most 600 seconds; only use this mode with unchanged seeded accounts. Explicit auth
+rejections invalidate proof. Generic targets default to verifying before each login.
+Live load commands share an exclusive lease and the dashboard detects external CLI work.
+Recovery requires real samples for every journey in three consecutive healthy windows,
+1–20 seconds wide based on baseline RPS; missing samples never prove recovery.
+Version-2 stability tolerates half-window p95 drift up to max(30%, 100ms), avoiding noise
+amplification at single-digit latencies. Errors still block baseline reuse and injection.
+RabbitMQ telemetry can be intermittent; missing depth remains unavailable. Queue receipts
+never prove actual Resend delivery. CPU quota 0/NanoCpus faults remain safely refused where
+exact restoration cannot be proven. Network/netem and disk faults are planning-only.
+The video and submission form are operator deliverables; use [demo script](docs/demo-script.md).
 
 ```sh
 ruff check .
@@ -224,8 +232,7 @@ bash -n scripts/clean_run.sh scripts/day1_demo.sh
 python -m chaosai --help
 ```
 
-Unit tests forbid real sockets, Docker constructors and dotenv reads. Integration checks are
-human-only and create orders. The complete [final human checklist](docs/final-verification.md)
-includes from-scratch reproduction, clean baseline, impact/recovery, strict Watchdog abort,
-active KILL, Ctrl-C, Day-1, four experiments/three fault types, smoke, report/replay and sample
-provenance. Implementation completion does not mark those checks passed.
+Unit tests forbid real sockets, Docker constructors and dotenv reads. Integration checks require the running sandbox and create orders. The [verification record](docs/final-verification.md) distinguishes completed live checks
+from remaining operator recording/submission work. The fresh clean run measured four
+fault types, restored every fault and passed final smoke. Its score is 55/100 (weak),
+with target weaknesses preserved in the [measured report](examples/sample-run/report.html).

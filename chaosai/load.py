@@ -1,5 +1,6 @@
 """Threaded HTTP journeys with verified credentials and bounded write traffic."""
 
+import hashlib
 import logging
 import random
 import threading
@@ -24,6 +25,8 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 JOURNEYS = ("homepage", "browse", "login", "checkout")
 WEIGHTS = (10, 60, 10, 20)
+_VERIFIED: dict[tuple[str, ...], float] = {}
+_VERIFIED_LOCK = threading.Lock()
 
 
 class SampleBuffer:
@@ -173,7 +176,25 @@ class LoadGenerator:
         self.failed = threading.Event()
         self._shutdown = threading.Event()
 
+    def _credential_key(self, email: str) -> tuple[str, ...]:
+        return (
+            str(self.settings.project_root),
+            self.settings.compose_project,
+            self.settings.auth_url,
+            email,
+            hashlib.sha256(self.settings.seed_password.get_secret_value().encode()).hexdigest(),
+        )
+
+    def _invalidate(self, email: str) -> None:
+        with _VERIFIED_LOCK:
+            _VERIFIED.pop(self._credential_key(email), None)
+
     def _verify(self, email: str) -> bool:
+        key = self._credential_key(email)
+        if self.settings.credential_cache_s:
+            with _VERIFIED_LOCK:
+                if _VERIFIED.get(key, 0) > time.monotonic():
+                    return True
         if not self.settings.seed_password.get_secret_value():
             logger.warning("Skipping %s: SEED_PASSWORD is unavailable; no login sent.", email)
             return False
@@ -182,6 +203,9 @@ class LoadGenerator:
             require_credentials(
                 self.docker_client, postgres, self.settings, email, self.settings.seed_password
             )
+            if self.settings.credential_cache_s:
+                with _VERIFIED_LOCK:
+                    _VERIFIED[key] = time.monotonic() + self.settings.credential_cache_s
             return True
         except (TargetError, docker.errors.DockerException, OSError):
             logger.warning(
@@ -226,9 +250,8 @@ class LoadGenerator:
                 return None
             session.auth = None
             if not self._verify(session.email):
-                session.disabled = True
                 return None
-            _, auth = http.request(
+            status, auth = http.request(
                 "login",
                 "POST",
                 self.settings.auth_url + "/login",
@@ -240,9 +263,12 @@ class LoadGenerator:
                 },
             )
             if auth is None or auth.user.email != session.email:
-                # Never retry a failed login blindly, even when transport dropped.
-                if not self._verify(session.email):
-                    session.disabled = True
+                # An outage does not change a verified sandbox password. Keep its
+                # bounded proof so requests still measure the injected failure.
+                # Explicit rejection/invalid success invalidates proof immediately.
+                if status in {200, 401, 403} or not self.settings.credential_cache_s:
+                    self._invalidate(session.email)
+                    self._verify(session.email)
                 return None
             session.auth = auth
             session.issued_at = time.monotonic()

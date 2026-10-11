@@ -21,6 +21,7 @@ recovery are separate. Sparse or incomplete observations cannot establish resili
 {% endif %}
 <p>Run {{ meta.run_id }} · {{ meta.started_at|readable_time }} · project {{ meta.target_project }}<br>
 Planner: {{ meta.planner_source }} · Analyzer: {{ meta.analyzer_source }}<br>
+Target profile: {{ meta.target_profile }} · verified credential cache: {{ meta.credential_cache_s }}s<br>
 Planner sources: {{ meta.planner_sources|join(', ') }} ·
 Analyzer sources: {{ meta.analyzer_sources|join(', ') }} · Baseline: {{ meta.baseline_source or 'legacy' }}</p>
 {% if meta.stop_reason %}<p class="notice">Stopped: {{ meta.stop_reason }}</p>{% endif %}
@@ -44,7 +45,7 @@ a partial run is not a full application assessment.</p>
 {% for f in graph.flows %}<p>{{ f.name }} touches: {{ f.path|join(', ') }}</p>{% endfor %}</section>
 <section><h2>Baseline{% if meta.data_source == 'fixture' %} (synthetic){% endif %}</h2>
 <p>Created {{ baseline.created_at|readable_time }} · window {{ baseline.window_s }}s · stable={{ baseline.stable }}.
-Stability measures drift; it does not establish an error-free baseline.</p>
+Stability measures drift; it does not establish an error-free baseline. Measurement version {{ baseline.measurement_version }}; absolute stability allowance {{ baseline.stability_floor_ms }} ms.</p>
 <table><tr><th>Journey</th><th>N</th><th>Errors</th><th>p95 ms</th><th>RPS</th><th>Low sample</th></tr>
 {% for name,s in baseline.journeys.items() %}<tr><td>{{ name }}</td><td>{{ s.n }}</td>
 <td>{{ '%.4f'|format(s.error_rate) }}</td><td>{{ '%.3f'|format(s.p95_ms) }}</td>
@@ -57,7 +58,7 @@ Stability measures drift; it does not establish an error-free baseline.</p>
 <tr><td>Non-target containers leaving running</td><td>—</td><td>&gt; {{ baseline.thresholds.abort.max_unhealthy_containers }}</td></tr>
 <tr><td>Minimum samples / consecutive breaches</td><td>Verdict needs 20 baseline and during samples per journey</td><td>{{ baseline.thresholds.abort.min_samples }} / {{ baseline.thresholds.abort.consecutive_breaches }}</td></tr></table>
 <p class="muted">Latency breaches exceed max(multiple × baseline p95, baseline p95 + absolute increment).
-The S9 precheck and recovery use 1.5× baseline p95 with no absolute floor.
+The S9 precheck and recovery use max(1.5× baseline p95, baseline p95 + hypothesis floor).
 Each card's final policy-clamped spec supplies its hypothesis and abort limits.</p>
 <p>Queues (available observations only): {{ baseline.queues }}</p></section>
 <section><h2>Experiment plan and Results</h2>
@@ -110,6 +111,7 @@ INJECT is an attempt, OBSERVE records completed application, UNDO begins restora
 {% else %}<p>No experiments planned.</p>{% endfor %}</section>
 <section><h2>Decision trace</h2>
 {% for d in decisions|sort(attribute='final.rank') %}<h3>{{ d.experiment_id }} · {{ d.source }}</h3>
+{% if d.fallback_reason %}<p>Planner fallback: {{ d.fallback_reason }}</p>{% endif %}
 <p>Allowed={{ d.allowed }} · denial={{ d.deny_reason or 'none' }}<br>
 Requested reason: {{ d.requested.reason }}<br>Final reason: {{ d.final.reason }}</p>
 <details><summary>Requested and final specs</summary><pre>{{ d.requested.model_dump_json(indent=2) }}</pre>
@@ -129,7 +131,7 @@ Sparse scores are descriptive, not hypothesis confirmation. Missing journeys are
 <p>Bands: ≥85 resilient; ≥70 acceptable; ≥50 weak; otherwise fragile.
 Severity: critical below 30 or aborted with ≥2 impacted journeys; high below 60; medium below 80; otherwise low.
 Confirmed experiments scoring ≥80 appear under What held up, never ranked weaknesses.</p>
-<p>Recovery requires three complete nonempty one-second HTTP windows for every journey;
-container restoration alone cannot prove it. Stability/readiness, safety thresholds and
-source-grounded policy clamps are unchanged. AI explains evidence; deterministic code sets scores.</p>
+<p>Recovery requires three complete healthy HTTP windows for every journey (1–20s, sized from baseline RPS);
+container restoration alone cannot prove it. Thresholds and measurement version are recorded
+above; deterministic policy clamps remain authoritative. AI explains evidence; deterministic code sets scores.</p>
 </section></body></html>

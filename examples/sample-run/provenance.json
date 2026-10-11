@@ -1,0 +1,36 @@
+{
+  "run_id": "20261011-035048",
+  "data_source": "measured",
+  "target_project": "ecommerce-microservices",
+  "source_revision": "bae94402773bc7fd7d05dadd4062dffe2d1c2057",
+  "target_profile": "owned auth image, AUTH_RATE_LIMIT_MAX=6000",
+  "credential_cache_s": 600,
+  "baseline_measurement_version": "2",
+  "planner_source": "heuristic",
+  "analyzer_sources": [
+    "gemini:models/gemini-3.8-flash",
+    "heuristic"
+  ],
+  "overall_score": 55,
+  "completed_experiments": 4,
+  "fault_types": [
+    "kill",
+    "pause",
+    "stop",
+    "traffic_spike"
+  ],
+  "sha256": {
+    "report.html": "59b2b32f24ac7d23f8a2bdbce9097a043a7dff20813a5852df5c7e7ee3afcb0c",
+    "report.md": "20bc973f138d7934e037442e3fdd22afb131dab9fad0e47dd6de7bba691d5943",
+    "graph.json": "11610cff6d1c9a184a1084de24d0d957f6abcbb3aba51787757a643876e55b69",
+    "baseline.json": "d6e6e84bdbf9cc5743c75f6ea9f50d9e78c8920875f3157fd40ffb08c371591c",
+    "decisions.json": "e876c14b42ae8533ebad6e6d9f2c1e7b77476343c1e92506434b028200044bb2"
+  },
+  "original_sha256": {
+    "report.html": "59b2b32f24ac7d23f8a2bdbce9097a043a7dff20813a5852df5c7e7ee3afcb0c",
+    "report.md": "20bc973f138d7934e037442e3fdd22afb131dab9fad0e47dd6de7bba691d5943",
+    "graph.json": "11610cff6d1c9a184a1084de24d0d957f6abcbb3aba51787757a643876e55b69",
+    "baseline.json": "d6e6e84bdbf9cc5743c75f6ea9f50d9e78c8920875f3157fd40ffb08c371591c",
+    "decisions.json": "e876c14b42ae8533ebad6e6d9f2c1e7b77476343c1e92506434b028200044bb2"
+  }
+}

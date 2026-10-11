@@ -72,10 +72,10 @@ def test_window_half_open_and_errors() -> None:
 
 
 @pytest.mark.parametrize(
-    "second,stable", [(100, True), (130, True), (70, True), (131, False), (69, False)]
+    "second,stable", [(1000, True), (1300, True), (700, True), (1301, False), (699, False)]
 )
 def test_stability(second: float, stable: bool) -> None:
-    values = [sample(1, 100, j) for j in JOURNEYS for _ in range(10)]
+    values = [sample(1, 1000, j) for j in JOURNEYS for _ in range(10)]
     values += [sample(8, second, j) for j in JOURNEYS for _ in range(10)]
     assert baseline.stability_check(values, 0, 10) is stable
 
@@ -85,7 +85,7 @@ def test_stability_missing_and_zero() -> None:
     assert not baseline.stability_check([sample(1), sample(8)], 0, 10)
     assert baseline.stability_check([sample(1, 0)] * 10 + [sample(8, 0)] * 10, 0, 10, ("browse",))
     assert not baseline.stability_check(
-        [sample(1, 0)] * 10 + [sample(8, 1)] * 10, 0, 10, ("browse",)
+        [sample(1, 0)] * 10 + [sample(8, 101)] * 10, 0, 10, ("browse",)
     )
 
 

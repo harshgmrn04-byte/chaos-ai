@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Run from chaos-ai with the target already up and seeded. No build/down/reset commands.
 # Every measured inject starts its own steady load and writes its result/sample evidence.
-# LOGIN_RATE_CAP=0.5 reduces auth traffic, but preceding traffic still shares the target's
-# 100 requests / 15-minute IP limit. Allow a fresh rate-limit window between demos.
+# Prepare chaosai sandbox first for sustained demo traffic; original source stays unchanged.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 if [[ -f .venv/bin/activate ]]; then

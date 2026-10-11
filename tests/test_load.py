@@ -156,7 +156,7 @@ def test_credential_changed_after_prepare_skips_without_login(
     verified.side_effect = TargetError("password changed")
     with gen.client_factory() as client:
         assert gen.login(gen.sessions[0], JourneyClient(client, gen.samples, settings)) is None
-    assert gen.sessions[0].disabled and gen.samples.snapshot() == []
+    assert not gen.sessions[0].disabled and gen.samples.snapshot() == []
 
 
 def test_exact_journeys_timeout_and_global_checkout_cap(
@@ -430,3 +430,47 @@ def test_prepare_cancellation_skips_future_verification_and_http(settings, tmp_p
     factory.assert_not_called()
     generator.prepare(10)
     assert len(calls) == 1
+
+
+def test_sandbox_credential_cache_avoids_helper_inside_fault(
+    settings,
+    tmp_path,
+    verified,
+    monkeypatch,
+):
+    settings.credential_cache_s = 600
+    gen = generator(settings, tmp_path)
+    gen.prepare(1)
+    before = verified.call_count
+    # Authentication can be sampled while the helper container is stopped/paused.
+    verified.side_effect = TargetError("temporary helper outage")
+    with gen.client_factory() as client:
+        assert gen.login(gen.sessions[0], JourneyClient(client, gen.samples, settings))
+    assert verified.call_count == before
+    gen._invalidate(gen.sessions[0].email)
+    assert not gen._verify(gen.sessions[0].email)
+    assert verified.call_count == before + 1
+    assert not gen.sessions[0].disabled
+
+
+@pytest.mark.parametrize("status", [None, 503, 401, 200])
+def test_cached_proof_survives_outage_but_not_auth_rejection(
+    settings, tmp_path, verified, status
+):
+    settings.credential_cache_s = 600
+    gen = generator(settings, tmp_path)
+    gen.prepare(1)
+    before = verified.call_count
+    verified.side_effect = TargetError("helper unavailable during fault")
+
+    def outage(request):
+        if status is None:
+            raise httpx.ConnectError("offline", request=request)
+        return httpx.Response(status, json={})
+
+    with httpx.Client(transport=httpx.MockTransport(outage)) as client:
+        http = JourneyClient(client, gen.samples, settings)
+        assert gen.login(gen.sessions[0], http, force=True) is None
+    assert len(gen.samples.snapshot()) == 1
+    assert verified.call_count == before + (status in {200, 401})
+    assert gen._verify(gen.sessions[0].email) == (status not in {200, 401})

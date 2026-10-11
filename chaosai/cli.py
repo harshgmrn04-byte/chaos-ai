@@ -2,6 +2,7 @@
 
 import sys
 import threading
+from datetime import UTC, datetime
 from pathlib import Path
 
 import docker
@@ -20,11 +21,13 @@ from chaosai.faults.base import FaultContext, hold_fault
 from chaosai.mapper import MapperError, map_target, mermaid, save_graph
 from chaosai.models import (
     AbortRule,
+    Approval,
     Baseline,
     ExperimentResult,
     ExperimentSpec,
     Hypothesis,
     PolicyDecision,
+    RunMeta,
 )
 from chaosai.planner import plan_experiments
 from chaosai.report import render_report
@@ -399,12 +402,13 @@ def load_command(
     settings = target_config()
     run_dir = create_run(settings.runs_dir)
     try:
-        stats = run_load(
-            settings,
-            run_dir,
-            users if users is not None else settings.load_users,
-            duration if duration is not None else settings.load_duration_s,
-        )
+        with file_lock(settings.active_lock_path, blocking=False):
+            stats = run_load(
+                settings,
+                run_dir,
+                users if users is not None else settings.load_users,
+                duration if duration is not None else settings.load_duration_s,
+            )
     except (TargetError, docker.errors.DockerException, OSError) as exc:
         target_failure(exc)
     for name, value in stats.items():
@@ -426,9 +430,10 @@ def baseline_command(
     settings = target_config()
     run_dir = create_run(settings.runs_dir)
     try:
-        graph = map_target(settings)
-        save_graph(graph, settings, run_dir)
-        value = measure_baseline(graph, settings, run_dir, duration_s=duration, quick=quick)
+        with file_lock(settings.active_lock_path, blocking=False):
+            graph = map_target(settings)
+            save_graph(graph, settings, run_dir)
+            value = measure_baseline(graph, settings, run_dir, duration_s=duration, quick=quick)
     except (TargetError, MapperError, docker.errors.DockerException, OSError) as exc:
         target_failure(exc)
     for name, stats in value.journeys.items():
@@ -647,9 +652,36 @@ def inject_command(
         save_graph(graph, settings, run_dir)
         write_json(run_dir / "baseline.json", baseline)
         write_json(run_dir / "decisions.json", [decision])
+        write_json(run_dir / "plan.json", [decision.final])
+        meta = RunMeta(
+            run_id=run_dir.name,
+            started_at=datetime.now(UTC),
+            planner_source="heuristic",
+            analyzer_source="heuristic",
+            target_project=settings.compose_project,
+            approvals=[],
+            offline=False,
+            data_source="measured",
+            baseline_source="reused",
+            phase="EXPERIMENTS",
+            target_profile="owned-auth"
+            if (settings.safety_dir / "sandbox.json").exists()
+            else "original",
+            credential_cache_s=settings.credential_cache_s,
+        )
+        write_json(run_dir / "run.json", meta)
         result = execute_experiment(
             decision, run_dir, settings=settings, graph=graph, baseline=baseline, approver=approver
         )
+        meta.approvals.append(
+            Approval(experiment_id=result.spec.id, decision=result.approval_decision)
+        )
+        meta.phase = "STOPPED" if result.interrupted or kill_requested(settings) else "COMPLETE"
+        meta.finished_at = datetime.now(UTC)
+        write_json(run_dir / "run.json", meta)
+        # Single-fault diagnostics always finish quickly with deterministic analysis.
+        analyze_run(run_dir, settings.model_copy(update={"llm_provider": "none"}))
+        render_report(run_dir)
     except ApprovalRequired as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(2) from exc
@@ -663,7 +695,53 @@ def inject_command(
         target_failure(exc)
     show_experiment(result)
     typer.echo(f"Result: {run_dir / 'experiments' / result.spec.id / 'result.json'}")
+    if result.approval_decision == "quit":
+        raise typer.Exit(130)
     if not result.rollback_ok and not result.skipped:
         raise typer.Exit(2)
     if result.abort_reason and result.abort_reason.startswith("Interrupted"):
         raise typer.Exit(130)
+
+
+@app.command()
+def sandbox(
+    restore: bool = typer.Option(False, help="Restore the original scoped auth image."),
+) -> None:
+    """Prepare an owned local auth image for load tests; never edit target source."""
+    from chaosai.sandbox import setup_sandbox
+
+    try:
+        setup_sandbox(load_config(), restore=restore)
+    except (TargetError, OSError, ValueError, docker.errors.DockerException) as exc:
+        typer.echo(str(exc) if isinstance(exc, TargetError) else "Sandbox setup failed.")
+        raise typer.Exit(1) from exc
+    typer.echo(
+        "Original auth image restored."
+        if restore
+        else "Sandbox auth ready: 6000 requests/15m; limiter retained; target source unchanged."
+    )
+
+
+@app.command()
+def dashboard(
+    host: str | None = typer.Option(None, help="Loopback address (default DASHBOARD_HOST)."),
+    port: int | None = typer.Option(None, min=1024, max=65535, help="DASHBOARD_PORT."),
+) -> None:
+    """Serve live experiments, metrics, findings and approved local controls."""
+    from chaosai.dashboard import make_server
+
+    try:
+        settings = load_config()
+        host = host or settings.dashboard_host
+        server = make_server(settings, host, port or settings.dashboard_port)
+    except (OSError, ValueError) as exc:
+        typer.echo(f"Dashboard could not start ({type(exc).__name__}).", err=True)
+        raise typer.Exit(1) from exc
+    typer.echo(f"ChaosPilot dashboard: http://{host}:{server.server_port}")
+    try:
+        server.serve_forever(poll_interval=0.5)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.jobs.shutdown()
+        server.server_close()

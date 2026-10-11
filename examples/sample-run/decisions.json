@@ -1,0 +1,203 @@
+[
+  {
+    "experiment_id": "experiment-01",
+    "requested": {
+      "id": "experiment-01",
+      "fault": "kill",
+      "target": "auth-service",
+      "duration_s": 30,
+      "intensity": null,
+      "hypothesis": {
+        "journey": "all",
+        "max_error_rate": 0.02,
+        "max_p95_multiple": 2.0,
+        "statement": "Journeys remain within baseline-derived hypothesis limits."
+      },
+      "abort": {
+        "max_error_rate": 0.5,
+        "max_p95_multiple": 10.0
+      },
+      "reason": "Test kill on auth-service: 1 dependents, 1 unknown edges, 1 mapped journeys; verify failure handling for this dependency.",
+      "rank": 1
+    },
+    "final": {
+      "id": "experiment-01",
+      "fault": "kill",
+      "target": "auth-service",
+      "duration_s": 30,
+      "intensity": null,
+      "hypothesis": {
+        "journey": "all",
+        "max_error_rate": 0.02,
+        "max_p95_multiple": 2.0,
+        "statement": "Journeys remain within baseline-derived hypothesis limits."
+      },
+      "abort": {
+        "max_error_rate": 0.5,
+        "max_p95_multiple": 10.0
+      },
+      "reason": "Test kill on auth-service: 1 dependents, 1 unknown edges, 1 mapped journeys; verify failure handling for this dependency.",
+      "rank": 1
+    },
+    "clamps": [],
+    "allowed": true,
+    "deny_reason": null,
+    "source": "heuristic"
+  },
+  {
+    "experiment_id": "experiment-02",
+    "requested": {
+      "id": "experiment-02",
+      "fault": "traffic_spike",
+      "target": "browse",
+      "duration_s": 30,
+      "intensity": 2.0,
+      "hypothesis": {
+        "journey": "all",
+        "max_error_rate": 0.02,
+        "max_p95_multiple": 2.0,
+        "statement": "Journeys remain within baseline-derived hypothesis limits."
+      },
+      "abort": {
+        "max_error_rate": 0.5,
+        "max_p95_multiple": 10.0
+      },
+      "reason": "Test overload in mapped journey browse under bounded extra load.",
+      "rank": 2
+    },
+    "final": {
+      "id": "experiment-02",
+      "fault": "traffic_spike",
+      "target": "browse",
+      "duration_s": 30,
+      "intensity": 2.0,
+      "hypothesis": {
+        "journey": "all",
+        "max_error_rate": 0.02,
+        "max_p95_multiple": 2.0,
+        "statement": "Journeys remain within baseline-derived hypothesis limits."
+      },
+      "abort": {
+        "max_error_rate": 0.5,
+        "max_p95_multiple": 10.0
+      },
+      "reason": "Test whether browse stays within baseline-derived limits under bounded extra load; overload capacity is unverified.",
+      "rank": 2
+    },
+    "clamps": [
+      {
+        "field": "reason",
+        "requested": "Test overload in mapped journey browse under bounded extra load.",
+        "final": "Test whether browse stays within baseline-derived limits under bounded extra load; overload capacity is unverified.",
+        "reason": "Baseline latency/error statistics do not establish overload capacity."
+      }
+    ],
+    "allowed": true,
+    "deny_reason": null,
+    "source": "heuristic"
+  },
+  {
+    "experiment_id": "experiment-03",
+    "requested": {
+      "id": "experiment-03",
+      "fault": "pause",
+      "target": "postgres",
+      "duration_s": 30,
+      "intensity": null,
+      "hypothesis": {
+        "journey": "all",
+        "max_error_rate": 0.02,
+        "max_p95_multiple": 2.0,
+        "statement": "Journeys remain within baseline-derived hypothesis limits."
+      },
+      "abort": {
+        "max_error_rate": 0.5,
+        "max_p95_multiple": 10.0
+      },
+      "reason": "Test pause on postgres: 3 dependents, 3 unknown edges, 3 mapped journeys; verify failure handling for this dependency.",
+      "rank": 3
+    },
+    "final": {
+      "id": "experiment-03",
+      "fault": "pause",
+      "target": "postgres",
+      "duration_s": 30,
+      "intensity": null,
+      "hypothesis": {
+        "journey": "all",
+        "max_error_rate": 0.02,
+        "max_p95_multiple": 2.0,
+        "statement": "Journeys remain within baseline-derived hypothesis limits."
+      },
+      "abort": {
+        "max_error_rate": 0.5,
+        "max_p95_multiple": 10.0
+      },
+      "reason": "Source PostgreSQL container serves auth, product and order databases; test pause impact and recovery without assuming a measured outcome.",
+      "rank": 3
+    },
+    "clamps": [
+      {
+        "field": "reason",
+        "requested": "Test pause on postgres: 3 dependents, 3 unknown edges, 3 mapped journeys; verify failure handling for this dependency.",
+        "final": "Source PostgreSQL container serves auth, product and order databases; test pause impact and recovery without assuming a measured outcome.",
+        "reason": "Grounded in inspected source, not live verification: docs/target-notes.md#1-services-and-deployment; ecommerce-microservices/docker-compose.yml:3-18; ecommerce-microservices/docker-compose.yml:80; ecommerce-microservices/docker-compose.yml:98; ecommerce-microservices/docker-compose.yml:122"
+      }
+    ],
+    "allowed": true,
+    "deny_reason": null,
+    "source": "heuristic"
+  },
+  {
+    "experiment_id": "experiment-04",
+    "requested": {
+      "id": "experiment-04",
+      "fault": "stop",
+      "target": "postgres",
+      "duration_s": 30,
+      "intensity": null,
+      "hypothesis": {
+        "journey": "all",
+        "max_error_rate": 0.02,
+        "max_p95_multiple": 2.0,
+        "statement": "Journeys remain within baseline-derived hypothesis limits."
+      },
+      "abort": {
+        "max_error_rate": 0.5,
+        "max_p95_multiple": 10.0
+      },
+      "reason": "Test stop on postgres: 3 dependents, 3 unknown edges, 3 mapped journeys; verify failure handling for this dependency.",
+      "rank": 4
+    },
+    "final": {
+      "id": "experiment-04",
+      "fault": "stop",
+      "target": "postgres",
+      "duration_s": 30,
+      "intensity": null,
+      "hypothesis": {
+        "journey": "all",
+        "max_error_rate": 0.02,
+        "max_p95_multiple": 2.0,
+        "statement": "Journeys remain within baseline-derived hypothesis limits."
+      },
+      "abort": {
+        "max_error_rate": 0.5,
+        "max_p95_multiple": 10.0
+      },
+      "reason": "Source PostgreSQL container serves auth, product and order databases; test stop impact and recovery without assuming a measured outcome.",
+      "rank": 4
+    },
+    "clamps": [
+      {
+        "field": "reason",
+        "requested": "Test stop on postgres: 3 dependents, 3 unknown edges, 3 mapped journeys; verify failure handling for this dependency.",
+        "final": "Source PostgreSQL container serves auth, product and order databases; test stop impact and recovery without assuming a measured outcome.",
+        "reason": "Grounded in inspected source, not live verification: docs/target-notes.md#1-services-and-deployment; ecommerce-microservices/docker-compose.yml:3-18; ecommerce-microservices/docker-compose.yml:80; ecommerce-microservices/docker-compose.yml:98; ecommerce-microservices/docker-compose.yml:122"
+      }
+    ],
+    "allowed": true,
+    "deny_reason": null,
+    "source": "heuristic"
+  }
+]

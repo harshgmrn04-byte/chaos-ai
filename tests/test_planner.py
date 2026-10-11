@@ -179,6 +179,10 @@ def test_unavailable_and_malformed_mock_fall_back_deterministically(
         )
         assert source == "heuristic" and actual == expected
         assert response.call_count == (2 if name == "malformed" else 1)
+        decisions = read_json(
+            settings.project_root / name / "decisions.json", list[PolicyDecision]
+        )
+        assert all(d.fallback_reason for d in decisions if d.source == "heuristic")
 
 
 def test_empty_noninjectable_graph_is_safe(graph: Graph, baseline: Baseline) -> None:
