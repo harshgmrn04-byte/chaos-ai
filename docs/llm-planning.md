@@ -46,6 +46,22 @@ LLM output has no Docker tools or executable commands. The flat fault field acce
 strings so semantic validation can drop one unsupported proposal while retaining others.
 Invalid JSON/data shapes instead trigger retry then a complete deterministic fallback.
 
+The prompt also receives curated `source_facts` with source paths and the inspected target
+revision from target-notes.md. These are source observations, not runtime measurements;
+they are included only for the named target app and nodes present in its graph. Redis has
+no unavailable-cache fallback, orders persist before broker publication, and PostgreSQL is
+a shared container dependency. The prompt distinguishes these observations from hypotheses
+and rejects claims of proven overload capacity based only on baseline statistics.
+
+For Redis/RabbitMQ/PostgreSQL experiments and traffic spikes, final displayed reasons use
+deterministic factual templates. An unsupported AI reason therefore cannot survive in these
+plan rows, even if the model ignores the prompt. Each correction is recorded as a `reason`
+Clamp, preserving original AI text in requested.reason and the corrected text in final.reason,
+with source evidence or the capacity-claim limitation explaining the change. This applies
+to heuristic planning too; other targets retain model explanations and remain unverified.
+The source packet is a snapshot to maintain if the target changes, not automatic source
+discovery. Original synthetic run examples and historical saved plans are not rewritten.
+
 Post-validation rejects unknown/external/non-injectable/containerless or ambiguous targets,
 wrong node kinds, unknown/stretched faults, unmapped journeys, invalid ranks and empty reasons/
 hypotheses. Traffic targets mapped baseline journeys or all, subject to worker policy.
@@ -100,3 +116,9 @@ and smoke passed. Run 20261011-005504 was blocked by KILL. After explicit rollba
 Neither run applied a fault. Impact, application recovery, Watchdog abort, active-fault KILL,
 Ctrl-C recovery and the completed Day-1 walkthrough remain pending. No threshold, saved
 baseline, auth limiter or readiness check was weakened to bypass this evidence gap.
+
+The human subsequently verified doctor --llm (Gemini JSON validated), live plan and offline
+plan on 2026-10-11. All Phase 7 functional human checks passed. The explanation-grounding
+follow-up uses mocks only and requires no additional live probe or waiting period.
+By explicit user instruction, fresh-baseline and remaining Phase 6 live checks are deferred
+to final verification at the end of Phase 10; they remain pending throughout implementation.

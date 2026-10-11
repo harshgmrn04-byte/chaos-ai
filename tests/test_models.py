@@ -38,9 +38,11 @@ def instances(value: object) -> list[BaseModel]:
 def test_every_contract_round_trips() -> None:
     from chaosai.catalogue import CATALOGUE
     from chaosai.llm import mock_response
+    from chaosai.planner_facts import SOURCE_FACTS
 
     values = [
         *CATALOGUE,
+        *SOURCE_FACTS,
         models.LLMProbe(ok=True),
         models.ResolvedModel(model="test-model"),
         models.PlannerOutput.model_validate_json(mock_response("planner", models.PlannerOutput)),

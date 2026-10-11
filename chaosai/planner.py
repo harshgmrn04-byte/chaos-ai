@@ -20,6 +20,7 @@ from chaosai.models import (
     PlannerOutput,
     PolicyDecision,
 )
+from chaosai.planner_facts import SOURCE_REVISION, grounded_reason, source_facts
 from chaosai.runs import write_json
 from chaosai.safety import policy_gate
 
@@ -133,7 +134,13 @@ def validate_proposal(
     )
 
 
-def planner_decision(spec: ExperimentSpec, source: str, base_workers: int = 10) -> PolicyDecision:
+def planner_decision(
+    spec: ExperimentSpec,
+    source: str,
+    base_workers: int = 10,
+    *,
+    graph: Graph | None = None,
+) -> PolicyDecision:
     """S2 clamps plus bounded hypothesis values, preserving every requested value."""
     decision = policy_gate(spec, base_workers=base_workers)
     decision.source = source
@@ -159,6 +166,17 @@ def planner_decision(spec: ExperimentSpec, source: str, base_workers: int = 10) 
                 requested=spec.intensity,
                 final=None,
                 reason="This fault has no intensity parameter.",
+            )
+        )
+    correction = grounded_reason(spec, graph) if graph is not None else None
+    if correction is not None and spec.reason != correction[0]:
+        decision.final.reason = correction[0]
+        decision.clamps.append(
+            Clamp(
+                field="reason",
+                requested=spec.reason,
+                final=correction[0],
+                reason=correction[1],
             )
         )
     return decision
@@ -219,7 +237,7 @@ def finalize_plan(
         # IDs and ranks are deterministic code, never LLM-provided artifact paths.
         spec.id = f"experiment-{rank:02d}"
         spec.rank = rank
-        decisions.append(planner_decision(spec, origin, base_workers))
+        decisions.append(planner_decision(spec, origin, base_workers, graph=graph))
     if len({d.final.fault for d in decisions}) < 3:
         logger.warning("Graph/budget permits fewer than three distinct fault types.")
     return Plan(root=[d.final for d in decisions]), decisions
@@ -257,6 +275,8 @@ def plan_experiments(
         try:
             payload = {
                 "graph": graph.model_dump(mode="json"),
+                "source_revision": SOURCE_REVISION if source_facts(graph) else None,
+                "source_facts": [fact.model_dump() for fact in source_facts(graph)],
                 "baseline": dict(
                     stable=baseline.stable,
                     journeys={k: v.model_dump() for k, v in baseline.journeys.items()},

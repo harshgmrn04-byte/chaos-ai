@@ -786,3 +786,73 @@ inspect an unstable one); doctor also runs the existing read-only target checks.
 live verification commands remain listed in its section above, with active-fault KILL and
 Ctrl-C verification in safety.md. Do not interpret a successful plan/probe as live fault
 verification or clear KILL implicitly.
+
+### Phase 7 follow-up — source grounding and human verification, 2026-10-11
+
+Completed the explanation-quality follow-up in Phase 7 only. Added SourceFact in models.py
+and a curated planner_facts.py packet grounded in target-notes.md and target revision
+bae94402773bc7fd7d05dadd4062dffe2d1c2057 (read-only source revision rechecked). The prompt
+receives quoted source statements and evidence about unavailable Redis having no fallback,
+order persistence preceding broker publication and PostgreSQL's shared dependency. These
+facts describe inspected source, not runtime guarantees; they apply only to the named app
+and graph nodes present. No runtime target/source discovery or credential read was added.
+
+Prompt instructions now distinguish a cache miss from an unavailable cache and distinguish
+baseline observations from capacity/recovery hypotheses. Deterministic reason templates
+correct Redis, RabbitMQ, PostgreSQL and traffic-spike plan rows even when mock/AI proposals
+contain unsupported fallback or overload claims. Each correction is a reason Clamp with
+requested/final explanation and supporting source/limitation in decisions.json. Original
+model reasons remain inspectable as requested data. Selection, faults, numeric controls,
+approval, readiness, Watchdog, KILL and rollback are unchanged. Historical plans and synthetic
+offline run examples are preserved; heuristic plans use the same grounded templates.
+
+**Human Phase 7 verification: passed (user-supplied terminal evidence, not agent live calls).**
+- chaosai doctor --llm: all checks PASS; models/gemini-3.8-flash resolved, real JSON validated.
+- chaosai plan: Gemini source, eight ranked experiments across five fault types, reasons and
+  decision trace written to runs/20261011-011101. Artifact review confirmed contiguous ranks,
+  applicable targets, all policy decisions allowed, plan matching final decisions, zero clamps
+  in that original run and no experiment result files. Explanation issues identified in this
+  run motivated the follow-up; the old run is not rewritten or relabeled.
+- chaosai plan --offline: heuristic source, eight experiments across five fault types, plan
+  and trace at runs/20261011-011241; same validation checks passed, no experiment results.
+- API key configuration was demonstrated by the successful probe. No key value or dotenv
+  contents were inspected, copied or recorded by the agent.
+
+The subsequent human doctor passed, but quick baseline 20261011-011425 remains stable=false.
+Saved samples confirm zero HTTP 429 and zero request errors, but checkout p95 changed from
+31.719ms to 21.481ms between halves (32.28%, beyond the unchanged 30% stability bound).
+Checkout had 16 samples in each half. Browse/homepage passed; login had 15 total samples and
+was excluded from stability, not the reason for failure. RabbitMQ queue-depth RemoteProtocolError
+is a separate missing-telemetry issue. The baseline was only read for diagnosis, never edited.
+
+**Latest explicit user deferral:** fresh baseline and all remaining Phase 6 live verification
+will be done as final verification at the end of Phase 10. They remain pending, not passed:
+impact, application recovery, strict Watchdog abort, active-fault KILL, Ctrl-C recovery and
+the completed Day-1 walkthrough. Continuing implementation/offline checks does not establish
+these outcomes or authorize bypassing S9/stability. No timed reminder was requested or created.
+
+Actual follow-up checks using the existing .venv:
+- ruff check .: passed.
+- pytest -q -m "not integration": 415 passed, three integration tests deselected; the same
+  installed google-genai/Python 3.14 deprecation warning only.
+- python -m chaosai run --offline --yes: passed; runs/20261011-012249/report.html.
+- python -m chaosai plan --offline: passed; eight grounded heuristic plan rows and correction
+  trace at runs/20261011-012250/{plan,decisions}.json.
+- git diff --check: passed; target git status clean.
+
+Added mock regressions for incorrect fallback/capacity claims, four target/fault rationale
+corrections and preserved original explanations/provenance, source context and app/node
+scoping, independent fact copies, unchanged unstable-baseline/experiment controls, corrected
+CLI rows and heuristic grounding. Existing offline fixture and safety tests still pass.
+No agent Docker/live HTTP/real LLM calls, .env inspection, auth traffic or new baseline runs
+occurred. No waiting or additional manual work is needed for this follow-up. Previously
+provided human Phase 7 checks above satisfy its "You verify" list; deferred Phase 6 commands
+remain in the Phase 6 section and safety.md for final verification at the end of Phase 10.
+
+Known limits: the curated packet must be maintained if the target revision changes; generic
+model explanations for other targets remain unverified hypotheses. New prompt behavior was
+verified with mocks, not another paid/live model call; deterministic reason corrections cover
+the specific observed claims independently of prompt compliance. RabbitMQ telemetry and
+pending live resilience evidence remain unresolved. Phase 8 was not started. Pre-existing
+.DS_Store and untracked =, checkout, login, retrieve are untouched and excluded. Follow-up local
+commit message: fix: ground planner explanations in target facts. Nothing pushed.

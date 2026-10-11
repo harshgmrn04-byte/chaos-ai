@@ -189,6 +189,12 @@ class PlannerOutput(Model):
     experiments: list[ExperimentProposal]
 
 
+class SourceFact(Model):
+    node_id: str
+    statement: str
+    evidence: list[str]
+
+
 class LLMProbe(Model):
     ok: bool
 

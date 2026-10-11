@@ -136,6 +136,7 @@ def test_clamps_preserve_requested_and_final_values(graph: Graph, baseline: Base
         "hypothesis.max_error_rate",
         "hypothesis.max_p95_multiple",
         "intensity",
+        "reason",
     }
     assert decision.final in plan.root
 
@@ -251,6 +252,13 @@ def test_prompt_quotes_untrusted_data_and_constrains_planning(
     assert payload["graph"]["edges"][0]["evidence"] == graph.edges[0].evidence
     assert payload["constraints"]["max_experiments"] == 8
     assert len(payload["catalogue"]) == 6
+    facts = {fact["node_id"]: fact for fact in payload["source_facts"]}
+    assert set(facts) == {"redis", "rabbitmq", "postgres"}
+    assert "no application fallback" in facts["redis"]["statement"]
+    assert "persisted before" in facts["rabbitmq"]["statement"]
+    assert "auth, product and order databases" in facts["postgres"]["statement"]
+    assert all(fact["evidence"] for fact in facts.values())
+    assert "source_revision" in payload and "do not invent a Redis failure fallback" in system
 
 
 def test_plan_offline_never_uses_live_resources(cli_workspace: Path) -> None:
@@ -320,3 +328,118 @@ def test_doctor_probe_failure_is_fail_with_hint(
     result = CliRunner().invoke(cli.app, ["doctor", "--llm"])
     assert result.exit_code == 1
     assert "FAIL | LLM JSON probe" in result.output and "Check key permissions" in result.output
+
+
+@pytest.mark.parametrize(
+    "changes,expected",
+    [
+        ({"target": "redis"}, "no unavailable-Redis fallback"),
+        ({"target": "rabbitmq"}, "persists before broker publication"),
+        ({"target": "postgres"}, "serves auth, product and order databases"),
+        (
+            {"fault": "traffic_spike", "target": "browse", "intensity": 2},
+            "overload capacity is unverified",
+        ),
+    ],
+)
+def test_unfounded_mock_reasons_are_corrected_and_traced(
+    graph: Graph,
+    baseline: Baseline,
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+    changes: dict[str, object],
+    expected: str,
+) -> None:
+    raw = "Redis has potential database fallback and the baseline can absorb moderate load spikes."
+    item = proposal(**changes, reason=raw)
+    output = PlannerOutput(experiments=[item])
+    response = Mock(return_value=output.model_dump_json())
+    monkeypatch.setattr(llm, "mock_response", response)
+    baseline.stable = False
+    original = baseline.model_dump_json()
+    directory = settings.project_root / "run"
+    plan, source = plan_experiments(
+        graph,
+        baseline,
+        provider="mock",
+        cache_dir=directory / "llm",
+        settings=settings,
+    )
+    decision = next(
+        d
+        for d in read_json(directory / "decisions.json", list[PolicyDecision])
+        if d.source == "mock"
+    )
+    assert source == "mock" and response.call_count == 1
+    assert decision.requested.reason == raw
+    assert expected in decision.final.reason and raw not in decision.final.reason
+    change = next(c for c in decision.clamps if c.field == "reason")
+    assert change.requested == raw and change.final == decision.final.reason and change.reason
+    assert decision.final in plan.root
+    # Explanations cannot change readiness evidence or experiment controls.
+    assert baseline.model_dump_json() == original
+    for field in ("fault", "target", "duration_s", "intensity", "hypothesis", "abort"):
+        assert getattr(decision.final, field) == getattr(decision.requested, field)
+
+
+def test_fact_selection_is_scoped_and_returns_independent_data(graph: Graph) -> None:
+    from chaosai.planner_facts import source_facts
+
+    facts = source_facts(graph)
+    assert len(facts) == 3
+    facts[0].statement = "tampered"
+    assert all(f.statement != "tampered" for f in source_facts(graph))
+    graph.nodes = [n for n in graph.nodes if n.id == "redis"]
+    assert [f.node_id for f in source_facts(graph)] == ["redis"]
+    graph.app = "another-application"
+    assert not source_facts(graph)
+
+
+def test_source_specific_reason_does_not_apply_to_another_app(
+    graph: Graph, baseline: Baseline
+) -> None:
+    graph.app = "another-application"
+    item = proposal(reason="Inspect failure handling for this other application.")
+    plan, decisions = finalize_plan([item], graph, baseline, source="mock")
+    decision = next(d for d in decisions if d.source == "mock")
+    assert decision.final.reason == item.reason
+    assert not any(c.field == "reason" for c in decision.clamps)
+    assert decision.final in plan.root
+
+
+def test_cli_displays_corrected_reason_and_preserves_raw_trace(
+    cli_workspace: Path,
+    graph: Graph,
+    baseline: Baseline,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bad_reason = "High-volume baseline can absorb moderate load spikes."
+    item = proposal(fault="traffic_spike", target="browse", intensity=2, reason=bad_reason)
+    monkeypatch.setattr(
+        llm, "mock_response", lambda *args: PlannerOutput(experiments=[item]).model_dump_json()
+    )
+    monkeypatch.setattr(cli, "map_target", lambda *args, **kwargs: graph)
+    write_json(cli_workspace / ".chaosai" / "baseline.json", baseline)
+    result = CliRunner().invoke(cli.app, ["plan"])
+    assert result.exit_code == 0, result.output
+    ranked_table = result.output.split("Plan:", 1)[0]
+    assert "overload capacity is unverified" in ranked_table
+    # CLI shows requested->final edits explicitly, so the old text remains in that trace line.
+    assert "reason:" in ranked_table
+    directory = next((cli_workspace / "runs").iterdir())
+    plan = read_json(directory / "plan.json", Plan)
+    assert all(s.reason != bad_reason for s in plan.root)
+    assert any(
+        d.requested.reason == bad_reason
+        for d in read_json(directory / "decisions.json", list[PolicyDecision])
+    )
+
+
+def test_heuristic_reasons_are_grounded_without_llm(graph: Graph, baseline: Baseline) -> None:
+    plan, decisions = finalize_plan([], graph, baseline, source="heuristic")
+    assert all(d.source == "heuristic" for d in decisions)
+    for spec in plan.root:
+        if spec.target == "postgres":
+            assert "auth, product and order databases" in spec.reason
+        if spec.fault == "traffic_spike":
+            assert "overload capacity is unverified" in spec.reason
