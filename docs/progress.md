@@ -584,3 +584,31 @@ restores it; pressing Ctrl-C mid-fault also restores; `chaosai kill` from a seco
 
 Exact setup, Docker state/catalog checks, apply/automatic undo, second-terminal rollback,
 Ctrl-C recovery, kill/reset and optional pause/application kill are in docs/safety.md.
+
+### Phase 5 human verification review — 2026-10-11
+
+Reviewed the human's Terminal A attachment and pasted Terminal B output; no new Docker or
+HTTP commands were run by the coding agent. The 20-second Redis stop reports Applied and
+Rollback complete. The separate 120-second stop reports Rolled back from another terminal;
+Terminal B reports one undo record restored. The final scoped Docker listing shows all ten
+containers running, Redis healthy with a recent start. These logs support automatic and
+explicit cross-terminal rollback and restored container state.
+
+Terminal B's kill command reports KILL set but zero records restored. Terminal A shows no
+separate active-fault kill test, signal interruption, or Interrupted; rollback complete line.
+Therefore active-fault kill recovery and Ctrl-C recovery remain unverified by these logs.
+No catalog response, measured impact or explicit browser observation was supplied; site
+impact/application recovery also remain unverified. This is a partial live verification,
+not a failure report. The implemented-phase checkbox stays checked; no Phase 6 code was started.
+
+The human also ran rollback --clear-kill successfully. Do not infer a code defect from a
+zero-record rollback/kill after recovery: there may simply be no pending undo records.
+Repeat an active fault for each remaining test, invoke kill only after Applied, and separately
+press Ctrl-C during another active fault. Inspect catalog behavior during/after the fault.
+Retain the Phase 5 You verify list above until these remaining observations are supplied.
+
+Updated workspace BUILD_PLAN.md section 2 with this evidence and corrected its stale Phase 3
+"fixes pending" status from previously documented completed fixes. The user explicitly
+requested the build-plan update; it is outside the chaos-ai Git repository. Corrected the
+catalog probe in docs/safety.md from /api/products to /products, matching target-notes section
+2's explicit no-/api route contract. No safety thresholds or Phase 6 requirements changed.

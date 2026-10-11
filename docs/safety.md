@@ -113,7 +113,7 @@ While it holds the fault, run in B and browse the catalog at http://localhost:30
 
 ```sh
 docker ps -a --filter "label=com.docker.compose.project=$COMPOSE_PROJECT" --format '{{.Names}}\t{{.Status}}'
-curl --max-time 8 -sS -o /dev/null -w 'catalog HTTP %{http_code}\n' http://localhost:3002/api/products
+curl --max-time 8 -sS -o /dev/null -w 'catalog HTTP %{http_code}\n' http://localhost:3002/products
 ```
 
 After A reports rollback complete, repeat the Docker state check and catalog request.
