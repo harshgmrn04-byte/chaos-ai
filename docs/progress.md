@@ -5,7 +5,7 @@
 - [x] Phase 2 — Bring-up, seed, smoke test, payment gate, doctor
 - [x] Phase 3 — Application mapper
 - [x] Phase 4 — Load generator, metrics, baseline
-- [ ] Phase 5 — Faults, safety layer, watchdog, kill switch
+- [x] Phase 5 — Faults, safety layer, watchdog, kill switch
 - [ ] Phase 6 — Experiment runner and Day-1 demo
 - [ ] Phase 7 — LLM layer and AI planner
 - [ ] Phase 8 — Extended faults and automatic run
@@ -500,3 +500,87 @@ LOGIN_RATE_CAP=0.5 LOAD_USERS=10 chaosai baseline
 Check login n/RPS and low_sample, notifications queue depth (or its one actionable warning),
 and thresholds.hypothesis.p95_floor_ms=100 / thresholds.abort.p95_floor_ms=750 in the printed
 baseline artifact. Inspect errors/429s alongside stability; compare the two full windows.
+
+## Phase 5 — 2026-10-11
+
+Implemented the deterministic safety building blocks, without starting Phase 6. Fault base
+validates graph/kind/duration and resolves containers through scope_guard. Kill applies only
+to applications, observes self-heal before undo and starts if still stopped; stop uses
+Docker stop(timeout=5) and start; pause uses pause/unpause. All application/rollback mutations
+require the exact Compose project label. External, unknown, non-injectable (including the
+default isolated MailHog tool), unlabeled and mismatched-project targets are denied.
+
+Policy gate deep-copies specs and records every numerical clamp: duration 5–120, CPU 0.1–0.5,
+traffic 2–8 with 150 total workers, abort error 0.05–0.9 and p95 multiple 2–20. Run counters deny
+simultaneous faults and a ninth experiment; impossible minimum traffic multipliers are denied.
+The low-level CLI defaults to 30s, uses the existing y/n/a/q approver with a LIVE FAULT prompt,
+refuses non-TTY injection without --yes and saves graph/decision/journal artifacts.
+
+Added pydantic original-state, versioned journal, watchdog-window and watchdog-state contracts
+in models.py. Journal file/containing-directory/run-directory-entry fsyncs precede every Docker
+mutation. Records include container name/ID/project and original running/paused/CPU settings.
+Rollback verifies restored state, marks done only after success, restores CPU period/quota/
+NanoCpus, attempts every pending record/journal, retains failures for retry, and refuses a
+replacement container reusing the name. Empty legacy fixture journals are compatible; malformed
+or unknown nonempty formats fail closed. OS operation locks serialize record+apply with rollback;
+rollback locks before discovering journals. The separate active-fault lease prevents concurrent
+CLI injections and is released on process death.
+
+CLI implements fault apply/undo, rollback and kill. New injection reconciles pending journals
+before applying. Normal exit, exceptions, SIGINT and SIGTERM invoke rollback; repeated signals
+are ignored during cleanup and handlers are restored. The duration holding loop checks KILL
+at 0.5s intervals between SDK observations and observes second-terminal done records. Kill
+persists/fsyncs the flag before opening Docker and directly replays journals; a Docker failure
+still leaves KILL set. Explicit rollback --clear-kill clears only after successful recovery
+and with no active fault. Self-heal observation uses the operation lock and excludes our own
+rollback, so starting through recovery cannot count as automatic restart.
+
+Watchdog uses pure evaluate, adaptive per-journey windows and a five-second aggregate window.
+Rates too low to collect min_samples in 20s are assessed only through the aggregate. Metrics
+have five seconds of grace, minimum samples, independent consecutive counters and strictly
+combined multiple/+750ms floor checks through metrics.latency_limit_ms. Missing/undersampled/
+healthy windows reset their counter. Blast radius is immediate and counts baseline-running
+non-target containers that leave running; running-but-unhealthy containers are distinguished
+from exited/paused. Scoped telemetry now records disappeared known containers as missing and
+does not overwrite exited/paused states with old healthcheck results. The Watchdog thread
+reads live SampleBuffer/ContainerStatsPoller snapshots every second, latches the reason and
+sets an abort event; unexpected evaluation failure also aborts without exposing raw payloads.
+
+README and docs/safety.md explain contracts, crash/recovery behavior, limitations and exact
+Docker/two-terminal checks. Updated placeholder CLI tests and model round-trip coverage.
+Pre-existing .DS_Store and untracked =, checkout, login, retrieve files are untouched and
+excluded from this phase commit. Target working tree remains clean. No target writes, new
+dependencies, Docker command, live HTTP, integration test, real LLM call, .env read or API-key
+inspection was performed by the coding agent.
+
+Verification: ruff check . passed. pytest -q -m "not integration" passed: 312 tests, three
+human integration tests deselected. New fake-Docker tests cover clamps/counters/worker ceiling,
+scope denials, file/directory fsync-before-apply, write failure prevention, crashes before/after
+mutation, fresh-object replay, CPU restoration, idempotency, identity/scope/restore failures,
+continuing other records/journals, legacy compatibility, in-flight apply/rollback serialization,
+active lease, SIGINT/SIGTERM and CLI Ctrl-C recovery, startup reconciliation, kill persistence
+on unreachable Docker, explicit flag clearing, self-heal and hard-duration/abort decisions.
+Watchdog tests cover grace, n=9/10 boundary, missing windows, one evaluation and a real one-second
+sample spike, sustained error/p95 breach, equality/absolute floor/multiple guards, low-rate
+aggregate-only decisions, independent counters, adaptive 5–20s bounds, live windows/sample
+boundaries, blast-radius thresholds/target/pre-existing/foreign exclusions, missing containers,
+old healthchecks and the thread's one-second scheduling/fail-closed path. CLI apply/rollback/
+kill --help and python -m chaosai run --offline --yes passed (fixture report generated).
+git diff --check passed. Commit: feat: faults, safety layer, watchdog, kill switch (local only).
+
+Open limits: live Docker mechanisms and recovery remain human verification. The low-level
+fault command generates no load and attaches no metric watchdog; run-level precheck,
+reconciliation and measured experiments remain Phase 6. Rollback restores recorded resources,
+not unrelated pre-existing failures or application HTTP/broker readiness. Watchdog telemetry
+freshness follows the caller's poller interval (default 5s; use 1s for the future safety runner);
+missing initial telemetry or Docker read failures do not establish a blast-radius event.
+SDK calls may delay observation/cleanup within their bounded timeouts. POSIX locking covers
+one workspace, not multiple independent checkouts. Retain failed journals; a removed/replaced
+container or unreadable journal needs repair/manual reconciliation before further injection.
+
+**Phase 5 "You verify (Docker)" (copied from BUILD_PLAN.md):**
+`chaosai fault apply stop redis --duration 20` shows the site degrading; `chaosai rollback`
+restores it; pressing Ctrl-C mid-fault also restores; `chaosai kill` from a second terminal works.
+
+Exact setup, Docker state/catalog checks, apply/automatic undo, second-terminal rollback,
+Ctrl-C recovery, kill/reset and optional pause/application kill are in docs/safety.md.

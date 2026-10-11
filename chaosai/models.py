@@ -117,9 +117,9 @@ class AbortThresholds(Model):
     max_error_rate: float
     p95_multiple: float
     p95_floor_ms: float = Field(default=750, ge=0)
-    max_unhealthy_containers: int
-    min_samples: int
-    consecutive_breaches: int
+    max_unhealthy_containers: int = Field(ge=0)
+    min_samples: int = Field(ge=1)
+    consecutive_breaches: int = Field(ge=1)
 
 
 class Thresholds(Model):
@@ -182,6 +182,41 @@ class PolicyDecision(Model):
     clamps: list[Clamp]
     allowed: bool
     deny_reason: str | None
+
+
+class OriginalContainerState(Model):
+    running: bool
+    paused: bool
+    cpu_period: int = Field(ge=0)
+    cpu_quota: int = Field(ge=-1)
+    nano_cpus: int = Field(default=0, ge=0)
+
+
+class UndoRecord(Model):
+    id: str
+    container: str
+    container_id: str
+    project: str
+    fault: FaultType
+    original: OriginalContainerState
+    done: bool = False
+
+
+class JournalData(Model):
+    version: Literal[1] = 1
+    records: list[UndoRecord] = Field(default_factory=list)
+
+
+class WatchdogWindow(Model):
+    elapsed_s: float = Field(ge=0)
+    journeys: dict[str, JourneyStats]
+    container_states: dict[str, str] = Field(default_factory=dict)
+
+
+class WatchdogState(Model):
+    target_containers: set[str] = Field(default_factory=set)
+    consecutive: dict[str, int] = Field(default_factory=dict)
+    abort_reason: str | None = None
 
 
 class Sample(Model):

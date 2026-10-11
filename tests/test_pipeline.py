@@ -188,10 +188,7 @@ def test_dry_run_cli(cli_workspace: Path) -> None:
 @pytest.mark.parametrize(
     "command",
     [
-        "fault",
         "inject",
-        "rollback",
-        "kill",
         "plan",
         "replay",
     ],

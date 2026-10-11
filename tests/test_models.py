@@ -37,6 +37,25 @@ def instances(value: object) -> list[BaseModel]:
 
 def test_every_contract_round_trips() -> None:
     values = [
+        models.JournalData(
+            records=[
+                models.UndoRecord(
+                    id="record",
+                    container="test",
+                    container_id="id-test",
+                    project="target",
+                    fault="stop",
+                    original=models.OriginalContainerState(
+                        running=True,
+                        paused=False,
+                        cpu_period=0,
+                        cpu_quota=0,
+                    ),
+                )
+            ]
+        ),
+        models.WatchdogWindow(elapsed_s=5, journeys={}),
+        models.WatchdogState(target_containers={"test"}),
         models.ContainerObservation(
             t=1, name="test", stats=models.ContainerStats(cpu_pct=1, mem_mb=2, restarts=0)
         ),

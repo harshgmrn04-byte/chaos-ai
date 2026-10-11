@@ -112,15 +112,28 @@ class ContainerStatsPoller(threading.Thread):
         self._lock = threading.Lock()
         self._observations: list[ContainerObservation] = []
         self._previous_cpu: dict[str, dict[str, Any]] = {}
+        self._known_names: set[str] = set()
 
     def poll_once(self) -> None:
-        for container in list_target_containers(self.client, self.settings):
+        containers = list_target_containers(self.client, self.settings)
+        current_names = {container.name for container in containers}
+        for name in self._known_names - current_names:
+            observation = ContainerObservation(
+                t=time.time(),
+                name=name,
+                stats=ContainerStats(cpu_pct=0, mem_mb=0, restarts=0, status="missing"),
+            )
+            with self._lock:
+                append_jsonl(self.path, [observation])
+                self._observations.append(observation)
+        self._known_names |= current_names
+        for container in containers:
             try:
                 container.reload()
                 require_scope(container, self.settings.compose_project)
                 state = container.attrs.get("State", {})
                 status = "paused" if state.get("Paused", False) else container.status
-                if state.get("Health", {}).get("Status") == "unhealthy":
+                if status == "running" and state.get("Health", {}).get("Status") == "unhealthy":
                     status = "unhealthy"
                 raw = (
                     container.stats(stream=False, one_shot=True)

@@ -17,6 +17,7 @@ class Settings(BaseModel):
     compose_project: str = "ecommerce-microservices"
     compose_file: str = "docker-compose.yml"
     overrides_file: Path = Path("overrides.yaml")
+    state_dir: Path = Path(".chaosai")
     llm_provider: Literal["gemini", "mock", "none"] = "none"
     gemini_model: str | None = None
 
@@ -111,6 +112,25 @@ class Settings(BaseModel):
     @property
     def runs_dir(self) -> Path:
         return self.project_root / "runs"
+
+    @property
+    def safety_dir(self) -> Path:
+        return self.project_root / self.state_dir
+
+    @property
+    def kill_path(self) -> Path:
+        return self.safety_dir / "KILL"
+
+    @property
+    def operation_lock_path(self) -> Path:
+        return self.safety_dir / "operation.lock"
+
+    @property
+    def active_lock_path(self) -> Path:
+        return self.safety_dir / "active.lock"
+
+    def journal_path(self, run_dir: Path) -> Path:
+        return run_dir / "journal.json"
 
 
 def load_config(*, offline: bool = False, project_root: Path = PROJECT_ROOT) -> Settings:

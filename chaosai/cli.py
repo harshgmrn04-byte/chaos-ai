@@ -1,6 +1,7 @@
 """CLI for fixture runs and Phase 2 target operations."""
 
 import sys
+import threading
 from pathlib import Path
 
 import docker
@@ -12,10 +13,26 @@ from chaosai.approval import ApprovalRequired, Approver
 from chaosai.baseline import measure_baseline, run_load
 from chaosai.config import PROJECT_ROOT, Settings, load_config
 from chaosai.doctor import doctor_checks, status_checks, target_status
+from chaosai.faults import get_fault
+from chaosai.faults.base import FaultContext, hold_fault
 from chaosai.mapper import MapperError, map_target, mermaid, save_graph
+from chaosai.models import AbortRule, ExperimentSpec, Hypothesis
 from chaosai.report import render_report
 from chaosai.runner import run_pipeline
-from chaosai.runs import create_run
+from chaosai.runs import create_run, write_json
+from chaosai.safety import (
+    SafetyError,
+    SafetyInterrupted,
+    UndoJournal,
+    clear_kill_flag,
+    create_kill_flag,
+    file_lock,
+    kill_requested,
+    policy_gate,
+    replay_journals,
+    rollback_signals,
+    scope_guard,
+)
 from chaosai.seed import seed_target
 from chaosai.smoke import smoke_target
 from chaosai.target import TargetError, compose_up, get_docker_client
@@ -143,7 +160,7 @@ def target_config() -> Settings:
 def target_failure(exc: Exception) -> None:
     message = (
         str(exc)
-        if isinstance(exc, TargetError)
+        if isinstance(exc, (TargetError, ApprovalRequired, MapperError))
         else ("Docker target operation failed; check scoped containers and Docker Desktop.")
     )
     typer.echo(f"FAIL: {message}", err=True)
@@ -297,11 +314,160 @@ def not_implemented() -> None:
     raise typer.Exit(2)
 
 
+fault_app = typer.Typer(help="Low-level faults with durable rollback.", no_args_is_help=True)
+app.add_typer(fault_app, name="fault")
+
+
+@fault_app.command("apply")
+def fault_apply(
+    fault: str,
+    target: str,
+    duration: int = typer.Option(30, help="Seconds, clamped to [5,120]."),
+    yes: bool = typer.Option(False, "--yes", help="Approve this live fault."),
+) -> None:
+    """Apply kill/stop/pause; automatically undo at duration, signal or kill switch."""
+    approver = Approver(yes=yes, is_tty=sys.stdin.isatty(), ask=input, simulation=False)
+    client = None
+    try:
+        approver.ensure_interactive()
+        settings = target_config()
+        graph = map_target(settings)
+        implementation = get_fault(fault)
+        spec = ExperimentSpec(
+            id=f"{target}-{fault}",
+            fault=fault,
+            target=target,
+            duration_s=duration,
+            intensity=None,
+            rank=1,
+            reason="Approved low-level safety test.",
+            hypothesis=Hypothesis(
+                journey="all",
+                max_error_rate=0.02,
+                max_p95_multiple=2,
+                statement="Low-level fault/undo test.",
+            ),
+            abort=AbortRule(max_error_rate=0.5, max_p95_multiple=10),
+        )
+        decision = policy_gate(spec)
+        implementation.validate(decision.final, graph)
+        if not decision.allowed:
+            raise SafetyError(decision.deny_reason or "Policy denied.")
+        typer.echo(
+            "Low-level test: duration, signals and KILL protection; no load/metric watchdog."
+        )
+        if approver.decide(decision) in {"skip", "quit"}:
+            typer.echo("Fault skipped.")
+            return
+        client = get_docker_client()
+        with file_lock(settings.active_lock_path, blocking=False):
+            abort = threading.Event()
+            with rollback_signals(lambda: replay_journals(client, settings), abort):
+                replay_journals(client, settings)  # Reconcile before every low-level run.
+                if kill_requested(settings):
+                    raise SafetyError("KILL flag present; run chaosai rollback --clear-kill first.")
+                run_dir = create_run(settings.runs_dir)
+                write_json(run_dir / "decisions.json", [decision])
+                save_graph(graph, settings, run_dir)
+                ctx = FaultContext(
+                    decision.final,
+                    graph,
+                    client,
+                    settings,
+                    UndoJournal(settings.journal_path(run_dir), client, settings),
+                )
+                implementation.apply(ctx)
+                typer.echo(f"Applied {fault} to {target} for {decision.final.duration_s}s.")
+                typer.echo(f"Journal: {ctx.journal.path}")
+                reason = hold_fault(implementation, ctx, abort)
+                implementation.undo(ctx)
+                if reason:
+                    typer.echo(reason)
+                if ctx.self_healed is not None:
+                    typer.echo(f"Observed self-heal: {ctx.self_healed}")
+        typer.echo("Rollback complete.")
+    except SafetyInterrupted:
+        typer.echo("Interrupted; rollback complete.")
+        raise typer.Exit(130) from None
+    except (
+        ApprovalRequired,
+        TargetError,
+        MapperError,
+        docker.errors.DockerException,
+        OSError,
+        ValidationError,
+    ) as exc:
+        target_failure(exc)
+    finally:
+        if client is not None:
+            client.close()
+
+
+@fault_app.command("undo")
+def fault_undo(fault: str, target: str) -> None:
+    """Replay pending records for one scoped target/fault; recovery needs no approval."""
+    settings = target_config()
+    client = None
+    try:
+        get_fault(fault)
+        graph = map_target(settings)
+        client = get_docker_client()
+        container = scope_guard(target, graph, client, settings.compose_project)
+        count = replay_journals(client, settings, container=container.name, fault=fault)
+        typer.echo(f"Rollback complete: {count} undo records restored.")
+    except (
+        TargetError,
+        MapperError,
+        docker.errors.DockerException,
+        OSError,
+        ValidationError,
+    ) as exc:
+        target_failure(exc)
+    finally:
+        if client is not None:
+            client.close()
+
+
+@app.command("rollback")
+def rollback_command(
+    clear_kill: bool = typer.Option(False, help="Clear KILL after recovery, with no active fault."),
+) -> None:
+    """Replay all pending undo journals, retaining failures for retry."""
+    settings = target_config()
+    client = None
+    try:
+        client = get_docker_client()
+        count = replay_journals(client, settings)
+        if clear_kill:
+            clear_kill_flag(settings)
+        typer.echo(f"Rollback complete: {count} undo records restored.")
+    except (TargetError, docker.errors.DockerException, OSError, ValidationError) as exc:
+        target_failure(exc)
+    finally:
+        if client is not None:
+            client.close()
+
+
+@app.command("kill")
+def kill_command() -> None:
+    """Persist KILL before connecting to Docker, then directly replay every journal."""
+    settings = target_config()
+    client = None
+    try:
+        create_kill_flag(settings)
+        client = get_docker_client()
+        count = replay_journals(client, settings)
+        typer.echo(f"KILL set; rollback complete: {count} undo records restored.")
+        typer.echo("After the injector exits, use chaosai rollback --clear-kill to resume.")
+    except (TargetError, docker.errors.DockerException, OSError, ValidationError) as exc:
+        target_failure(exc)
+    finally:
+        if client is not None:
+            client.close()
+
+
 for command_name in (
-    "fault",
     "inject",
-    "rollback",
-    "kill",
     "plan",
     "replay",
 ):

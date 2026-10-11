@@ -5,11 +5,11 @@ AI-driven chaos engineering for cloud-native resilience. Python package: `chaosa
 Phase 2 provides live target bring-up, diagnostics, seeding and checkout verification.
 Phase 3 maps Compose deterministically, with manual overrides and Mermaid output.
 Phase 4 adds live threaded load, scoped telemetry and measured baselines.
+Phase 5 adds deterministic faults, scope/policy checks, durable undo, watchdog and kill switch.
 The `run` command maps Compose and measures a live baseline by default; `--offline` uses
-bundled fixtures without target access. Experiments and findings remain synthetic;
-real fault execution and analysis arrive in later phases. The policy
-decisions, rollback and recovery evidence are also fixtures. Real safety controls and scoring
-arrive in later phases.
+bundled fixtures without target access. Experiments and findings remain synthetic.
+The `fault apply` command executes live faults separately. Policy decisions, rollback and
+recovery evidence within `run` remain fixtures until Phase 6; analysis/scoring arrive later.
 
 ```sh
 cd chaos-ai
@@ -39,8 +39,30 @@ Without a TTY, execution requires `--yes`. `n` skips, `a` approves the remaining
 and `q` writes a report for experiments already completed. EOF or Ctrl-C at the approval
 prompt also quits cleanly. Dry runs and entirely skipped plans have no assessed score.
 
-Commands deferred to later phases print `not implemented yet` and exit 2: `fault`,
-`inject`, `rollback`, `kill`, `plan`, `replay`.
+Commands deferred to later phases print `not implemented yet` and exit 2:
+`inject`, `plan`, `replay`.
+
+## Faults and recovery (Phase 5)
+
+```sh
+chaosai fault apply stop redis --duration 20  # y/n/a/q approval; automatic undo
+chaosai fault apply pause product-service --duration 20
+chaosai fault apply kill order-service --duration 20
+chaosai fault undo stop redis                # pending records for this target/fault
+chaosai rollback                             # replay every pending journal
+chaosai kill                                 # persist KILL and roll back immediately
+chaosai rollback --clear-kill                 # explicit reset after injector exits
+```
+
+`--yes` approves a live fault; without it, no TTY means refuse. Duration is clamped to
+5–120 seconds. Journals are fsynced before Docker mutations, and failures remain pending
+for retry. Normal exit, exceptions, Ctrl-C and SIGTERM restore recorded state. Only graph
+targets with the exact Compose project label are injectable. One active fault is allowed
+per ChaosPilot workspace. `KILL` remains set until explicitly cleared after successful recovery.
+
+These are low-level mechanism tests: they generate no load and attach no metric watchdog.
+The tested watchdog consumes live buffers for Phase 6's measured experiment runner.
+See [safety.md](docs/safety.md) for contracts, recovery limits and exact two-terminal checks.
 
 ## Application graph (Phase 3)
 
